@@ -1,0 +1,44 @@
+# --- Framework & Core API ---
+Django==5.2.15
+djangorestframework==3.17.1
+asgiref==3.11.1
+sqlparse==0.5.5
+tzdata==2026.2
+
+# --- Database & Storage ---
+psycopg2-binary==2.9.12
+pillow==12.3.0
+
+# --- Authentication & Security ---
+djangorestframework_simplejwt==5.5.1
+PyJWT==2.13.0
+django-cors-headers==4.9.0
+python-dotenv==1.2.2
+
+# --- Caching, Sessions & Redis ---
+redis==8.0.1
+django-redis==7.0.0
+
+# --- Audit Logging & Documentation ---
+django-simple-history==3.12.0
+drf-spectacular==0.27.2
+
+# --- Django Channels (realtime WebSocket) ---
+channels==4.2.2
+channels-redis==4.2.1
+daphne==4.2.0
+
+# --- File Processing & Export (enable per SRS) ---
+# openpyxl==3.1.5
+# et_xmlfile==2.0.0
+# xhtml2pdf==0.2.16
+
+# --- Asynchronous Tasks (enable if the SRS needs background jobs or email) ---
+# celery==5.6.3
+# django-celery-results==2.5.1
+
+# --- Testing & Code Quality ---
+pytest==8.3.2
+pytest-django==4.9.0
+pytest-cov==5.0.0
+model-bakery==1.19.5
