@@ -6,7 +6,7 @@ sqlparse==0.5.5
 tzdata==2026.2
 
 # --- Database & Storage ---
-psycopg2-binary==2.9.12
+mysqlclient==2.3.0
 pillow==12.3.0
 
 # --- Authentication & Security ---

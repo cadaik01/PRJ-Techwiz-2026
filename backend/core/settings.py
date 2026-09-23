@@ -72,16 +72,17 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = 'core.asgi.application'
 
-# Defaults to SQLite so the project runs out of the box; set DB_NAME in .env for PostgreSQL.
+# Defaults to SQLite so the project runs out of the box; set DB_NAME in .env for MySQL.
 if os.environ.get('DB_NAME'):
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql',
+            'ENGINE': 'django.db.backends.mysql',
             'NAME': os.environ.get('DB_NAME'),
             'USER': os.environ.get('DB_USER'),
             'PASSWORD': os.environ.get('DB_PASSWORD'),
             'HOST': os.environ.get('DB_HOST'),
             'PORT': os.environ.get('DB_PORT'),
+            'OPTIONS': {'charset': 'utf8mb4'},
         }
     }
 else:

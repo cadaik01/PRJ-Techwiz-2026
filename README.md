@@ -110,7 +110,7 @@ API docs: `http://localhost:8000/api/docs/`
 
 Two defaults keep a fresh clone runnable with nothing else installed:
 
-- **SQLite** until `DB_NAME` is set in `.env`, then PostgreSQL.
+- **SQLite** until `DB_NAME` is set in `.env`, then MySQL.
 - **In-process cache and channel layer** until `USE_REDIS=True`. That fallback is
   single-process only: WebSocket broadcasts do not cross workers, and tickets do
   not survive a restart. Switch Redis on before running more than one worker.
