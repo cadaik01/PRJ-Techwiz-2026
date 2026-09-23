@@ -12,27 +12,29 @@ from django.db import models
 from core.models import BaseModel
 
 
-class NotificationSeverity(models.TextChoices):
-    NORMAL = 'normal', 'Normal'
-    WARNING = 'warning', 'Warning'
-    CRITICAL = 'critical', 'Critical'
+class NotificationLevel(models.TextChoices):
+    INFO = 'INFO', 'Info'
+    SUCCESS = 'SUCCESS', 'Success'
+    WARNING = 'WARNING', 'Warning'
+    DANGER = 'DANGER', 'Danger'
 
 
 class Notification(BaseModel):
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        # Notifications belong to the account; removing the account removes them.
+        # A notification is a pure child row of its recipient.
         on_delete=models.CASCADE,
         related_name='notifications',
     )
-    verb = models.CharField(max_length=64, db_index=True)
-    severity = models.CharField(
+    title = models.CharField(max_length=200)
+    message = models.TextField(blank=True, default='')
+    level = models.CharField(
         max_length=16,
-        choices=NotificationSeverity.choices,
-        default=NotificationSeverity.NORMAL,
+        choices=NotificationLevel.choices,
+        default=NotificationLevel.INFO,
     )
-    payload = models.JSONField(default=dict, blank=True)
-    is_read = models.BooleanField(default=False, db_index=True)
+    target_url = models.CharField(max_length=255, blank=True, default='')
+    is_read = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'notifications'
@@ -42,4 +44,4 @@ class Notification(BaseModel):
         ]
 
     def __str__(self):
-        return f'{self.verb} -> {self.recipient_id}'
+        return f'{self.title} -> {self.recipient_id}'

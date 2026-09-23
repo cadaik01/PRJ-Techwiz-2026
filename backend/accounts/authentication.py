@@ -1,40 +1,59 @@
 """
 Module: accounts.authentication
-Description: JWT authentication with a cache-backed revocation list.
+Description: JWT authentication with a cache-backed token blacklist.
 
-Wraps SimpleJWT so a token can be revoked immediately (logout, forced password
-change) without waiting for it to expire. The cache is the fast path; if it is
-unavailable the request still authenticates on the signature alone rather than
-failing closed, which keeps a Redis outage from locking everyone out.
+Revoked token ids live in the cache (Redis in production) as blacklist:<jti> with a
+TTL equal to the token's remaining lifetime, so they expire on their own and no
+token_blacklist tables grow in MySQL. If the cache is unreachable, requests still
+authenticate on the signature alone rather than failing closed, so a Redis outage
+does not lock everyone out.
 """
+
+import logging
 
 from django.core.cache import cache
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.exceptions import InvalidToken
 
-REVOKED_KEY = 'revoked_jti:{jti}'
+from core.exceptions import TokenBlacklistedError
+
+logger = logging.getLogger(__name__)
+
+BLACKLIST_KEY = 'blacklist:{jti}'
 
 
-def revoke(*, jti, ttl):
-    """Mark a token id as revoked for the remainder of its lifetime."""
+def blacklist_jti(*, jti: str, ttl: int) -> None:
     try:
-        cache.set(REVOKED_KEY.format(jti=jti), True, timeout=ttl)
-    except Exception:  # noqa: BLE001 - cache outage must not break logout
-        pass
+        cache.set(BLACKLIST_KEY.format(jti=jti), '1', timeout=ttl)
+    except Exception:
+        logger.exception('Token blacklist write failed')
 
 
-def is_revoked(*, jti):
+def claim_jti(*, jti: str, ttl: int) -> bool:
+    """Blacklist a jti only if it is not already. True if this call claimed it.
+
+    cache.add() is set-if-absent, so two concurrent refreshes with the same token
+    cannot both succeed.
+    """
     try:
-        return bool(cache.get(REVOKED_KEY.format(jti=jti)))
-    except Exception:  # noqa: BLE001 - see module docstring
+        return cache.add(BLACKLIST_KEY.format(jti=jti), '1', timeout=ttl)
+    except Exception:
+        logger.exception('Token blacklist write failed')
+        return True
+
+
+def is_blacklisted(*, jti: str) -> bool:
+    try:
+        return cache.get(BLACKLIST_KEY.format(jti=jti)) is not None
+    except Exception:
+        logger.exception('Token blacklist read failed')
         return False
 
 
 class ProjectJWTAuthentication(JWTAuthentication):
-    """JWTAuthentication that additionally consults the revocation list."""
+    """JWTAuthentication that also rejects blacklisted access tokens."""
 
     def get_validated_token(self, raw_token):
         token = super().get_validated_token(raw_token)
-        if is_revoked(jti=token.get('jti')):
-            raise InvalidToken('Token has been revoked.')
+        if is_blacklisted(jti=token.get('jti')):
+            raise TokenBlacklistedError()
         return token

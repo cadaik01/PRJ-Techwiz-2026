@@ -1,24 +1,24 @@
 """
-Module: core.urls
+Module: config.urls
 Description: Root URLconf. Mounts every app under /api/ and exposes the OpenAPI schema.
 """
 
 from django.conf import settings
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.views.static import serve
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
-from django.urls import re_path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
     path('api/auth/', include('accounts.urls')),
     path('api/notifications/', include('notifications.urls')),
+    path('api/', include('system.urls')),
     # Mount the SRS apps here, for example:
     # path('api/', include('orders.urls')),
 

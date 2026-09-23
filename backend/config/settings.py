@@ -1,12 +1,15 @@
 """
-Module: core.settings
-Description: Central Django configuration - database, JWT auth, CORS, Redis channel layer.
+Module: config.settings
+Description: Central Django configuration - MySQL (InnoDB), JWT auth, CORS, Redis
+             cache and channel layer.
 """
 
 import os
 from datetime import timedelta
 from pathlib import Path
 
+from corsheaders.defaults import default_headers
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,19 +31,21 @@ INSTALLED_APPS = [
     # Third-party libraries
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
     'simple_history',
     'corsheaders',
     'drf_spectacular',
     'channels',
 
     # Project applications
+    'core',
+    'system',
     'accounts',
     'notifications',
     # Add the apps required by the SRS here, for example: 'orders',
 ]
 
 MIDDLEWARE = [
+    'core.middleware.RequestIDMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -52,7 +57,7 @@ MIDDLEWARE = [
     'simple_history.middleware.HistoryRequestMiddleware',
 ]
 
-ROOT_URLCONF = 'core.urls'
+ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
@@ -69,29 +74,40 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'core.wsgi.application'
-ASGI_APPLICATION = 'core.asgi.application'
+WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
-# Defaults to SQLite so the project runs out of the box; set DB_NAME in .env for MySQL.
-if os.environ.get('DB_NAME'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.environ.get('DB_NAME'),
-            'USER': os.environ.get('DB_USER'),
-            'PASSWORD': os.environ.get('DB_PASSWORD'),
-            'HOST': os.environ.get('DB_HOST'),
-            'PORT': os.environ.get('DB_PORT'),
-            'OPTIONS': {'charset': 'utf8mb4'},
-        }
+# Every developer works against MySQL directly: a schema built on SQLite and then
+# moved to MySQL hides collation, strict-mode and DDL differences until demo day.
+if not os.environ.get('DB_NAME'):
+    raise ImproperlyConfigured(
+        'DB_NAME is not set. Copy backend/.env.example to backend/.env and point it '
+        'at a MySQL 8 database created with utf8mb4 / utf8mb4_0900_ai_ci.'
+    )
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
+        # Must stay False: a request-wide transaction would roll back the
+        # audit_logs row written when the request fails.
+        'ATOMIC_REQUESTS': False,
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'isolation_level': 'read committed',
+        },
+        'TEST': {
+            'CHARSET': 'utf8mb4',
+            'COLLATION': 'utf8mb4_0900_ai_ci',
+        },
+        'CONN_MAX_AGE': int(os.environ.get('DB_CONN_MAX_AGE', '0')),
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -114,6 +130,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 AUTH_USER_MODEL = 'accounts.CustomUser'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# TEXT instead of VARCHAR(100) for history_change_reason, so a long FSM reason does
+# not hit MySQL error 1406. Must be set before the first migrate.
+SIMPLE_HISTORY_HISTORY_CHANGE_REASON_USE_TEXT_FIELD = True
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'accounts.authentication.ProjectJWTAuthentication',
@@ -122,14 +142,18 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    # Every handled error leaves through the same envelope as a success response.
-    'EXCEPTION_HANDLER': 'core.responses.api_exception_handler',
-    # Paginate every list endpoint by default, so a growing table never turns into
-    # an unbounded response.
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
+    'EXCEPTION_HANDLER': 'core.utils.custom_exception_handler',
+    'DEFAULT_PAGINATION_CLASS': 'core.pagination.StandardPagination',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
     'DEFAULT_THROTTLE_RATES': {
-        'login': '10/min',
+        # High enough that the jury testing from one IP is never blocked.
+        'anon': '2000/hour',
+        'user': '5000/hour',
+        'auth': '5/minute',
+        'export': '10/hour',
     },
 }
 
@@ -139,11 +163,12 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
+# Refresh rotation and the refresh-token blacklist live in
+# accounts.services.token_service (cache-backed, no token_blacklist tables).
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 CORS_ALLOWED_ORIGINS = os.environ.get(
@@ -151,12 +176,19 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
     'http://localhost:5173,http://127.0.0.1:5173',
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'if-match',
+    'idempotency-key',
+    'x-request-id',
+]
+CORS_EXPOSE_HEADERS = ['x-request-id']
 
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
 USE_REDIS = os.environ.get('USE_REDIS', 'False').lower() in ('true', '1', 't')
 
-# Redis backs the WebSocket ticket store, rate limiting and the channel layer.
-# Falls back to in-process backends so a fresh clone runs without a Redis server.
+# Redis backs the token blacklist, WebSocket tickets, throttling and the channel
+# layer. The in-process fallback is single-worker only: counters, tickets and
+# broadcasts do not cross workers. Switch Redis on before running more than one.
 if USE_REDIS:
     CACHES = {
         'default': {
@@ -168,7 +200,9 @@ if USE_REDIS:
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {'hosts': [REDIS_URL]},
+            # redis-py 8 defaults to a 5 s socket timeout, which kills the blocking
+            # read channels-redis keeps open for each WebSocket and drops the socket.
+            'CONFIG': {'hosts': [{'address': REDIS_URL, 'socket_timeout': None}]},
         },
     }
 else:

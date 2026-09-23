@@ -1,5 +1,5 @@
 """
-Module: core.routing
+Module: config.routing
 Description: Root WebSocket URLconf. Collects the ws/ routes declared by each app.
 """
 

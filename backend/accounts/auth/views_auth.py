@@ -4,22 +4,27 @@ Description: Authentication endpoints - login, refresh, logout, profile, passwor
              change and WebSocket ticket issuing.
 """
 
-from django.contrib.auth import authenticate
-from rest_framework import status
+from django.conf import settings
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
-from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.tokens import RefreshToken
 
+from accounts.services.auth_service import authenticate_user
 from accounts.services.password_service import change_password
-from accounts.services.token_service import issue_pair, revoke_token
-from accounts.services.ws_ticket_service import issue_ticket
-from core.responses import api_response
+from accounts.services.token_service import (
+    issue_pair,
+    revoke_refresh_token,
+    revoke_token,
+    rotate_refresh_token,
+)
+from core.services.ws_ticket import create_ws_ticket
+from core.utils import api_response, audit_request
+from system.models import AuditAction
 
 from .serializers_auth import (
     ChangePasswordWriteSerializer,
     LoginWriteSerializer,
+    LogoutWriteSerializer,
     RefreshWriteSerializer,
     UserReadSerializer,
 )
@@ -30,62 +35,51 @@ class LoginView(APIView):
 
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'login'
+    throttle_scope = 'auth'
 
     def post(self, request):
         serializer = LoginWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        user = authenticate(
-            request,
-            username=serializer.validated_data['email'],
-            password=serializer.validated_data['password'],
-        )
-        # One generic message for both a wrong password and an unknown address,
-        # so the response cannot be used to enumerate accounts.
-        if user is None or not user.is_active:
-            return api_response(
-                success=False,
-                message='Invalid credentials.',
-                errors={'detail': ['Invalid credentials.']},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        return api_response(
-            message='Signed in.',
-            data={**issue_pair(user=user), 'user': UserReadSerializer(user).data},
-        )
+        user = authenticate_user(**serializer.validated_data)
+        if user is None:
+            audit_request(request, action=AuditAction.LOGIN, status_code=401,
+                          details={'email': serializer.validated_data['email']})
+            return api_response(message='Email hoặc mật khẩu không đúng', status_code=401,
+                                request=request, code='AUTHENTICATION_FAILED')
+        audit_request(request, action=AuditAction.LOGIN, status_code=200, user=user)
+        user_data = UserReadSerializer(user, context={'request': request}).data
+        return api_response(message='Đăng nhập thành công', request=request,
+                            data={**issue_pair(user=user), 'user': user_data})
 
 
 class RefreshView(APIView):
-    """Rotate a refresh token into a new access token."""
+    """Rotate a refresh token: returns a new pair and blacklists the old refresh token."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth'
 
     def post(self, request):
         serializer = RefreshWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        try:
-            refresh = RefreshToken(serializer.validated_data['refresh'])
-        except TokenError:
-            return api_response(
-                success=False,
-                message='Invalid or expired refresh token.',
-                errors={'refresh': ['Invalid or expired refresh token.']},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-        return api_response(message='Token refreshed.', data={'access': str(refresh.access_token)})
+        pair = rotate_refresh_token(raw_refresh=serializer.validated_data['refresh'])
+        return api_response(message='Làm mới phiên đăng nhập thành công', request=request, data=pair)
 
 
 class LogoutView(APIView):
-    """Revoke the caller's access token."""
+    """Blacklist the caller's access token and, if sent, their refresh token."""
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        serializer = LogoutWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if serializer.validated_data.get('refresh'):
+            revoke_refresh_token(raw_refresh=serializer.validated_data['refresh'], user_id=request.user.id)
         if request.auth is not None:
             revoke_token(token=request.auth)
-        return api_response(message='Signed out.')
+        audit_request(request, action=AuditAction.LOGOUT, status_code=200, user=request.user)
+        return api_response(message='Đăng xuất thành công', request=request)
 
 
 class MeView(APIView):
@@ -94,31 +88,23 @@ class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return api_response(message='Profile retrieved.', data=UserReadSerializer(request.user).data)
+        user_data = UserReadSerializer(request.user, context={'request': request}).data
+        return api_response(message='Lấy thông tin tài khoản thành công', request=request, data=user_data)
 
 
 class ChangePasswordView(APIView):
-    """Change the caller's own password."""
+    """Change the caller's own password, then revoke the token it was made with."""
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = ChangePasswordWriteSerializer(data=request.data)
+        serializer = ChangePasswordWriteSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-
-        if not request.user.check_password(serializer.validated_data['current_password']):
-            return api_response(
-                success=False,
-                message='Validation failed.',
-                errors={'current_password': ['Incorrect password.']},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         change_password(user=request.user, new_password=serializer.validated_data['new_password'])
-        # The old token outlives the password it was issued against, so burn it.
         if request.auth is not None:
             revoke_token(token=request.auth)
-        return api_response(message='Password changed. Please sign in again.')
+        audit_request(request, action=AuditAction.CHANGE_PASSWORD, status_code=200, user=request.user)
+        return api_response(message='Đổi mật khẩu thành công. Vui lòng đăng nhập lại.', request=request)
 
 
 class WebSocketTicketView(APIView):
@@ -127,4 +113,6 @@ class WebSocketTicketView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        return api_response(message='Ticket issued.', data={'ticket': issue_ticket(user=request.user)})
+        ticket = create_ws_ticket(user_id=request.user.id, role=request.user.role.code)
+        return api_response(message='Cấp vé thành công', request=request,
+                            data={'ticket': ticket, 'expires_in': settings.WS_TICKET_TTL})

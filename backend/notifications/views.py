@@ -3,15 +3,14 @@ Module: notifications.views
 Description: List the caller's notifications and mark them read.
 """
 
-from rest_framework import status
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import GenericAPIView, ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
-from core.responses import api_response
-
-from .models import Notification
-from .serializers import NotificationReadSerializer
+from core.utils import api_response
+from notifications.models import Notification
+from notifications.serializers import NotificationReadSerializer
+from notifications.services import mark_all_notifications_read, mark_notification_read
 
 
 class NotificationListView(ListAPIView):
@@ -21,35 +20,22 @@ class NotificationListView(ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Scoping here rather than in the view body is what keeps an id from
-        # another account out of reach.
         return Notification.objects.filter(recipient=self.request.user)
 
-    def list(self, request, *args, **kwargs):
-        page = self.paginate_queryset(self.filter_queryset(self.get_queryset()))
-        serializer = self.get_serializer(page, many=True)
-        paginated = self.get_paginated_response(serializer.data)
-        return api_response(message='Notifications retrieved.', data=paginated.data)
 
-
-class NotificationReadView(APIView):
-    """Mark one notification read."""
+class NotificationReadView(GenericAPIView):
+    """Mark one notification read. Another user's id is a 404, like a missing one."""
 
     permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = 'id'
 
-    def patch(self, request, notification_id):
-        updated = Notification.objects.filter(
-            pk=notification_id, recipient=request.user
-        ).update(is_read=True)
+    def get_queryset(self):
+        return Notification.objects.filter(recipient=self.request.user)
 
-        if not updated:
-            return api_response(
-                success=False,
-                message='Notification not found.',
-                errors={'detail': ['Notification not found.']},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        return api_response(message='Notification marked as read.')
+    def patch(self, request, id):
+        notification = self.get_object()
+        mark_notification_read(notification_id=notification.id)
+        return api_response(message='Đã đánh dấu thông báo là đã đọc', request=request)
 
 
 class NotificationReadAllView(APIView):
@@ -58,7 +44,6 @@ class NotificationReadAllView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
-        count = Notification.objects.filter(
-            recipient=request.user, is_read=False
-        ).update(is_read=True)
-        return api_response(message='Notifications marked as read.', data={'updated': count})
+        count = mark_all_notifications_read(recipient_id=request.user.id)
+        return api_response(message='Đã đánh dấu tất cả thông báo là đã đọc', request=request,
+                            data={'updated': count})

@@ -1,42 +1,61 @@
 """
 Module: notifications.services
-Description: Fan-out helper for pushing a notification to a user.
+Description: Create, broadcast and mark notifications read.
 """
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.db import transaction
 
-from .models import Notification, NotificationSeverity
+from notifications.models import Notification, NotificationLevel
+from notifications.serializers import NotificationReadSerializer
 
-GROUP = 'user.{user_id}'
+USER_GROUP = 'user_{user_id}'
+ROLE_GROUP = 'role_{role}'
+EVENT_NEW_NOTIFICATION = 'NEW_NOTIFICATION'
 
 
-def push_notification(*, user_id, verb, payload=None, severity=NotificationSeverity.NORMAL):
-    """Persist a notification, then broadcast it to that user's channel group.
+def _broadcast(group: str, notification: Notification) -> None:
+    layer = get_channel_layer()
+    if layer is None:
+        return
+    async_to_sync(layer.group_send)(
+        group,
+        {
+            'type': 'notify',
+            'event': EVENT_NEW_NOTIFICATION,
+            'data': NotificationReadSerializer(notification).data,
+        },
+    )
 
-    The database write comes first so an offline recipient still has the row; the
-    broadcast is best-effort on top of it.
+
+def push_notification(
+    *,
+    user_id: int,
+    title: str,
+    message: str = '',
+    level: str = NotificationLevel.INFO,
+    target_url: str = '',
+) -> Notification:
+    """Persist a notification, then broadcast it once the transaction commits.
+
+    Deferring the broadcast means a rolled-back business operation never shows the
+    user a notification for something that did not happen.
     """
     notification = Notification.objects.create(
         recipient_id=user_id,
-        verb=verb,
-        severity=severity,
-        payload=payload or {},
+        title=title,
+        message=message,
+        level=level,
+        target_url=target_url,
     )
-
-    layer = get_channel_layer()
-    if layer is not None:
-        async_to_sync(layer.group_send)(
-            GROUP.format(user_id=user_id),
-            {
-                'type': 'notify',
-                'data': {
-                    'id': notification.pk,
-                    'verb': notification.verb,
-                    'severity': notification.severity,
-                    'payload': notification.payload,
-                    'created_at': notification.created_at.isoformat(),
-                },
-            },
-        )
+    transaction.on_commit(lambda: _broadcast(USER_GROUP.format(user_id=user_id), notification))
     return notification
+
+
+def mark_notification_read(*, notification_id: int) -> None:
+    Notification.objects.filter(id=notification_id).update(is_read=True)
+
+
+def mark_all_notifications_read(*, recipient_id: int) -> int:
+    return Notification.objects.filter(recipient_id=recipient_id, is_read=False).update(is_read=True)

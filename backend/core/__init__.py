@@ -1,1 +1,1 @@
-"""Root configuration package."""
+"""Shared layer used across every app."""
