@@ -1,13 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
-import useWebSocket from 'react-use-websocket';
+import useWebSocketModule from 'react-use-websocket';
 
-import { QUERY_KEYS } from '../../config/constants';
+import { QUERY_KEYS, WS_EVENTS } from '../../config/constants';
 import { wsUrl } from '../../config/env';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useNotificationStore } from '../../stores/useNotificationStore';
 import { authApi } from '../auth/authApi';
 import { notificationsApi } from './notificationsApi';
+
+// react-use-websocket ships CommonJS only. Vite 8's interop hands a default import
+// the whole module.exports object, so the hook itself sits on `.default`.
+const useWebSocket = useWebSocketModule.default ?? useWebSocketModule;
 
 export function useNotifications() {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -41,9 +45,11 @@ export function useNotifications() {
       shouldReconnect: () => true,
       reconnectAttempts: 5,
       reconnectInterval: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
-      onMessage: (event) => {
+      // Frames are {event, data}; only NEW_NOTIFICATION carries a bell item.
+      onMessage: (message) => {
         try {
-          prepend(JSON.parse(event.data));
+          const frame = JSON.parse(message.data);
+          if (frame.event === WS_EVENTS.NEW_NOTIFICATION) prepend(frame.data);
         } catch {
           // Ignore frames that are not JSON.
         }

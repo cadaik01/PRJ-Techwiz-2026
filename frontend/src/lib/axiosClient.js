@@ -51,9 +51,12 @@ async function refreshAccessToken() {
   // Bare axios, not axiosClient: the interceptors below must not recurse, which
   // also means this response still carries the envelope.
   const { data } = await axios.post(`${env.API_BASE_URL}/auth/refresh/`, { refresh });
-  const access = isEnvelope(data) ? data.data.access : data.access;
-  localStorage.setItem(STORAGE_KEYS.ACCESS, access);
-  return access;
+  const pair = isEnvelope(data) ? data.data : data;
+  // The backend rotates refresh tokens and blacklists the old one, so the new
+  // refresh token must replace it or the next refresh fails with TOKEN_BLACKLISTED.
+  localStorage.setItem(STORAGE_KEYS.ACCESS, pair.access);
+  if (pair.refresh) localStorage.setItem(STORAGE_KEYS.REFRESH, pair.refresh);
+  return pair.access;
 }
 
 axiosClient.interceptors.request.use((config) => {

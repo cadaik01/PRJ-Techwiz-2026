@@ -46,8 +46,9 @@ export function NotificationBell() {
             <DropdownItem key={item.id} onSelect={() => read(item.id)}>
               <div className="flex flex-col gap-0.5">
                 <span className={item.is_read ? 'text-slate-600' : 'font-medium text-slate-900'}>
-                  {item.verb}
+                  {item.title}
                 </span>
+                {item.message && <span className="text-xs text-slate-500">{item.message}</span>}
                 <span className="text-xs text-slate-400">{formatDateTime(item.created_at)}</span>
               </div>
             </DropdownItem>
