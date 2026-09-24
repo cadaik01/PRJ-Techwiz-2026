@@ -1,25 +1,29 @@
 from rest_framework.permissions import BasePermission
 
 from marketlink_core.policies.roles import RoleCode
-from system.models import AuditAction
-from system.services.audit_service import log_security_event
 
 
-class RolePermission(BasePermission):
-    role_code = ""
+class _RolePermission(BasePermission):
+    """Gate a whole /api/<role>/ branch to one role; a wrong role gets 403 PERMISSION_DENIED."""
+
+    role: str = ""
+    message = "You do not have permission to access this resource."
 
     def has_permission(self, request, view) -> bool:
         user = request.user
-        if not (user and user.is_authenticated):
+        if not user or not user.is_authenticated or not user.is_active:
             return False
-        if user.role.code == self.role_code:
-            return True
-        # Pass 4B §6.1 / CT-04: wrong role branch is 403 plus an ACCESS_DENIED audit row.
-        log_security_event(
-            request, action=AuditAction.ACCESS_DENIED, status_code=403, details={"required_role": self.role_code}
-        )
-        return False
+        role = getattr(user, "role", None)
+        return role is not None and role.code == self.role
 
 
-class IsCustomer(RolePermission):
-    role_code = RoleCode.CUSTOMER
+class IsCustomer(_RolePermission):
+    role = RoleCode.CUSTOMER
+
+
+class IsFarmer(_RolePermission):
+    role = RoleCode.FARMER
+
+
+class IsAdmin(_RolePermission):
+    role = RoleCode.ADMIN

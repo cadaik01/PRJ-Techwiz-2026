@@ -59,12 +59,3 @@ class TestRefresh:
 
         assert response.status_code == 403
         assert response.json()["code"] == "ACCOUNT_LOCKED"
-
-    def test_new_access_token_reflects_current_claims(self, api, customer):
-        refresh = issue_tokens(customer)["refresh"]
-        customer.must_change_password = True
-        customer.save()
-
-        access = _refresh(api, refresh).json()["data"]["access"]
-
-        assert AccessToken(access)["must_change_password"] is True

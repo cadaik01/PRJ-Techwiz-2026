@@ -23,4 +23,4 @@ class PickupOptionsView(APIView):
         raw = {"date_from": request.query_params.get("from"), "days": request.query_params.get("days")}
         query = PickupOptionsQuerySerializer(data={key: value for key, value in raw.items() if value is not None})
         query.is_valid(raise_exception=True)
-        return api_response(data=list_pickup_options(farmer=farmer, **query.validated_data))
+        return api_response(message="OK", data=list_pickup_options(farmer=farmer, **query.validated_data), request=request)

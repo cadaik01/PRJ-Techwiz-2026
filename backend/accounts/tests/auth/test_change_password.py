@@ -16,17 +16,13 @@ def _change(api, user, current=PASSWORD, new=NEW_PASSWORD, confirm=None):
 
 @pytest.mark.django_db
 class TestChangePassword:
-    def test_changes_password_and_clears_flag(self, api, customer):
-        customer.must_change_password = True
-        customer.save()
-
+    def test_changes_password(self, api, customer):
         response, _ = _change(api, customer)
 
         customer.refresh_from_db()
         assert response.status_code == 200
         assert response.json()["data"] == {}
         assert customer.check_password(NEW_PASSWORD)
-        assert customer.must_change_password is False
 
     def test_keeps_current_session(self, api, customer):
         response, tokens = _change(api, customer)

@@ -19,8 +19,7 @@ def issue_tokens(user, *, session_id: str | None = None) -> dict:
         refresh = RefreshToken.for_user(user)
         # Claims set on the refresh token are copied into every access token derived from it.
         refresh["role"] = user.role.code
-        refresh["must_change_password"] = user.must_change_password
-        # One sid per login (device); it survives rotation so a whole device session can be revoked at once.
+            # One sid per login (device); it survives rotation so a whole device session can be revoked at once.
         refresh[SESSION_CLAIM] = session_id or uuid.uuid4().hex
         refresh[PASSWORD_VERSION_CLAIM] = password_version(user)
         # for_user() stores the token before our claims exist; store the final string so the sid can be read back.

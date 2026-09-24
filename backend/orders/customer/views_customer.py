@@ -3,10 +3,10 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from marketlink_core.db import run_with_deadlock_retry
-from marketlink_core.headers import require_idempotency_key
+from marketlink_core.http import require_idempotency_key
 from marketlink_core.permissions import IsCustomer
 from marketlink_core.responses import api_response
+from marketlink_core.services.db_retry import run_with_deadlock_retry
 from orders.customer.serializers_customer import CheckoutWriteSerializer, OrderSummaryReadSerializer
 from orders.selectors import order_summary_queryset
 from orders.services.checkout_service import place_orders
@@ -27,7 +27,9 @@ def _place_orders(request) -> tuple[int, dict]:
     summaries = run_with_deadlock_retry(
         _checkout_with_summaries, customer=request.user, groups=serializer.validated_data["groups"]
     )
-    return 201, api_response(data={"orders": summaries}, message=f"Placed {len(summaries)} order(s) successfully").data
+    return 201, api_response(
+        message=f"Placed {len(summaries)} order(s) successfully", data={"orders": summaries}, status_code=201, request=request
+    ).data
 
 
 class CustomerOrdersView(APIView):

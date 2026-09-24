@@ -30,8 +30,8 @@ def shop(db):
         farmer_b=farmer_b,
         slot_a=make_slot(farmer=farmer_a, market=market, day_of_week=pickup_date.isoweekday()),
         slot_b=make_slot(farmer=farmer_b, market=market, day_of_week=pickup_date.isoweekday()),
-        tomato=make_product(farmer=farmer_a, stock=10, price=25000),
-        eggs=make_product(farmer=farmer_b, stock=1, price=40000),
+        tomato=make_product(farmer=farmer_a, stock=10, price="2.50"),
+        eggs=make_product(farmer=farmer_b, stock=1, price="4.00"),
     )
 
 
@@ -61,7 +61,7 @@ class TestCheckoutApi:
         assert body["message"] == "Placed 2 order(s) successfully"
         orders = body["data"]["orders"]
         assert len(orders) == 2 and set(orders[0]) == SUMMARY_KEYS
-        assert (orders[0]["status"], orders[0]["total_amount"], orders[0]["item_count"]) == ("PLACED", 50000, 1)
+        assert (orders[0]["status"], orders[0]["total_amount"], orders[0]["item_count"]) == ("PLACED", "5.00", 1)
         assert orders[0]["farmer"] == {"id": shop.farmer_a.pk, "stall_name": shop.farmer_a.stall_name, "phone": shop.farmer_a.phone}
         assert orders[0]["cutoff_at"].endswith("+07:00")
 

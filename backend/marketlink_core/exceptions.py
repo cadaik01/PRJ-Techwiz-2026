@@ -1,80 +1,127 @@
-import logging
+from typing import Any
 
-from rest_framework import exceptions
-from rest_framework.response import Response
-from rest_framework.views import exception_handler as drf_exception_handler
-from rest_framework.views import set_rollback
-
-from marketlink_core.messages import default_message
-from marketlink_core.responses import error_body
-
-logger = logging.getLogger(__name__)
-
-# Frozen codes from Pass 4B §2.5 for errors raised by DRF itself.
-STATUS_TO_CODE = {
-    400: "VALIDATION_ERROR",
-    401: "NOT_AUTHENTICATED",
-    403: "PERMISSION_DENIED",
-    404: "NOT_FOUND",
-    429: "THROTTLED",
-}
+from rest_framework.exceptions import APIException
 
 
-class DomainError(exceptions.APIException):
-    """Base for business errors; subclasses set `status_code`, a frozen `code` and their own `message`."""
+class ErrorCode:
+    """Error Catalog frozen in Pass 4B §2.5; do not add codes here without updating the spec."""
 
-    status_code = 422
-    code = "FAILED_PRECONDITION"
-    message = default_message("FAILED_PRECONDITION")
+    # 400
+    VALIDATION_ERROR = "VALIDATION_ERROR"
+    EMAIL_EXISTS = "EMAIL_EXISTS"
+    INSUFFICIENT_STOCK = "INSUFFICIENT_STOCK"
+    INVALID_STATUS_TRANSITION = "INVALID_STATUS_TRANSITION"
 
-    def __init__(self, message: str | None = None, errors: dict | None = None, data: dict | None = None):
-        self.message = message or type(self).message
+    # 401
+    NOT_AUTHENTICATED = "NOT_AUTHENTICATED"
+    INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
+    TOKEN_INVALID = "TOKEN_INVALID"
+
+    # 403
+    ACCOUNT_LOCKED = "ACCOUNT_LOCKED"
+    PERMISSION_DENIED = "PERMISSION_DENIED"
+    ACTION_NOT_PERMITTED_FOR_ROLE = "ACTION_NOT_PERMITTED_FOR_ROLE"
+    FARMER_NOT_APPROVED = "FARMER_NOT_APPROVED"
+    FARMER_SUSPENDED = "FARMER_SUSPENDED"
+
+    # 404
+    NOT_FOUND = "NOT_FOUND"
+
+    # 409
+    RESOURCE_MODIFIED = "RESOURCE_MODIFIED"
+    IDEMPOTENCY_IN_PROGRESS = "IDEMPOTENCY_IN_PROGRESS"
+    CONFLICT_RETRY = "CONFLICT_RETRY"
+
+    # 422
+    OPEN_ORDER_LIMIT_EXCEEDED = "OPEN_ORDER_LIMIT_EXCEEDED"
+    CUTOFF_PASSED = "CUTOFF_PASSED"
+    CUTOFF_NOT_REACHED = "CUTOFF_NOT_REACHED"
+    PICKUP_ALREADY_STARTED = "PICKUP_ALREADY_STARTED"
+    PICKUP_NOT_ENDED = "PICKUP_NOT_ENDED"
+    SLOT_NOT_AVAILABLE = "SLOT_NOT_AVAILABLE"
+    PRODUCT_NOT_AVAILABLE = "PRODUCT_NOT_AVAILABLE"
+    REVIEW_NOT_ALLOWED = "REVIEW_NOT_ALLOWED"
+    REPLY_ALREADY_EXISTS = "REPLY_ALREADY_EXISTS"
+    RESOURCE_IN_USE = "RESOURCE_IN_USE"
+    IDEMPOTENCY_KEY_REUSED = "IDEMPOTENCY_KEY_REUSED"
+    FAILED_PRECONDITION = "FAILED_PRECONDITION"
+
+    # 428
+    PRECONDITION_REQUIRED = "PRECONDITION_REQUIRED"
+
+    # 429
+    THROTTLED = "THROTTLED"
+
+    # 500 / 503
+    INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
+    AI_UNAVAILABLE = "AI_UNAVAILABLE"
+
+
+class DomainError(APIException):
+    """Base for every business error; carries an Error Catalog code and field errors."""
+
+    status_code = 400
+    default_code = ErrorCode.VALIDATION_ERROR
+    default_detail = "Invalid request."
+
+    def __init__(
+        self,
+        message: str | None = None,
+        *,
+        code: str | None = None,
+        errors: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(detail=message or self.default_detail)
+        self.code = code or self.default_code
         self.errors = errors or {}
+        # Extra payload for error responses, e.g. {"available": {...}} on INSUFFICIENT_STOCK (Pass 4B §5.1).
         self.data = data or {}
-        super().__init__(detail=self.message, code=self.code)
 
 
-class ConflictRetryError(DomainError):
+class BusinessValidationError(DomainError):
+    status_code = 400
+    default_code = ErrorCode.VALIDATION_ERROR
+    default_detail = "Invalid request."
+
+
+class AuthenticationError(DomainError):
+    status_code = 401
+    default_code = ErrorCode.NOT_AUTHENTICATED
+    default_detail = "Please sign in to continue."
+
+
+class ForbiddenActionError(DomainError):
+    status_code = 403
+    default_code = ErrorCode.ACTION_NOT_PERMITTED_FOR_ROLE
+    default_detail = "You are not allowed to perform this action."
+
+
+class ResourceNotFoundError(DomainError):
+    status_code = 404
+    default_code = ErrorCode.NOT_FOUND
+    default_detail = "The requested resource was not found."
+
+
+class ConflictError(DomainError):
     status_code = 409
-    code = "CONFLICT_RETRY"
-    message = "The system is busy, please try again"
+    default_code = ErrorCode.RESOURCE_MODIFIED
+    default_detail = "This record was changed by someone else. Please reload."
+
+
+class UnprocessableEntityError(DomainError):
+    status_code = 422
+    default_code = ErrorCode.FAILED_PRECONDITION
+    default_detail = "This action cannot be completed right now."
 
 
 class PreconditionRequiredError(DomainError):
     status_code = 428
-    code = "PRECONDITION_REQUIRED"
-    message = "A required request header is missing"
+    default_code = ErrorCode.PRECONDITION_REQUIRED
+    default_detail = "A required request header is missing."
 
 
-def _flatten_errors(detail, prefix: str = "") -> dict:
-    if isinstance(detail, dict):
-        flat = {}
-        for key, value in detail.items():
-            flat.update(_flatten_errors(value, f"{prefix}.{key}" if prefix else str(key)))
-        return flat
-    if isinstance(detail, list):
-        if all(not isinstance(item, (dict, list)) for item in detail):
-            return {prefix or "non_field_errors": [str(item) for item in detail]} if detail else {}
-        flat = {}
-        for index, item in enumerate(detail):
-            flat.update(_flatten_errors(item, f"{prefix}.{index}" if prefix else str(index)))
-        return flat
-    return {prefix or "non_field_errors": [str(detail)]}
-
-
-def envelope_exception_handler(exc, context):
-    if isinstance(exc, DomainError):
-        set_rollback()
-        return Response(error_body(exc.code, exc.message, exc.errors, exc.data), status=exc.status_code)
-
-    response = drf_exception_handler(exc, context)
-    if response is None:
-        logger.exception("Unhandled exception", exc_info=exc)
-        set_rollback()
-        code = "INTERNAL_SERVER_ERROR"
-        return Response(error_body(code, default_message(code)), status=500)
-
-    code = STATUS_TO_CODE.get(response.status_code, "VALIDATION_ERROR")
-    errors = _flatten_errors(response.data) if isinstance(exc, exceptions.ValidationError) else {}
-    response.data = error_body(code, default_message(code), errors)
-    return response
+class ServiceUnavailableError(DomainError):
+    status_code = 503
+    default_code = ErrorCode.AI_UNAVAILABLE
+    default_detail = "The assistant is temporarily unavailable."

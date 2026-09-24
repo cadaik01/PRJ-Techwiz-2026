@@ -51,7 +51,6 @@ class MeReadSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     email = serializers.EmailField()
     role = serializers.CharField(source="role.code")
-    must_change_password = serializers.BooleanField()
     display_name = serializers.SerializerMethodField()
     farmer_status = serializers.SerializerMethodField()
 

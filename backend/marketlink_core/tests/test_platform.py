@@ -3,15 +3,14 @@ import uuid
 import pytest
 from django.db import OperationalError
 from django.test import RequestFactory
-from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.views import APIView
 
-from marketlink_core.db import run_with_deadlock_retry
-from marketlink_core.exceptions import ConflictRetryError, PreconditionRequiredError
-from marketlink_core.headers import require_idempotency_key
+from marketlink_core.exceptions import BusinessValidationError, ConflictError, PreconditionRequiredError
+from marketlink_core.http import require_idempotency_key
 from marketlink_core.permissions import IsCustomer
+from marketlink_core.services.db_retry import run_with_deadlock_retry
 from system.models import AuditLog
 from tests_support.factories import make_customer, make_farmer
 
@@ -33,8 +32,9 @@ class TestDeadlockRetry:
         def work():
             raise OperationalError(1213, "Deadlock found")
 
-        with pytest.raises(ConflictRetryError):
+        with pytest.raises(ConflictError) as caught:
             run_with_deadlock_retry(work)
+        assert caught.value.code == "CONFLICT_RETRY"
 
     def test_lock_wait_timeout_becomes_conflict_retry(self):
         calls = []
@@ -43,8 +43,9 @@ class TestDeadlockRetry:
             calls.append(1)
             raise OperationalError(1205, "Lock wait timeout exceeded")
 
-        with pytest.raises(ConflictRetryError):
+        with pytest.raises(ConflictError) as caught:
             run_with_deadlock_retry(work)
+        assert caught.value.code == "CONFLICT_RETRY"
         assert len(calls) == 1
 
     def test_other_database_errors_propagate(self):
@@ -63,7 +64,7 @@ class TestIdempotencyKeyHeader:
     def test_malformed_header_is_a_validation_error(self):
         request = RequestFactory().post("/", HTTP_IDEMPOTENCY_KEY="not-a-uuid")
 
-        with pytest.raises(serializers.ValidationError):
+        with pytest.raises(BusinessValidationError):
             require_idempotency_key(request)
 
     def test_valid_uuid_is_normalised(self):

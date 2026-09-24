@@ -18,4 +18,4 @@ class CustomerRegisterView(APIView):
         serializer = CustomerRegisterWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = register_customer(**serializer.validated_data)
-        return api_response(data=build_auth_payload(user), message="Registration successful", status=201)
+        return api_response(message="Registration successful", data=build_auth_payload(user), status_code=201, request=request)

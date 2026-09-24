@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -36,7 +38,7 @@ class Product(BaseModel):
     image = models.ImageField(
         upload_to=UUIDUploadTo("products"), max_length=255, null=True, blank=True
     )
-    price = models.DecimalField(max_digits=12, decimal_places=0)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=10, choices=Unit.choices)
 
     stock_quantity = models.PositiveIntegerField(default=0)
@@ -69,7 +71,10 @@ class Product(BaseModel):
             models.Index(fields=["created_at"], name="prod_created_idx"),
         ]
         constraints = [
-            models.CheckConstraint(condition=Q(price__gte=1000), name="prod_price_min_1000"),
+            models.CheckConstraint(
+                condition=Q(price__gte=Decimal("0.01"), price__lte=Decimal("10000.00")),
+                name="prod_price_range",
+            ),
         ]
 
     def __str__(self) -> str:

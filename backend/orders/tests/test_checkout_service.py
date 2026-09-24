@@ -1,4 +1,5 @@
 from datetime import datetime, time, timedelta
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
@@ -34,9 +35,9 @@ def shop(db):
         farmer_b=farmer_b,
         slot_a=make_slot(farmer=farmer_a, market=market, day_of_week=pickup_date.isoweekday()),
         slot_b=make_slot(farmer=farmer_b, market=market, day_of_week=pickup_date.isoweekday()),
-        tomato=make_product(farmer=farmer_a, stock=10, price=25000),
-        herbs=make_product(farmer=farmer_a, stock=3, price=12000),
-        eggs=make_product(farmer=farmer_b, stock=5, price=40000),
+        tomato=make_product(farmer=farmer_a, stock=10, price="2.50"),
+        herbs=make_product(farmer=farmer_a, stock=3, price="1.20"),
+        eggs=make_product(farmer=farmer_b, stock=5, price="4.00"),
     )
 
 
@@ -65,9 +66,9 @@ class TestPlaceOrders:
         assert (order.status, order.version, order.customer_id, order.farmer_id) == ("PLACED", 1, shop.customer.id, shop.farmer_a.pk)
         assert (order.market_id, order.pickup_slot_id, order.stall_label) == (shop.market.id, shop.slot_a.id, "Row B, stall 12")
         assert (order.pickup_start_at, order.cutoff_at) == (start, start - timedelta(hours=12))
-        assert (order.total_amount, order.note) == (62000, "Ring me")
+        assert (order.total_amount, order.note) == (Decimal("6.20"), "Ring me")
         items = {item.product_id: item for item in order.items.all()}
-        assert (items[shop.tomato.id].unit_price, items[shop.tomato.id].line_total) == (25000, 50000)
+        assert (items[shop.tomato.id].unit_price, items[shop.tomato.id].line_total) == (Decimal("2.50"), Decimal("5.00"))
         assert items[shop.tomato.id].product_name == shop.tomato.name
         assert (shop.tomato.stock_quantity, shop.herbs.stock_quantity) == (8, 2)
         history = order.status_history.get()
@@ -83,7 +84,7 @@ class TestPlaceOrders:
         )
 
         assert [order.farmer_id for order in orders] == [shop.farmer_a.pk, shop.farmer_b.pk]
-        assert [order.total_amount for order in orders] == [25000, 80000]
+        assert [order.total_amount for order in orders] == [Decimal("2.50"), Decimal("8.00")]
 
     def test_all_or_nothing_reports_every_shortage(self, shop):
         shop.eggs.stock_quantity = 0

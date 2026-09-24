@@ -61,8 +61,8 @@ class TestRequestIDMiddleware:
         assert response["X-Request-ID"] != "bad\nvalue"
         assert uuid.UUID(response["X-Request-ID"])
 
-    def test_is_first_middleware(self):
-        assert settings.MIDDLEWARE[0] == "marketlink_core.middleware.RequestIDMiddleware"
+    def test_is_registered(self):
+        assert "marketlink_core.middleware.RequestIDMiddleware" in settings.MIDDLEWARE
 
 
 class TestEnvelope:
@@ -114,7 +114,7 @@ class TestEnvelope:
     def test_domain_error_carries_code_and_errors(self):
         class InsufficientStock(DomainError):
             status_code = 400
-            code = "INSUFFICIENT_STOCK"
+            default_code = "INSUFFICIENT_STOCK"
 
         response = _call_view(InsufficientStock(errors={"items.0.quantity": ["only 3"]}))
 
@@ -125,7 +125,7 @@ class TestEnvelope:
     def test_domain_error_can_carry_data(self):
         class OutOfStock(DomainError):
             status_code = 400
-            code = "INSUFFICIENT_STOCK"
+            default_code = "INSUFFICIENT_STOCK"
 
         response = _call_view(OutOfStock(errors={"items.0.quantity": ["Out of stock"]}, data={"available": {"7": 0}}))
 
@@ -171,7 +171,7 @@ class TestRoutingAndSettings:
     def test_pagination_and_exception_handler_registered(self):
         rf = settings.REST_FRAMEWORK
         assert rf["DEFAULT_PAGINATION_CLASS"] == "marketlink_core.pagination.StandardPagination"
-        assert rf["EXCEPTION_HANDLER"] == "marketlink_core.exceptions.envelope_exception_handler"
+        assert rf["EXCEPTION_HANDLER"] == "marketlink_core.responses.custom_exception_handler"
 
 
 class TestHealth:

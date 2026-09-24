@@ -39,7 +39,8 @@ class OrderSummaryReadSerializer(serializers.ModelSerializer):
     farmer = serializers.SerializerMethodField()
     market = serializers.SerializerMethodField()
     item_count = serializers.SerializerMethodField()
-    total_amount = serializers.IntegerField()
+    # Money is USD DECIMAL(10,2); DRF renders it as a string such as "12.50" to avoid float rounding.
+    total_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
         model = Order

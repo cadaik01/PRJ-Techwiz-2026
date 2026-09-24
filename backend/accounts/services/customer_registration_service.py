@@ -6,7 +6,7 @@ from marketlink_core.policies.roles import RoleCode
 
 
 def _email_exists_error() -> EmailExistsError:
-    return EmailExistsError(errors={"email": [EmailExistsError.message]})
+    return EmailExistsError(errors={"email": [EmailExistsError.default_detail]})
 
 
 def register_customer(*, email: str, password: str, full_name: str, phone: str, address: str) -> CustomUser:

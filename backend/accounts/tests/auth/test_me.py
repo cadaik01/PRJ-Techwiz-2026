@@ -18,7 +18,6 @@ class TestMe:
             "id": customer.id,
             "email": "alice@example.com",
             "role": "CUSTOMER",
-            "must_change_password": False,
             "display_name": "Alice Nguyen",
             "farmer_status": None,
         }

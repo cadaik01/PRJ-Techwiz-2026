@@ -95,7 +95,7 @@ def _resolve_windows(groups, farmers, now) -> list:
                 now=now,
             ))
         except (SlotNotAvailableError, CutoffPassedError) as exc:
-            raise type(exc)(errors={f"groups.{index}.pickup_slot_id": [exc.message]}) from exc
+            raise type(exc)(errors={f"groups.{index}.pickup_slot_id": [str(exc.detail)]}) from exc
     return windows
 
 

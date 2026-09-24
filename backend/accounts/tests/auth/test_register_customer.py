@@ -42,7 +42,6 @@ class TestRegisterCustomer:
             "id": user.id,
             "email": "alice@example.com",
             "role": "CUSTOMER",
-            "must_change_password": False,
             "display_name": "Alice Nguyen",
             "farmer_status": None,
         }
@@ -53,7 +52,7 @@ class TestRegisterCustomer:
 
         token = AccessToken(response.json()["data"]["access"])
         assert token["role"] == "CUSTOMER"
-        assert token["must_change_password"] is False
+        assert "must_change_password" not in token.payload
 
     def test_duplicate_email_returns_email_exists(self, api):
         api.post(URL, _payload(), format="json")

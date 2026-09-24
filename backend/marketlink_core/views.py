@@ -3,7 +3,6 @@ from django.utils import timezone
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
-from marketlink_core.messages import default_message
 from marketlink_core.responses import api_response
 
 
@@ -21,7 +20,8 @@ class HealthView(APIView):
 
         healthy = database == "ok"
         return api_response(
+            message="OK" if healthy else "Database is unreachable",
             data={"status": "ok", "database": database, "time": timezone.localtime()},
-            message=default_message("OK" if healthy else "HEALTH_DEGRADED"),
-            status=200 if healthy else 503,
+            status_code=200 if healthy else 503,
+            request=request,
         )

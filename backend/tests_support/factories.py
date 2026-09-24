@@ -26,7 +26,7 @@ def make_customer(*, is_active: bool = True) -> CustomUser:
         is_active=is_active,
     )
     CustomerProfile.objects.create(
-        user=user, full_name=f"Customer {n}", phone="0912345678", address="12 Market Street"
+        user=user, full_name=f"Customer {n}", phone=f"091{n:07d}", address="12 Market Street"
     )
     return user
 
@@ -40,7 +40,7 @@ def make_farmer(*, status: str = FarmerStatus.APPROVED, cutoff_hours: int = 12) 
         user=user,
         stall_name=f"Stall {n}",
         contact_person=f"Farmer {n}",
-        phone="0987654321",
+        phone=f"098{n:07d}",
         address="5 Farm Road",
         status=status,
         order_cutoff_hours=cutoff_hours,
@@ -73,7 +73,7 @@ def make_slot(*, farmer, market, day_of_week: int, start=time(8, 0), end=time(10
     )
 
 
-def make_product(*, farmer, stock: int = 10, price: int = 25000, **overrides) -> Product:
+def make_product(*, farmer, stock: int = 10, price: str = "2.50", **overrides) -> Product:
     category, _ = Category.objects.get_or_create(name="Vegetables")
     fields = {
         "farmer": farmer,

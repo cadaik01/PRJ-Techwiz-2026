@@ -70,7 +70,6 @@ class CustomUser(AbstractUser):
 
     email = models.EmailField(max_length=100, unique=True)
     role = models.ForeignKey(Role, on_delete=models.RESTRICT, related_name="users")
-    must_change_password = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = "email"

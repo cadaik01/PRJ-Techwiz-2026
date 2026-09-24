@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from marketlink_core.db import run_with_deadlock_retry
+from marketlink_core.services.db_retry import run_with_deadlock_retry
 from orders.services.expiry_service import expire_overdue_orders
 
 

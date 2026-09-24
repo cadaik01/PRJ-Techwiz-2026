@@ -113,7 +113,6 @@ def change_password(*, user: CustomUser, current_password: str, new_password: st
         if not locked.check_password(current_password):
             raise serializers.ValidationError({"current_password": ["Current password is incorrect"]})
         locked.set_password(new_password)
-        locked.must_change_password = False
-        locked.save(update_fields=["password", "must_change_password", "updated_at"])
+        locked.save(update_fields=["password", "updated_at"])
         # New password invalidates every access token via the `pwv` claim; other devices also lose refresh.
         _blacklist_sessions(locked, keep=session_id)

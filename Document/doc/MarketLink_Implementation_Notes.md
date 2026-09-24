@@ -9,7 +9,7 @@
 
 ### Quy tắc
 ```python
-# config/settings.py
+# marketlink_core/settings.py
 DATABASES = {
     "default": {
         # ...
@@ -160,7 +160,7 @@ def run_with_deadlock_retry(fn, *args, **kwargs):
 
 ### Cấu hình
 ```python
-# config/settings.py
+# marketlink_core/settings.py
 import os
 from corsheaders.defaults import default_headers
 
@@ -173,7 +173,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 ]
 
 CORS_EXPOSE_HEADERS = [
-    "x-request-id",          # hiển thị "Mã sự cố" khi lỗi
+    "x-request-id",          # hiển thị "Incident ID" khi lỗi
     "content-disposition",   # lấy tên file Excel khi xuất báo cáo
     "idempotent-replayed",   # biết checkout đã được xử lý từ lần gửi trước
 ]
@@ -195,7 +195,7 @@ def parse_if_match(request) -> int:
     try:
         return int(raw.strip().strip('"').removeprefix('W/').strip('"'))
     except ValueError:
-        raise ValidationError({"if_match": ["Giá trị If-Match không hợp lệ"]})
+        raise ValidationError({"if_match": ["Invalid If-Match value"]})
 ```
 
 ### Kiểm chứng

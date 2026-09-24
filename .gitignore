@@ -24,7 +24,7 @@ frontend/.env
 .vscode/
 .idea/
 
-# Claude workspace (local only)
+# AI assistant tooling (local only)
 .claude/
 
 # Documentation (local markdown - keep Document/ for push)
