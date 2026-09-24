@@ -19,7 +19,6 @@ urlpatterns = [
 
     path('api/auth/', include('accounts.urls')),
     path('api/notifications/', include('notifications.urls')),
-    path('api/', include('system.urls')),
     path('api/', include('catalog.urls')),
     path('api/public/', include('notifications.public.urls_public')),
     path('api/admin/', include('manager.urls')),

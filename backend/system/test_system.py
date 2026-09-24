@@ -1,36 +1,9 @@
-"""Tests for the security audit log."""
+"""Tests for the security audit log writer (system.services)."""
 
 import pytest
-from django.urls import reverse
 
-from system.models import AuditAction, AuditLog
+from system.models import AuditAction
 from system.services import log_security_event
-
-
-@pytest.mark.django_db
-def test_non_admin_gets_403_and_the_attempt_is_logged(auth_client, user):
-    response = auth_client.get(reverse('admin-audit-log-list'))
-
-    assert response.status_code == 403
-    assert response.data['code'] == 'ACTION_NOT_PERMITTED_FOR_ROLE'
-    entry = AuditLog.objects.get(action=AuditAction.ACCESS_DENIED)
-    assert entry.user == user
-    assert (entry.method, entry.endpoint) == ('GET', '/api/admin/audit-logs/')
-    assert entry.request_id == response.data['request_id']
-
-
-@pytest.mark.django_db
-def test_admin_lists_audit_logs_paginated(admin_client, admin_user):
-    log_security_event(
-        user=admin_user, action=AuditAction.EXPORT_DATA, endpoint='/api/x/', method='GET',
-        ip_address='10.0.0.1', user_agent='pytest', status_code=200, request_id=None,
-    )
-    response = admin_client.get(reverse('admin-audit-log-list'), {'action': 'export_data'})
-
-    assert response.status_code == 200
-    assert response.data['data']['count'] == 1
-    row = response.data['data']['results'][0]
-    assert (row['action'], row['user_email']) == ('EXPORT_DATA', admin_user.email)
 
 
 @pytest.mark.django_db
