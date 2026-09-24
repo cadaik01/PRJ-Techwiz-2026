@@ -33,18 +33,18 @@ STATUS_CODES = {
     429: 'RATE_LIMIT_EXCEEDED',
 }
 
-# User-facing text for errors raised by Django/DRF, whose own messages are English.
+# User-facing text for errors raised by Django/DRF.
 MESSAGES = {
-    'VALIDATION_ERROR': 'Dữ liệu không hợp lệ',
-    'AUTHENTICATION_FAILED': 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn',
-    'ACTION_NOT_PERMITTED_FOR_ROLE': 'Bạn không có quyền thực hiện thao tác này',
-    'NOT_FOUND': 'Không tìm thấy dữ liệu',
-    'RESOURCE_CONFLICT': 'Dữ liệu đang được sử dụng hoặc bị trùng lặp',
-    'CONCURRENCY_DEADLOCK': 'Hệ thống đang bận, vui lòng thử lại',
-    'RATE_LIMIT_EXCEEDED': 'Bạn thao tác quá nhanh, vui lòng thử lại sau',
-    'INTERNAL_SERVER_ERROR': 'Máy chủ gặp sự cố. Vui lòng thử lại sau.',
+    'VALIDATION_ERROR': 'Invalid data',
+    'AUTHENTICATION_FAILED': 'Your session is invalid or has expired',
+    'ACTION_NOT_PERMITTED_FOR_ROLE': 'You are not allowed to perform this action',
+    'NOT_FOUND': 'Not found',
+    'RESOURCE_CONFLICT': 'The data is in use or already exists',
+    'CONCURRENCY_DEADLOCK': 'The system is busy, please try again',
+    'RATE_LIMIT_EXCEEDED': 'Too many requests, please try again later',
+    'INTERNAL_SERVER_ERROR': 'Something went wrong on our side. Please try again later.',
 }
-FALLBACK_MESSAGE = 'Yêu cầu không hợp lệ'
+FALLBACK_MESSAGE = 'Invalid request'
 
 MYSQL_DUPLICATE_ENTRY = 1062
 MYSQL_ROW_IS_REFERENCED = 1451

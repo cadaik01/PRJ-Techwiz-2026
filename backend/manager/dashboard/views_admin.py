@@ -27,4 +27,4 @@ class DashboardAdminView(APIView):
             'orders_by_status': orders_by_status(Order.objects.all()),
             'pending_farmers': AdminFarmerRowSerializer(pending, many=True).data,
         }
-        return api_response(message='Lấy số liệu tổng quan thành công', data=data, request=request)
+        return api_response(message='Dashboard retrieved', data=data, request=request)

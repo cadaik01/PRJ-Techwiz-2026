@@ -1,7 +1,7 @@
-Xin chào {{ stall_name }},
+Hello {{ stall_name }},
 
-Đơn #{{ order_id }} của khách {{ customer_name }} (nhận ngày {{ pickup_date|date:"d/m/Y" }} tại {{ market_name }}) đã bị hủy vì tài khoản khách bị quản trị viên khóa.
+Order #{{ order_id }} from {{ customer_name }} (pickup on {{ pickup_date|date:"d/m/Y" }} at {{ market_name }}) was cancelled because an administrator locked the customer account.
 
-Hàng của đơn đã được cộng trả vào tồn kho. Bạn có thể bán lẻ phần hàng đã chuẩn bị ngay tại sạp.
+The items have been returned to your stock. You can sell what you prepared directly at your stall.
 
 MarketLink

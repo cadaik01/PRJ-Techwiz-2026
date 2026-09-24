@@ -1,7 +1,7 @@
 """
 Module: manager.common.audit
 Description: Audit an admin action outside its business transaction (MarketLink
-             "4 lưu ý" §1): the row is written after the service returns or fails, so a
+             Implementation Notes §1): the row is written after the service returns or fails, so a
              rollback never erases it.
 """
 

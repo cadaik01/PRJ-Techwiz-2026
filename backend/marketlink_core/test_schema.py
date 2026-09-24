@@ -30,7 +30,7 @@ def _rejects(create):
 
 @pytest.fixture
 def farmer(db):
-    role = Role.objects.get_or_create(code=RoleCode.FARMER, defaults={'name': 'Nông dân'})[0]
+    role = Role.objects.get_or_create(code=RoleCode.FARMER, defaults={'name': 'Farmer'})[0]
     user = User.objects.create_user(email='farmer@test.com', password=PASSWORD, role=role)
     return FarmerProfile.objects.create(
         user=user, stall_name='Rau Sạch', contact_person='Bà Tư', phone='0907654321', address='Q1',

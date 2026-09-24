@@ -34,7 +34,7 @@ def api_client():
 @pytest.fixture
 def customer_role(db):
     # pytest runs with --nomigrations, so the rows seeded by migration 0002 are not there.
-    return Role.objects.get_or_create(code=RoleCode.CUSTOMER, defaults={'name': 'Khách hàng'})[0]
+    return Role.objects.get_or_create(code=RoleCode.CUSTOMER, defaults={'name': 'Customer'})[0]
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ def user(customer_role):
 @pytest.fixture
 def admin_user(db):
     # create_superuser needs the ADMIN row that migration 0002 seeds.
-    Role.objects.get_or_create(code=RoleCode.ADMIN, defaults={'name': 'Quản trị viên'})
+    Role.objects.get_or_create(code=RoleCode.ADMIN, defaults={'name': 'Administrator'})
     return User.objects.create_superuser(email='admin@test.com', password=PASSWORD)
 
 

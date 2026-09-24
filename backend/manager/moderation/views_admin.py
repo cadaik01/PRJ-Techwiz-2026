@@ -73,7 +73,7 @@ class ProductVisibilityView(APIView):
             details={'product_id': pk, **({'reason': reason} if reason else {})},
             operation=lambda: set_hidden(model=Product, object_id=pk, actor=request.user, reason=reason),
         )
-        message = 'Đã gỡ sản phẩm' if self.hide else 'Đã khôi phục sản phẩm'
+        message = 'Product removed' if self.hide else 'Product restored'
         return api_response(message=message, data=_product_data(request, pk), request=request)
 
 
@@ -88,11 +88,11 @@ class ReviewModerationListView(APIView):
         rating = params.get('rating', '').strip()
         errors = {}
         if review_type and review_type not in REVIEW_MODELS:
-            errors['type'] = ['Loại đánh giá không hợp lệ']
+            errors['type'] = ['Invalid review type']
         if rating and rating not in {'1', '2', '3', '4', '5'}:
-            errors['rating'] = ['Số sao từ 1 đến 5']
+            errors['rating'] = ['The rating must be between 1 and 5']
         if errors:
-            raise BusinessValidationError('Dữ liệu không hợp lệ', errors=errors)
+            raise BusinessValidationError('Invalid data', errors=errors)
 
         keys = review_keys(review_type=review_type, rating=int(rating) if rating else None,
                            is_hidden=_flag(params, 'is_hidden'))
@@ -125,5 +125,5 @@ class ReviewVisibilityView(APIView):
             operation=lambda: set_hidden(model=model, object_id=pk, actor=request.user, reason=reason),
         )
         data = ReviewAdminSerializer(reviews_with_relations(model).get(pk=pk)).data
-        message = 'Đã ẩn đánh giá' if self.hide else 'Đã hiện lại đánh giá'
+        message = 'Review hidden' if self.hide else 'Review restored'
         return api_response(message=message, data=data, request=request)

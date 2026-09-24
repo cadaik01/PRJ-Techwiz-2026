@@ -34,7 +34,7 @@ def _row(pk: int) -> dict:
 def _statuses(raw: str) -> list[str]:
     statuses = [value.strip().upper() for value in raw.split(',') if value.strip()]
     if any(status not in FarmerStatus.values for status in statuses):
-        raise BusinessValidationError('Dữ liệu không hợp lệ', errors={'status': ['Trạng thái không hợp lệ']})
+        raise BusinessValidationError('Invalid data', errors={'status': ['Invalid status']})
     return statuses
 
 
@@ -72,7 +72,7 @@ class FarmerAdminDetailView(APIView):
             pk=pk,
         )
         data = FarmerAdminDetailSerializer(farmer, context={'request': request}).data
-        return api_response(message='Lấy hồ sơ nông dân thành công', data=data, request=request)
+        return api_response(message='Farmer profile retrieved', data=data, request=request)
 
 
 class FarmerSuspensionImpactView(APIView):
@@ -90,10 +90,10 @@ class FarmerStatusActionView(APIView):
 
     permission_classes = [IsAdmin]
     ACTIONS = {
-        'approve': (approve_farmer, AuditAction.FARMER_APPROVED, False, 'Đã duyệt nông dân'),
-        'reject': (reject_farmer, AuditAction.FARMER_REJECTED, True, 'Đã từ chối hồ sơ nông dân'),
-        'suspend': (suspend_farmer, AuditAction.FARMER_SUSPENDED, True, 'Đã đình chỉ nông dân'),
-        'reinstate': (reinstate_farmer, AuditAction.FARMER_REINSTATED, False, 'Đã khôi phục nông dân'),
+        'approve': (approve_farmer, AuditAction.FARMER_APPROVED, False, 'Farmer approved'),
+        'reject': (reject_farmer, AuditAction.FARMER_REJECTED, True, 'Farmer application rejected'),
+        'suspend': (suspend_farmer, AuditAction.FARMER_SUSPENDED, True, 'Farmer suspended'),
+        'reinstate': (reinstate_farmer, AuditAction.FARMER_REINSTATED, False, 'Farmer reinstated'),
     }
     action = None
 
@@ -112,5 +112,5 @@ class FarmerStatusActionView(APIView):
         data = _row(pk)
         if self.action == 'suspend':
             data['affected_orders'] = affected
-            message = f'{message}, {affected} đơn đang mở đã bị từ chối'
+            message = f'{message}, {affected} open orders declined'
         return api_response(message=message, data=data, request=request)

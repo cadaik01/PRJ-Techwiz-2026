@@ -50,7 +50,7 @@ class MarketAdminListView(APIView):
         serializer.is_valid(raise_exception=True)
         market = create_market(**serializer.validated_data)
         return api_response(
-            message='Đã thêm chợ', data=_market_data(request, market.id),
+            message='Market created', data=_market_data(request, market.id),
             status_code=status.HTTP_201_CREATED, request=request,
         )
 
@@ -65,14 +65,14 @@ class MarketAdminDetailView(APIView):
     def get(self, request, pk):
         market = get_object_or_404(admin_markets(), pk=pk)
         data = MarketAdminReadSerializer(market, context={'request': request}).data
-        return api_response(message='Lấy thông tin chợ thành công', data=data, request=request)
+        return api_response(message='Market retrieved', data=data, request=request)
 
     def patch(self, request, pk):
         market = get_object_or_404(Market, pk=pk)
         serializer = MarketAdminWriteSerializer(market, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         update_market(market_id=pk, **serializer.validated_data)
-        return api_response(message='Đã cập nhật chợ', data=_market_data(request, pk), request=request)
+        return api_response(message='Market updated', data=_market_data(request, pk), request=request)
 
 
 class MarketAdminActivationView(APIView):
@@ -84,5 +84,5 @@ class MarketAdminActivationView(APIView):
     def post(self, request, pk):
         get_object_or_404(Market, pk=pk)
         set_market_active(market_id=pk, is_active=self.is_active)
-        message = 'Đã kích hoạt chợ' if self.is_active else 'Đã ngừng hoạt động chợ'
+        message = 'Market activated' if self.is_active else 'Market deactivated'
         return api_response(message=message, data=_market_data(request, pk), request=request)

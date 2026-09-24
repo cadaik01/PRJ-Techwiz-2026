@@ -33,4 +33,4 @@ class AnnouncementPublicListView(APIView):
             is_active=True, starts_at__lte=now, audience__in=audiences,
         ).order_by('-starts_at', '-id')
         data = AnnouncementReadSerializer(queryset, many=True).data
-        return api_response(message='Lấy thông báo thành công', data=data, request=request)
+        return api_response(message='Announcements retrieved', data=data, request=request)

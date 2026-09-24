@@ -24,5 +24,5 @@ def run_with_deadlock_retry(operation: Callable[[], T]) -> T:
             if not exc.args or exc.args[0] != MYSQL_DEADLOCK:
                 raise
             if attempt == 2:
-                raise ConflictError('Hệ thống đang bận, vui lòng thử lại', code='CONFLICT_RETRY') from exc
+                raise ConflictError('The system is busy, please try again', code='CONFLICT_RETRY') from exc
     raise AssertionError('unreachable')

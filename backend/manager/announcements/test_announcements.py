@@ -23,10 +23,10 @@ def detail_url(announcement):
     return reverse('admin-announcement-detail', args=[announcement.pk])
 
 
-def make(title='Chợ nghỉ Tết', audience=AnnouncementAudience.ALL, starts=-1, ends=None, **extra):
+def make(title='Markets closed for Tet', audience=AnnouncementAudience.ALL, starts=-1, ends=None, **extra):
     now = timezone.now()
     return Announcement.objects.create(
-        title=title, content='Nội dung', audience=audience, starts_at=now + timedelta(hours=starts),
+        title=title, content='Body', audience=audience, starts_at=now + timedelta(hours=starts),
         ends_at=None if ends is None else now + timedelta(hours=ends), **extra,
     )
 
@@ -34,7 +34,7 @@ def make(title='Chợ nghỉ Tết', audience=AnnouncementAudience.ALL, starts=-
 def payload(**overrides):
     starts = timezone.now()
     return {
-        'title': 'Bảo trì hệ thống', 'content': 'Hệ thống bảo trì 22h–23h', 'audience': 'ALL',
+        'title': 'Planned maintenance', 'content': 'The site is down for maintenance 22:00–23:00', 'audience': 'ALL',
         'starts_at': starts.isoformat(), 'ends_at': (starts + timedelta(days=1)).isoformat(), **overrides,
     }
 
@@ -60,10 +60,10 @@ def test_create_returns_announcement_admin(admin_client, admin_user):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('field, value, message', [
-    ('title', 'Tết', 'Tiêu đề từ 5–150 ký tự'),
-    ('content', '', 'Vui lòng nhập nội dung'),
-    ('content', 'x' * 1001, 'Nội dung tối đa 1.000 ký tự'),
-    ('audience', 'ADMIN', 'Đối tượng không hợp lệ'),
+    ('title', 'Tet', 'The title must be 5–150 characters'),
+    ('content', '', 'Please enter the content'),
+    ('content', 'x' * 1001, 'The content can be at most 1,000 characters'),
+    ('audience', 'ADMIN', 'Invalid audience'),
 ])
 def test_create_validation(admin_client, field, value, message):
     response = admin_client.post(LIST_URL, payload(**{field: value}), format='json')
@@ -78,18 +78,18 @@ def test_ends_at_must_follow_starts_at(admin_client):
 
     response = admin_client.post(LIST_URL, payload(starts_at=now, ends_at=now), format='json')
 
-    assert response.data['errors']['ends_at'] == ['Thời điểm kết thúc phải sau thời điểm bắt đầu']
+    assert response.data['errors']['ends_at'] == ['The end time must be after the start time']
 
 
 @pytest.mark.django_db
 def test_list_is_paginated_newest_first(admin_client):
-    make('Cũ hơn', starts=-5)
-    make('Mới hơn', starts=-1, is_active=False)
+    make('Older', starts=-5)
+    make('Newer', starts=-1, is_active=False)
 
     data = admin_client.get(LIST_URL).data['data']
 
     assert (data['count'], data['total_pages']) == (2, 1)
-    assert [row['title'] for row in data['results']] == ['Mới hơn', 'Cũ hơn']
+    assert [row['title'] for row in data['results']] == ['Newer', 'Older']
 
 
 @pytest.mark.django_db
@@ -114,33 +114,33 @@ def test_delete_is_204_and_unknown_is_404(admin_client):
 
 @pytest.mark.django_db
 def test_public_feed_shows_only_live_announcements_for_guests(api_client):
-    make('Đang hiệu lực', ends=3)
-    make('Không hạn', starts=-10)
-    make('Chưa bắt đầu', starts=2)
-    make('Đã kết thúc', starts=-5, ends=-1)
-    make('Đã tắt', is_active=False)
-    make('Riêng khách hàng', audience=AnnouncementAudience.CUSTOMER)
+    make('Live', ends=3)
+    make('No end', starts=-10)
+    make('Not started', starts=2)
+    make('Ended', starts=-5, ends=-1)
+    make('Switched off', is_active=False)
+    make('Customers only', audience=AnnouncementAudience.CUSTOMER)
 
     response = api_client.get(PUBLIC_URL)
 
     assert response.status_code == 200
-    assert [row['title'] for row in response.data['data']] == ['Đang hiệu lực', 'Không hạn']
+    assert [row['title'] for row in response.data['data']] == ['Live', 'No end']
     assert set(response.data['data'][0]) == {'id', 'title', 'content', 'audience', 'starts_at', 'ends_at'}
 
 
 @pytest.mark.django_db
 def test_public_feed_adds_the_signed_in_role_audience(auth_client):
-    make('Tất cả')
-    make('Riêng khách hàng', audience=AnnouncementAudience.CUSTOMER)
-    make('Riêng nông dân', audience=AnnouncementAudience.FARMER)
+    make('Everyone')
+    make('Customers only', audience=AnnouncementAudience.CUSTOMER)
+    make('Farmers only', audience=AnnouncementAudience.FARMER)
 
     customer_titles = {row['title'] for row in auth_client.get(PUBLIC_URL).data['data']}
 
-    farmer_role = Role.objects.get_or_create(code=RoleCode.FARMER, defaults={'name': 'Nông dân'})[0]
+    farmer_role = Role.objects.get_or_create(code=RoleCode.FARMER, defaults={'name': 'Farmer'})[0]
     farmer = User.objects.create_user(email='farmer@test.com', password=PASSWORD, role=farmer_role)
     farmer_client = APIClient()
     farmer_client.force_authenticate(user=farmer)
     farmer_titles = {row['title'] for row in farmer_client.get(PUBLIC_URL).data['data']}
 
-    assert customer_titles == {'Tất cả', 'Riêng khách hàng'}
-    assert farmer_titles == {'Tất cả', 'Riêng nông dân'}
+    assert customer_titles == {'Everyone', 'Customers only'}
+    assert farmer_titles == {'Everyone', 'Farmers only'}

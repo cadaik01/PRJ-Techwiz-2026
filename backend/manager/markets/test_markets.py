@@ -48,7 +48,7 @@ def make_market(name='Chợ Hòa Bình', days=(6, 7), open_time=time(5), close_t
 
 
 def make_farmer(email, status=FarmerStatus.APPROVED):
-    role = Role.objects.get_or_create(code=RoleCode.FARMER, defaults={'name': 'Nông dân'})[0]
+    role = Role.objects.get_or_create(code=RoleCode.FARMER, defaults={'name': 'Farmer'})[0]
     user = User.objects.create_user(email=email, password=PASSWORD, role=role)
     return FarmerProfile.objects.create(
         user=user, stall_name=f'Sạp {email}', contact_person='Bà Tư', phone='0907654321',
@@ -180,17 +180,17 @@ def test_gif_and_oversized_images_are_rejected(admin_client):
 
     big = SimpleUploadedFile('big.png', png_file().read() + b'\x00' * (2 * 1024 * 1024), content_type='image/png')
     response = admin_client.post(LIST_URL, {**VALID, 'image': big}, format='multipart')
-    assert response.data['errors']['image'] == ['Ảnh phải là JPG/PNG/WEBP, tối đa 2MB']
+    assert response.data['errors']['image'] == ['The image must be JPG, PNG or WEBP, at most 2 MB']
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('field, value, message', [
-    ('name', 'X', 'Vui lòng nhập 2–100 ký tự'),
-    ('address', 'Q1', 'Vui lòng nhập địa chỉ đầy đủ'),
-    ('operating_days', [], 'Chọn ít nhất 1 ngày họp'),
-    ('latitude', 91, 'Tọa độ không hợp lệ'),
-    ('longitude', 106.1234567, 'Tọa độ không hợp lệ'),
-    ('close_time', '05:00', 'Giờ đóng cửa phải sau giờ mở cửa'),
+    ('name', 'X', 'Please enter 2–100 characters'),
+    ('address', 'Q1', 'Please enter the full address'),
+    ('operating_days', [], 'Choose at least one operating day'),
+    ('latitude', 91, 'Invalid coordinates'),
+    ('longitude', 106.1234567, 'Invalid coordinates'),
+    ('close_time', '05:00', 'The closing time must be after the opening time'),
 ])
 def test_create_validation(admin_client, field, value, message):
     response = admin_client.post(LIST_URL, {**VALID, field: value}, format='json')
@@ -213,7 +213,7 @@ def test_duplicate_name_ignores_case(admin_client):
 
     response = admin_client.post(LIST_URL, {**VALID, 'name': 'CHỢ BẾN THÀNH'}, format='json')
 
-    assert response.data['errors']['name'] == ['Tên chợ đã tồn tại']
+    assert response.data['errors']['name'] == ['A market with this name already exists']
 
 
 @pytest.mark.django_db
@@ -234,7 +234,7 @@ def test_patch_is_partial_and_checks_hours_against_stored_value(admin_client):
     assert (ok.data['data']['description'], ok.data['data']['operating_days']) == ('Chợ cuối tuần', [5, 6, 7])
 
     bad = admin_client.patch(detail_url(market), {'close_time': '04:30'}, format='json')
-    assert bad.data['errors']['close_time'] == ['Giờ đóng cửa phải sau giờ mở cửa']
+    assert bad.data['errors']['close_time'] == ['The closing time must be after the opening time']
 
 
 @pytest.mark.django_db
@@ -260,7 +260,7 @@ def test_schedule_change_that_strands_a_slot_is_refused(admin_client, change):
 
     assert response.status_code == 422
     assert response.data['code'] == 'RESOURCE_IN_USE'
-    assert response.data['message'].startswith('Có 1 khung nhận hàng')
+    assert response.data['message'].startswith('1 farmer pickup slots')
     market.refresh_from_db()
     assert (market.open_time, market.close_time) == (time(5), time(11))
     assert sorted(market.operating_days.values_list('day_of_week', flat=True)) == [6, 7]

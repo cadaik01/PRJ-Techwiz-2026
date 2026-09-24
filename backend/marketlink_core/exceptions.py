@@ -13,7 +13,7 @@ class TokenBlacklistedError(AuthenticationFailed):
 
     def __init__(
         self,
-        message: str = 'Token đã bị thu hồi hoặc đăng xuất',
+        message: str = 'The token has been revoked or logged out',
         code: str = 'TOKEN_BLACKLISTED',
         errors: dict | None = None,
     ):
@@ -68,7 +68,7 @@ class PreconditionRequiredError(APIException):
 
     def __init__(
         self,
-        message: str = 'Yêu cầu cung cấp header điều kiện',
+        message: str = 'A precondition header is required',
         code: str = 'PRECONDITION_REQUIRED',
         errors: dict | None = None,
     ):

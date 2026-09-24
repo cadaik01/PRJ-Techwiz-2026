@@ -73,11 +73,11 @@ def test_unhandled_exception_is_500_without_leaking_details():
 
 
 def test_business_exception_keeps_its_message_code_and_errors():
-    exc = BusinessValidationError('Không đủ hàng', code='INSUFFICIENT_STOCK', errors={'quantity': ['Too many.']})
+    exc = BusinessValidationError('Not enough stock', code='INSUFFICIENT_STOCK', errors={'quantity': ['Too many.']})
     response = _handle(exc)
 
     assert response.status_code == 400
-    assert response.data['message'] == 'Không đủ hàng'
+    assert response.data['message'] == 'Not enough stock'
     assert response.data['code'] == 'INSUFFICIENT_STOCK'
     assert response.data['errors'] == {'quantity': ['Too many.']}
 

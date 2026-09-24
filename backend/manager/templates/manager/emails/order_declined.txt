@@ -1,8 +1,9 @@
-Xin chào {{ customer_name }},
+Hello {{ customer_name }},
 
-Đơn #{{ order_id }} tại sạp {{ stall_name }} (nhận ngày {{ pickup_date|date:"d/m/Y" }} tại {{ market_name }}) đã bị từ chối.
-Lý do: {{ reason }}
+Order #{{ order_id }} at {{ stall_name }} (pickup on {{ pickup_date|date:"d/m/Y" }} at {{ market_name }}) was declined.
 
-Bạn không cần ra chợ để nhận đơn này.
+Reason: {{ reason }}
+
+You do not need to go to the market for this order.
 
 MarketLink

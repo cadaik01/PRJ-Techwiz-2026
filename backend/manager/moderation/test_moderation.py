@@ -14,7 +14,7 @@ from system.models import AuditAction, AuditLog
 
 PRODUCTS_URL = reverse('admin-product-list')
 REVIEWS_URL = reverse('admin-review-list')
-REASON = {'reason': 'Hình ảnh không đúng sản phẩm'}
+REASON = {'reason': 'The photo shows a different product'}
 
 
 @pytest.fixture
@@ -153,7 +153,7 @@ def test_review_ids_are_per_table(admin_client, shop):
 
 
 @pytest.mark.parametrize('full_name, short', [
-    ('Nguyễn Văn A', 'Nguyễn V. A.'), ('Lan', 'Lan'), ('', 'Khách'), ('  Trần   Thị  Bích  ', 'Trần T. B.'),
+    ('Nguyễn Văn A', 'Nguyễn V. A.'), ('Lan', 'Lan'), ('', 'Customer'), ('  Trần   Thị  Bích  ', 'Trần T. B.'),
 ])
 def test_short_customer_name(full_name, short):
     assert short_customer_name(full_name) == short

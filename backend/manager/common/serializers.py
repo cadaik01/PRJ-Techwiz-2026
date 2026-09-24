@@ -53,7 +53,7 @@ class OrderSummarySerializer(serializers.ModelSerializer):
                 'latitude': float(market.latitude), 'longitude': float(market.longitude)}
 
 
-REASON_MESSAGE = 'Vui lòng nhập lý do (5–500 ký tự)'
+REASON_MESSAGE = 'Please enter a reason (5–500 characters)'
 
 
 class ReasonWriteSerializer(serializers.Serializer):
@@ -66,6 +66,6 @@ class ReasonWriteSerializer(serializers.Serializer):
 
 
 def short_customer_name(full_name: str) -> str:
-    """"Nguyễn Văn A" -> "Nguyễn V. A." (U-05)."""
-    first, *others = (full_name or '').split() or ['Khách']
+    """Shorten a full name for public display (U-05): first word kept, the rest as initials."""
+    first, *others = (full_name or '').split() or ['Customer']
     return ' '.join([first, *(f'{part[0]}.' for part in others)])

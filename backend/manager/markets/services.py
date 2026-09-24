@@ -76,8 +76,8 @@ def update_market(*, market_id: int, operating_days: list[int] | None = None, **
             )
             if affected:
                 raise UnprocessableEntityError(
-                    f'Có {affected} khung nhận hàng của nông dân nằm ngoài ngày hoặc giờ họp mới. '
-                    'Vui lòng yêu cầu nông dân điều chỉnh khung giờ trước.',
+                    f'{affected} farmer pickup slots fall outside the new operating days or hours. '
+                    'Ask the farmers to adjust their slots first.',
                     code='RESOURCE_IN_USE',
                     errors={'non_field_errors': [f'{affected} pickup slots fall outside the new schedule']},
                 )

@@ -10,7 +10,7 @@ from django.db.models.functions import ASin, Cast, Cos, Power, Radians, Sin, Sqr
 from marketlink_core.exceptions import BusinessValidationError
 
 EARTH_RADIUS_KM = 6371.0
-COORDINATE_MESSAGE = 'Tọa độ không hợp lệ'
+COORDINATE_MESSAGE = 'Invalid coordinates'
 
 
 def read_point(params) -> tuple[float, float] | None:
@@ -26,9 +26,9 @@ def read_point(params) -> tuple[float, float] | None:
             if not -limit <= values[name] <= limit:
                 raise ValueError
         except ValueError:
-            errors[name] = [COORDINATE_MESSAGE if raw else 'Cần gửi cả vĩ độ và kinh độ']
+            errors[name] = [COORDINATE_MESSAGE if raw else 'Send both latitude and longitude']
     if errors:
-        raise BusinessValidationError('Dữ liệu không hợp lệ', errors=errors)
+        raise BusinessValidationError('Invalid data', errors=errors)
     return values['lat'], values['lng']
 
 

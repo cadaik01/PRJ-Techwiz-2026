@@ -10,7 +10,7 @@ from manager.common.images import validate_image_upload
 from markets.models import Market
 
 TIME_FORMAT = '%H:%M'
-COORDINATE_MESSAGE = 'Tọa độ không hợp lệ'
+COORDINATE_MESSAGE = 'Invalid coordinates'
 
 
 class MarketAdminReadSerializer(serializers.ModelSerializer):
@@ -55,20 +55,20 @@ class MarketAdminWriteSerializer(serializers.Serializer):
     """AD-15 body; AD-16 sends any subset of it (partial=True)."""
 
     name = serializers.CharField(
-        min_length=2, max_length=100, error_messages=_length_messages('Vui lòng nhập 2–100 ký tự'),
+        min_length=2, max_length=100, error_messages=_length_messages('Please enter 2–100 characters'),
         # as_ci collation: duplicate check ignores case, not accents.
-        validators=[UniqueValidator(queryset=Market.objects.all(), message='Tên chợ đã tồn tại')],
+        validators=[UniqueValidator(queryset=Market.objects.all(), message='A market with this name already exists')],
     )
     address = serializers.CharField(
-        min_length=5, max_length=255, error_messages=_length_messages('Vui lòng nhập địa chỉ đầy đủ'),
+        min_length=5, max_length=255, error_messages=_length_messages('Please enter the full address'),
     )
     description = serializers.CharField(
         max_length=1000, required=False, allow_null=True, allow_blank=True,
-        error_messages={'max_length': 'Mô tả tối đa 1.000 ký tự'},
+        error_messages={'max_length': 'The description can be at most 1,000 characters'},
     )
     image = serializers.ImageField(required=False, allow_null=True, validators=[validate_image_upload],
-                                   error_messages={'invalid_image': 'Ảnh phải là JPG/PNG/WEBP, tối đa 2MB',
-                                                   'invalid': 'Ảnh phải là JPG/PNG/WEBP, tối đa 2MB'})
+                                   error_messages={'invalid_image': 'The image must be JPG, PNG or WEBP, at most 2 MB',
+                                                   'invalid': 'The image must be JPG, PNG or WEBP, at most 2 MB'})
     latitude = serializers.DecimalField(
         max_digits=9, decimal_places=6, min_value=-90, max_value=90,
         error_messages={key: COORDINATE_MESSAGE for key in
@@ -82,7 +82,7 @@ class MarketAdminWriteSerializer(serializers.Serializer):
     operating_days = serializers.ListField(
         child=serializers.IntegerField(min_value=1, max_value=7),
         allow_empty=False,
-        error_messages={'empty': 'Chọn ít nhất 1 ngày họp', 'required': 'Chọn ít nhất 1 ngày họp'},
+        error_messages={'empty': 'Choose at least one operating day', 'required': 'Choose at least one operating day'},
     )
     open_time = serializers.TimeField(format=TIME_FORMAT, input_formats=[TIME_FORMAT])
     close_time = serializers.TimeField(format=TIME_FORMAT, input_formats=[TIME_FORMAT])
@@ -98,5 +98,5 @@ class MarketAdminWriteSerializer(serializers.Serializer):
         open_time = attrs.get('open_time', getattr(self.instance, 'open_time', None))
         close_time = attrs.get('close_time', getattr(self.instance, 'close_time', None))
         if open_time and close_time and close_time <= open_time:
-            raise serializers.ValidationError({'close_time': ['Giờ đóng cửa phải sau giờ mở cửa']})
+            raise serializers.ValidationError({'close_time': ['The closing time must be after the opening time']})
         return attrs

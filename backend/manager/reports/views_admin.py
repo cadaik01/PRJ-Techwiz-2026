@@ -34,7 +34,7 @@ class ReportSummaryView(APIView):
 
     def get(self, request):
         report = build_report(**report_filters(request.query_params))
-        return api_response(message='Lấy báo cáo thành công', data=report, request=request)
+        return api_response(message='Report retrieved', data=report, request=request)
 
 
 class ReportExportView(APIView):

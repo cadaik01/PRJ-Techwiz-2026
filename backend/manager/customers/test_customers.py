@@ -83,7 +83,7 @@ def test_detail_has_address_and_recent_order_summaries(admin_client, customer, s
 @pytest.mark.django_db
 def test_other_roles_are_404_on_customer_endpoints(admin_client, shop, admin_user):
     assert admin_client.get(url('detail', shop['farmer'].user)).status_code == 404
-    assert admin_client.post(url('deactivate', admin_user), {'reason': 'Vi phạm quy định'}).status_code == 404
+    assert admin_client.post(url('deactivate', admin_user), {'reason': 'Breaks the rules'}).status_code == 404
 
 
 @pytest.mark.django_db
@@ -112,7 +112,7 @@ def test_deactivate_cancels_open_orders_restocks_and_notifies(admin_client, admi
                        status=OrderStatus.READY_FOR_PICKUP)
     done = make_order(customer, shop['farmer'], shop['market'], [(cabbage, 4)], status=OrderStatus.COMPLETED)
 
-    response = admin_client.post(url('deactivate', customer), {'reason': 'Bom hàng nhiều lần'}, format='json')
+    response = admin_client.post(url('deactivate', customer), {'reason': 'Repeated no-shows'}, format='json')
 
     assert response.status_code == 200
     assert (response.data['data']['affected_orders'], response.data['data']['is_active']) == (3, False)
@@ -137,13 +137,13 @@ def test_deactivate_cancels_open_orders_restocks_and_notifies(admin_client, admi
     assert notices.count() == 3
     assert sorted(message.to[0] for message in mail.outbox) == [farmer_user.email] * 3
     assert {message.subject for message in mail.outbox} == {
-        f'Đơn #{order.pk} đã bị hủy' for order in (placed, accepted, ready)
+        f'Order #{order.pk} was cancelled' for order in (placed, accepted, ready)
     }
-    assert 'bán lẻ' in mail.outbox[0].body and mail.outbox[0].alternatives
+    assert 'sell' in mail.outbox[0].body and mail.outbox[0].alternatives
 
     entry = AuditLog.objects.get(action=AuditAction.CUSTOMER_DEACTIVATED)
     assert (entry.user, entry.status_code) == (admin_user, 200)
-    assert entry.details == {'customer_id': customer.pk, 'reason': 'Bom hàng nhiều lần', 'affected_orders': 3}
+    assert entry.details == {'customer_id': customer.pk, 'reason': 'Repeated no-shows', 'affected_orders': 3}
 
 
 @pytest.mark.django_db(transaction=True)
@@ -155,7 +155,7 @@ def test_restock_alert_when_stock_comes_back_from_zero(admin_client, customer, s
     FavoriteProduct.objects.create(customer=fan, product=cabbage)
     make_order(customer, shop['farmer'], shop['market'], [(cabbage, 2)])
 
-    admin_client.post(url('deactivate', customer), {'reason': 'Bom hàng nhiều lần'}, format='json')
+    admin_client.post(url('deactivate', customer), {'reason': 'Repeated no-shows'}, format='json')
 
     alert = Notification.objects.get(recipient=fan)
     assert (alert.type, alert.target_url) == (NotificationType.RESTOCK, f'/products/{cabbage.pk}')
@@ -163,9 +163,9 @@ def test_restock_alert_when_stock_comes_back_from_zero(admin_client, customer, s
 
 @pytest.mark.django_db
 def test_deactivating_twice_is_an_invalid_transition_and_still_audited(admin_client, customer):
-    admin_client.post(url('deactivate', customer), {'reason': 'Bom hàng nhiều lần'}, format='json')
+    admin_client.post(url('deactivate', customer), {'reason': 'Repeated no-shows'}, format='json')
 
-    again = admin_client.post(url('deactivate', customer), {'reason': 'Bom hàng nhiều lần'}, format='json')
+    again = admin_client.post(url('deactivate', customer), {'reason': 'Repeated no-shows'}, format='json')
 
     assert (again.status_code, again.data['code']) == (400, 'INVALID_STATUS_TRANSITION')
     failed = AuditLog.objects.filter(action=AuditAction.CUSTOMER_DEACTIVATED, status_code=400).get()
@@ -173,12 +173,12 @@ def test_deactivating_twice_is_an_invalid_transition_and_still_audited(admin_cli
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('body', [{}, {'reason': 'ngắn'}, {'reason': 'x' * 501}])
+@pytest.mark.parametrize('body', [{}, {'reason': 'shrt'}, {'reason': 'x' * 501}])
 def test_deactivate_requires_a_5_to_500_character_reason(admin_client, customer, body):
     response = admin_client.post(url('deactivate', customer), body, format='json')
 
     assert response.status_code == 400
-    assert response.data['errors']['reason'] == ['Vui lòng nhập lý do (5–500 ký tự)']
+    assert response.data['errors']['reason'] == ['Please enter a reason (5–500 characters)']
     customer.refresh_from_db()
     assert customer.is_active is True
 

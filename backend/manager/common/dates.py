@@ -12,14 +12,14 @@ from django.utils import timezone
 
 from marketlink_core.exceptions import BusinessValidationError
 
-DATE_MESSAGE = 'Ngày không hợp lệ (định dạng YYYY-MM-DD)'
+DATE_MESSAGE = 'Invalid date (use YYYY-MM-DD)'
 
 
 def _parse(value: str, field: str) -> date:
     try:
         return date.fromisoformat(value)
     except ValueError:
-        raise BusinessValidationError('Dữ liệu không hợp lệ', errors={field: [DATE_MESSAGE]}) from None
+        raise BusinessValidationError('Invalid data', errors={field: [DATE_MESSAGE]}) from None
 
 
 def _start_of(day: date) -> datetime:
@@ -33,20 +33,20 @@ def day_range(
     errors = {}
     raw = {field: (params.get(field) or '').strip() for field in ('from', 'to')}
     if required:
-        errors = {field: ['Vui lòng chọn ngày'] for field, value in raw.items() if not value}
+        errors = {field: ['Please choose a date'] for field, value in raw.items() if not value}
     if errors:
-        raise BusinessValidationError('Dữ liệu không hợp lệ', errors=errors)
+        raise BusinessValidationError('Invalid data', errors=errors)
 
     start_day = _parse(raw['from'], 'from') if raw['from'] else None
     end_day = _parse(raw['to'], 'to') if raw['to'] else None
     if start_day and end_day:
         if end_day < start_day:
             raise BusinessValidationError(
-                'Dữ liệu không hợp lệ', errors={'to': ['Ngày kết thúc phải từ ngày bắt đầu trở đi']},
+                'Invalid data', errors={'to': ['The end date must be on or after the start date']},
             )
         if max_days and (end_day - start_day).days + 1 > max_days:
             raise BusinessValidationError(
-                'Dữ liệu không hợp lệ', errors={'to': [f'Khoảng ngày tối đa {max_days} ngày']},
+                'Invalid data', errors={'to': [f'The range can span at most {max_days} days']},
             )
     return (
         _start_of(start_day) if start_day else None,

@@ -33,8 +33,8 @@ def _restock_alerts(product_ids: list[int]) -> None:
         for customer_id in FavoriteProduct.objects.filter(product=product).values_list('customer_id', flat=True):
             push_notification(
                 user_id=customer_id, type=NotificationType.RESTOCK,
-                title='Sản phẩm yêu thích có hàng lại',
-                message=f'{product.name} đã có hàng trở lại',
+                title='A favorite product is back in stock',
+                message=f'{product.name} is back in stock',
                 target_url=f'/products/{product.id}',
             )
 

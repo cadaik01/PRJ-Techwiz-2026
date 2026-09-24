@@ -34,7 +34,7 @@ def _id_param(params, name: str) -> int | None:
     if not raw:
         return None
     if not raw.isdigit():
-        raise BusinessValidationError('Dữ liệu không hợp lệ', errors={name: ['Giá trị không hợp lệ']})
+        raise BusinessValidationError('Invalid data', errors={name: ['Invalid value']})
     return int(raw)
 
 
@@ -49,9 +49,9 @@ class FarmerPublicListView(APIView):
         point = read_point(params)
         ordering = params.get('ordering', '').strip() or 'name'
         if ordering not in ORDERINGS or (ordering == 'distance' and not point):
-            raise BusinessValidationError('Dữ liệu không hợp lệ', errors={'ordering': [
-                'Sắp xếp theo khoảng cách cần vị trí (lat, lng)' if ordering == 'distance'
-                else 'Kiểu sắp xếp không hợp lệ']})
+            raise BusinessValidationError('Invalid data', errors={'ordering': [
+                'Ordering by distance needs a location (lat, lng)' if ordering == 'distance'
+                else 'Invalid ordering']})
 
         queryset = public_farmers(request.user)
         if point:
@@ -88,7 +88,7 @@ class FarmerPublicDetailView(APIView):
     def get(self, request, pk):
         farmer = get_object_or_404(public_farmers(request.user), pk=pk)
         data = FarmerPublicSerializer(farmer, context={'request': request}).data
-        return api_response(message='Lấy hồ sơ nông dân thành công', data=data, request=request)
+        return api_response(message='Farmer profile retrieved', data=data, request=request)
 
 
 class FarmerPublicReviewsView(APIView):
@@ -103,7 +103,7 @@ class FarmerPublicReviewsView(APIView):
         rating = request.query_params.get('rating', '').strip()
         if rating:
             if rating not in {'1', '2', '3', '4', '5'}:
-                raise BusinessValidationError('Dữ liệu không hợp lệ', errors={'rating': ['Số sao từ 1 đến 5']})
+                raise BusinessValidationError('Invalid data', errors={'rating': ['The rating must be between 1 and 5']})
             reviews = reviews.filter(rating=int(rating))
         paginator = ReviewPagination(rating_summary(visible))
         page = paginator.paginate_queryset(reviews, request, view=self)

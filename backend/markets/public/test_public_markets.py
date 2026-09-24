@@ -167,9 +167,9 @@ def test_market_farmers_are_farmer_summaries_with_stall_label(api_client, city):
 
 @pytest.mark.django_db
 def test_market_farmers_day_filter_uses_active_slots_at_this_market(api_client, city, user):
-    saturday = make_farmer('a@test.com', stall_name='Thứ Bảy')
+    saturday = make_farmer('a@test.com', stall_name='Saturday Stall')
     sells_at(saturday, city['ben_thanh'], day=6)
-    off = make_farmer('b@test.com', stall_name='Khung Tắt')
+    off = make_farmer('b@test.com', stall_name='Slot Off')
     sells_at(off, city['ben_thanh'], day=6, active=False)
     elsewhere = make_farmer('c@test.com', stall_name='Chợ Khác')
     sells_at(elsewhere, city['ben_thanh'], day=7)
@@ -180,7 +180,7 @@ def test_market_farmers_day_filter_uses_active_slots_at_this_market(api_client, 
 
     rows = client.get(reverse('public-market-farmers', args=[city['ben_thanh'].pk]), {'day': 6}).data['data']['results']
 
-    assert [(row['stall_name'], row['is_favorite']) for row in rows] == [('Thứ Bảy', True)]
+    assert [(row['stall_name'], row['is_favorite']) for row in rows] == [('Saturday Stall', True)]
 
 
 @pytest.mark.django_db

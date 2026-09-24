@@ -28,7 +28,7 @@ class CategoryPublicListView(APIView):
 
     def get(self, request):
         data = CategoryReadSerializer(Category.objects.filter(is_active=True), many=True).data
-        return api_response(message='Lấy danh sách danh mục thành công', data=data, request=request)
+        return api_response(message='Categories retrieved', data=data, request=request)
 
 
 MAX_IDS = 50
@@ -44,9 +44,9 @@ PRODUCT_ORDERINGS = {
 def _int_list(raw: str, field: str, *, limit: int | None = None) -> list[int]:
     values = [value.strip() for value in raw.split(',') if value.strip()]
     if not all(value.isdigit() for value in values):
-        raise BusinessValidationError('Dữ liệu không hợp lệ', errors={field: ['Danh sách mã không hợp lệ']})
+        raise BusinessValidationError('Invalid data', errors={field: ['Invalid id list']})
     if limit and len(values) > limit:
-        raise BusinessValidationError('Dữ liệu không hợp lệ', errors={field: [f'Tối đa {limit} mã']})
+        raise BusinessValidationError('Invalid data', errors={field: [f'At most {limit} ids']})
     return [int(value) for value in values]
 
 
@@ -55,7 +55,7 @@ def _price(params, field: str) -> int | None:
     if not raw:
         return None
     if not raw.isdigit():
-        raise BusinessValidationError('Dữ liệu không hợp lệ', errors={field: ['Giá phải là số nguyên']})
+        raise BusinessValidationError('Invalid data', errors={field: ['The price must be a whole number']})
     return int(raw)
 
 
@@ -73,7 +73,7 @@ class ProductPublicListView(APIView):
         params = request.query_params
         ordering = params.get('ordering', '').strip() or 'newest'
         if ordering not in PRODUCT_ORDERINGS:
-            raise BusinessValidationError('Dữ liệu không hợp lệ', errors={'ordering': ['Kiểu sắp xếp không hợp lệ']})
+            raise BusinessValidationError('Invalid data', errors={'ordering': ['Invalid ordering']})
         queryset = public_products(request.user)
 
         if ids := _int_list(params.get('ids', ''), 'ids', limit=MAX_IDS):
@@ -117,7 +117,7 @@ class ProductPublicDetailView(APIView):
     def get(self, request, pk):
         product = get_object_or_404(public_products(request.user), pk=pk)
         data = ProductDetailSerializer(product, context={'request': request}).data
-        return api_response(message='Lấy thông tin sản phẩm thành công', data=data, request=request)
+        return api_response(message='Product retrieved', data=data, request=request)
 
 
 class ProductPublicReviewsView(APIView):
@@ -132,7 +132,7 @@ class ProductPublicReviewsView(APIView):
             .order_by('-created_at', '-id')
         if rating := request.query_params.get('rating', '').strip():
             if rating not in {'1', '2', '3', '4', '5'}:
-                raise BusinessValidationError('Dữ liệu không hợp lệ', errors={'rating': ['Số sao từ 1 đến 5']})
+                raise BusinessValidationError('Invalid data', errors={'rating': ['The rating must be between 1 and 5']})
             reviews = reviews.filter(rating=int(rating))
         paginator = ReviewPagination(rating_summary(visible))
         page = paginator.paginate_queryset(reviews, request, view=self)

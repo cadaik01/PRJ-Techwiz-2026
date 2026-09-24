@@ -58,9 +58,9 @@ def _notify_farmer(order: Order) -> None:
     notify_user(
         recipient=order.farmer.user,
         type=NotificationType.ORDER_CANCELLED_CUSTOMER_LOCKED,
-        title=f'Đơn #{order.id} đã bị hủy',
-        message=f'Đơn #{order.id} của {customer_name} bị hủy do tài khoản khách bị khóa. '
-                'Hàng đã được hoàn kho, bạn có thể bán lẻ tại sạp.',
+        title=f'Order #{order.id} was cancelled',
+        message=f'Order #{order.id} from {customer_name} was cancelled because the customer account was locked. '
+                'The stock has been returned; you can sell the items at your stall.',
         target_url=f'/farmer/orders/{order.id}',
         email_template='order_cancelled_customer_locked',
         email_context={
@@ -79,7 +79,7 @@ def deactivate_customer(*, customer_id: int, actor) -> int:
         with transaction.atomic():
             customer = User.objects.select_for_update(of=('self',)).get(id=customer_id)
             if not customer.is_active:
-                raise BusinessValidationError('Tài khoản đã bị khóa trước đó', code='INVALID_STATUS_TRANSITION')
+                raise BusinessValidationError('The account is already locked', code='INVALID_STATUS_TRANSITION')
             customer.is_active = False
             customer.save(update_fields=['is_active', 'updated_at'])
             closed = close_open_orders(
@@ -97,6 +97,6 @@ def activate_customer(*, customer_id: int) -> None:
     with transaction.atomic():
         customer = User.objects.select_for_update(of=('self',)).get(id=customer_id)
         if customer.is_active:
-            raise BusinessValidationError('Tài khoản đang hoạt động', code='INVALID_STATUS_TRANSITION')
+            raise BusinessValidationError('The account is already active', code='INVALID_STATUS_TRANSITION')
         customer.is_active = True
         customer.save(update_fields=['is_active', 'updated_at'])

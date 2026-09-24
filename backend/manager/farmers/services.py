@@ -22,17 +22,17 @@ SUSPEND_TRANSITIONS = {
     OrderStatus.READY_FOR_PICKUP: Transition.T12,
 }
 # What customers read: the admin's internal reason stays in the audit log.
-SUSPENDED_REASON_FOR_CUSTOMERS = 'Sạp tạm ngừng hoạt động trên MarketLink'
+SUSPENDED_REASON_FOR_CUSTOMERS = 'The stall is temporarily not operating on MarketLink'
 
 # (from, to) -> in-app title and message for the farmer.
 STATUS_NOTICES = {
     (FarmerStatus.PENDING, FarmerStatus.APPROVED): (
-        'Tài khoản đã được duyệt', 'Bạn có thể bắt đầu đăng sản phẩm và nhận đơn.'),
-    (FarmerStatus.PENDING, FarmerStatus.REJECTED): ('Hồ sơ đăng ký bị từ chối', 'Lý do: {reason}'),
+        'Your account has been approved', 'You can now list products and receive orders.'),
+    (FarmerStatus.PENDING, FarmerStatus.REJECTED): ('Your application was rejected', 'Reason: {reason}'),
     (FarmerStatus.APPROVED, FarmerStatus.SUSPENDED): (
-        'Tài khoản bị đình chỉ', 'Lý do: {reason}. Các đơn đang mở đã bị hủy và hoàn kho.'),
+        'Your account has been suspended', 'Reason: {reason}. Your open orders were declined and restocked.'),
     (FarmerStatus.SUSPENDED, FarmerStatus.APPROVED): (
-        'Tài khoản đã được khôi phục', 'Bạn có thể tiếp tục bán hàng.'),
+        'Your account has been reinstated', 'You can continue selling.'),
 }
 
 
@@ -56,9 +56,9 @@ def _notify_customer_declined(order: Order) -> None:
     notify_user(
         recipient=order.customer,
         type=NotificationType.ORDER_DECLINED,
-        title=f'Đơn #{order.id} bị từ chối',
-        message=f'{order.farmer.stall_name} tạm ngừng hoạt động nên đơn #{order.id} đã bị hủy. '
-                'Bạn không cần ra chợ nhận đơn này.',
+        title=f'Order #{order.id} was declined',
+        message=f'{order.farmer.stall_name} is temporarily not operating, so order #{order.id} was cancelled. '
+                'You do not need to go to the market for it.',
         target_url=f'/customer/orders/{order.id}',
         email_template='order_declined',
         email_context={
@@ -87,7 +87,7 @@ def _change_status(*, farmer_id: int, actor, allowed_from: str, to_status: str, 
             )
             if farmer.status != allowed_from:
                 raise BusinessValidationError(
-                    'Trạng thái hiện tại của nông dân không cho phép thao tác này',
+                    'The farmer\'s current status does not allow this action',
                     code='INVALID_STATUS_TRANSITION',
                 )
             farmer.status = to_status

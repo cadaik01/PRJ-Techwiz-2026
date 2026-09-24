@@ -22,7 +22,7 @@ def _filtered_logs(params):
         queryset = queryset.filter(action__in=actions)
     if user_id := params.get('user_id', '').strip():
         if not user_id.isdigit():
-            raise BusinessValidationError('Dữ liệu không hợp lệ', errors={'user_id': ['Mã người dùng không hợp lệ']})
+            raise BusinessValidationError('Invalid data', errors={'user_id': ['Invalid user id']})
         queryset = queryset.filter(user_id=int(user_id))
     start, end = day_range(params)
     if start:
@@ -51,5 +51,5 @@ class AuditLogAdminDetailView(APIView):
     def get(self, request, pk):
         log = get_object_or_404(AuditLog.objects.select_related('user'), pk=pk)
         return api_response(
-            message='Lấy nhật ký thành công', data=AuditLogReadSerializer(log).data, request=request,
+            message='Audit log entry retrieved', data=AuditLogReadSerializer(log).data, request=request,
         )

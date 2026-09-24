@@ -15,7 +15,7 @@ from rest_framework import serializers
 MAX_IMAGE_BYTES = 2 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp'}
 ALLOWED_FORMATS = {'JPEG', 'PNG', 'WEBP'}
-IMAGE_RULE_MESSAGE = 'Ảnh phải là JPG/PNG/WEBP, tối đa 2MB'
+IMAGE_RULE_MESSAGE = 'The image must be JPG, PNG or WEBP, at most 2 MB'
 
 
 def validate_image_upload(uploaded_file):

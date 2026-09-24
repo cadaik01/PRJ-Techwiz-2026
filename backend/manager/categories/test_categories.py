@@ -30,7 +30,7 @@ def fruits(db):
 
 
 def add_product(category):
-    role = Role.objects.get_or_create(code=RoleCode.FARMER, defaults={'name': 'Nông dân'})[0]
+    role = Role.objects.get_or_create(code=RoleCode.FARMER, defaults={'name': 'Farmer'})[0]
     user = User.objects.create_user(email=f'farmer{category.pk}@test.com', password=PASSWORD, role=role)
     farmer = FarmerProfile.objects.create(
         user=user, stall_name='Rau Sạch', contact_person='Bà Tư', phone='0907654321', address='Chợ Bến Thành',
@@ -79,7 +79,7 @@ def test_name_is_unique_ignoring_case_but_not_accents(admin_client, vegetables):
 
     assert duplicate.status_code == 400
     assert duplicate.data['code'] == 'VALIDATION_ERROR'
-    assert duplicate.data['errors']['name'] == ['Tên danh mục đã tồn tại']
+    assert duplicate.data['errors']['name'] == ['A category with this name already exists']
     assert admin_client.post(LIST_URL, {'name': 'Rau la'}, format='json').status_code == 201
 
 
@@ -89,7 +89,7 @@ def test_name_must_be_2_to_50_characters(admin_client, name):
     response = admin_client.post(LIST_URL, {'name': name}, format='json')
 
     assert response.status_code == 400
-    assert response.data['errors']['name'] == ['Vui lòng nhập 2–50 ký tự']
+    assert response.data['errors']['name'] == ['Please enter 2–50 characters']
 
 
 @pytest.mark.django_db
@@ -129,7 +129,7 @@ def test_delete_unused_category_returns_204_without_body(admin_client, vegetable
 
 @pytest.mark.django_db
 def test_unknown_category_is_404(admin_client):
-    response = admin_client.patch(reverse('admin-category-detail', args=[999]), {'name': 'Mới'}, format='json')
+    response = admin_client.patch(reverse('admin-category-detail', args=[999]), {'name': 'New'}, format='json')
 
     assert response.status_code == 404
     assert response.data['code'] == 'NOT_FOUND'

@@ -30,14 +30,14 @@ class CategoryAdminListView(APIView):
 
     def get(self, request):
         data = CategoryAdminReadSerializer(admin_categories(), many=True).data
-        return api_response(message='Lấy danh sách danh mục thành công', data=data, request=request)
+        return api_response(message='Categories retrieved', data=data, request=request)
 
     def post(self, request):
         serializer = CategoryAdminCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         category = serializer.save()
         return api_response(
-            message='Đã thêm danh mục', data=_category_data(category.id),
+            message='Category created', data=_category_data(category.id),
             status_code=status.HTTP_201_CREATED, request=request,
         )
 
@@ -53,7 +53,7 @@ class CategoryAdminDetailView(APIView):
         serializer = CategoryAdminUpdateSerializer(category, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return api_response(message='Đã cập nhật danh mục', data=_category_data(pk), request=request)
+        return api_response(message='Category updated', data=_category_data(pk), request=request)
 
     def delete(self, request, pk):
         get_object_or_404(Category, pk=pk)

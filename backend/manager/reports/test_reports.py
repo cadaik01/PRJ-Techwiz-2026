@@ -99,7 +99,7 @@ def test_summary_filters_by_market_and_date(admin_client, sales):
 @pytest.mark.django_db
 @pytest.mark.parametrize('params, field', [
     ({}, 'from'),
-    ({'from': '2026-01-01', 'to': 'hôm nay'}, 'to'),
+    ({'from': '2026-01-01', 'to': 'today'}, 'to'),
     ({'from': '2026-05-01', 'to': '2026-04-01'}, 'to'),
     ({'from': '2025-01-01', 'to': '2026-01-02'}, 'to'),                   # 367 days
     ({'from': '2026-01-01', 'to': '2026-01-02', 'market_id': 999}, 'market_id'),
@@ -121,12 +121,12 @@ def test_export_is_an_xlsx_with_three_sheets_and_is_audited(admin_client, admin_
     day = sales['range']['from']
     assert response['Content-Disposition'] == f'attachment; filename="marketlink-report-{day}-{day}.xlsx"'
     workbook = load_workbook(BytesIO(response.content))
-    assert workbook.sheetnames == ['Tổng quan đơn', 'Doanh thu theo chợ', 'Nông dân tích cực']
-    revenue = workbook['Doanh thu theo chợ']
-    assert [cell.value for cell in revenue[4]] == ['Chợ', 'Số đơn hoàn tất', 'Doanh thu (VND)']
+    assert workbook.sheetnames == ['Orders by status', 'Revenue by market', 'Top farmers']
+    revenue = workbook['Revenue by market']
+    assert [cell.value for cell in revenue[4]] == ['Market', 'Completed orders', 'Revenue (VND)']
     assert [cell.value for cell in revenue[5]] == ['Chợ Tân Định', 1, 50000]
-    statuses = {row[0].value: row[1].value for row in workbook['Tổng quan đơn'].iter_rows(min_row=5)}
-    assert statuses['Hoàn tất'] == 3
+    statuses = {row[0].value: row[1].value for row in workbook['Orders by status'].iter_rows(min_row=5)}
+    assert statuses['Completed'] == 3
 
     entry = AuditLog.objects.get(action=AuditAction.EXPORT_DATA)
     assert (entry.user, entry.status_code, entry.details['from']) == (admin_user, 200, day)

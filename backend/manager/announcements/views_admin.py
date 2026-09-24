@@ -37,7 +37,7 @@ class AnnouncementAdminListView(APIView):
         serializer.is_valid(raise_exception=True)
         announcement = serializer.save(created_by=request.user)
         return api_response(
-            message='Đã đăng thông báo', data=AnnouncementAdminReadSerializer(announcement).data,
+            message='Announcement published', data=AnnouncementAdminReadSerializer(announcement).data,
             status_code=status.HTTP_201_CREATED, request=request,
         )
 
@@ -54,7 +54,7 @@ class AnnouncementAdminDetailView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return api_response(
-            message='Đã cập nhật thông báo', data=AnnouncementAdminReadSerializer(announcement).data,
+            message='Announcement updated', data=AnnouncementAdminReadSerializer(announcement).data,
             request=request,
         )
 

@@ -15,7 +15,7 @@ from reviews.models import FarmerReview, ProductReview
 from system.models import AuditAction, AuditLog
 
 LIST_URL = reverse('admin-farmer-list')
-REASON = {'reason': 'Bán hàng không đúng mô tả'}
+REASON = {'reason': 'Products do not match their description'}
 
 
 def url(name, farmer):
@@ -41,7 +41,7 @@ def test_customer_is_refused(auth_client):
 def test_list_row_and_counts(admin_client, farmer, market):
     customer = make_customer()
     cabbage = make_product(farmer)
-    archived = make_product(farmer, name='Cũ')
+    archived = make_product(farmer, name='Old stock')
     archived.is_archived = True
     archived.save()
     make_order(customer, farmer, market, [(cabbage, 1)])
@@ -115,7 +115,7 @@ def test_approve_and_reject_only_from_pending(admin_client, admin_user):
         'INVALID_STATUS_TRANSITION'
 
     notice = Notification.objects.get(recipient=applicant.user)
-    assert (notice.type, notice.title) == (NotificationType.ACCOUNT_STATUS_CHANGED, 'Tài khoản đã được duyệt')
+    assert (notice.type, notice.title) == (NotificationType.ACCOUNT_STATUS_CHANGED, 'Your account has been approved')
     assert AuditLog.objects.filter(action=AuditAction.FARMER_APPROVED, status_code=200, user=admin_user).exists()
     assert AuditLog.objects.filter(action=AuditAction.FARMER_REJECTED, status_code=400).exists()
 
@@ -141,7 +141,7 @@ def test_reject_stores_reason_and_history(admin_client, admin_user):
 def test_reason_is_required(admin_client, farmer, action):
     response = admin_client.post(url(action, farmer), {'reason': 'x'}, format='json')
 
-    assert response.data['errors']['reason'] == ['Vui lòng nhập lý do (5–500 ký tự)']
+    assert response.data['errors']['reason'] == ['Please enter a reason (5–500 characters)']
 
 
 @pytest.mark.django_db
@@ -201,7 +201,7 @@ def test_suspend_only_from_approved_and_reinstate_only_from_suspended(admin_clie
     assert reinstated.data['data']['status'] == 'APPROVED'
     farmer.refresh_from_db()
     assert farmer.status_reason is None
-    assert Notification.objects.filter(recipient=farmer.user, title='Tài khoản đã được khôi phục').exists()
+    assert Notification.objects.filter(recipient=farmer.user, title='Your account has been reinstated').exists()
 
 
 @pytest.mark.django_db

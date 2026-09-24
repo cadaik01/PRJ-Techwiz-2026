@@ -12,16 +12,16 @@ from openpyxl.styles import Font
 from orders.models import OrderStatus
 
 VND_FORMAT = '#,##0" ₫"'
-# Badge labels of Pass 3 §1.2; the model's choice labels are English.
+# Status labels shown in the report (Pass 3 §1.2).
 STATUS_LABELS = {
-    OrderStatus.PLACED: 'Chờ duyệt',
-    OrderStatus.ACCEPTED: 'Đã xác nhận',
-    OrderStatus.READY_FOR_PICKUP: 'Sẵn sàng nhận',
-    OrderStatus.COMPLETED: 'Hoàn tất',
-    OrderStatus.CANCELLED: 'Đã hủy',
-    OrderStatus.DECLINED: 'Bị từ chối',
-    OrderStatus.NO_SHOW: 'Khách không đến',
-    OrderStatus.EXPIRED: 'Đã hết hạn',
+    OrderStatus.PLACED: 'Awaiting approval',
+    OrderStatus.ACCEPTED: 'Accepted',
+    OrderStatus.READY_FOR_PICKUP: 'Ready for pickup',
+    OrderStatus.COMPLETED: 'Completed',
+    OrderStatus.CANCELLED: 'Cancelled',
+    OrderStatus.DECLINED: 'Declined',
+    OrderStatus.NO_SHOW: 'No-show',
+    OrderStatus.EXPIRED: 'Expired',
 }
 BOLD = Font(bold=True)
 
@@ -46,19 +46,19 @@ def _sheet(workbook, title, period, headers, rows, money_columns=()):
 
 
 def build_workbook(report: dict, *, date_from: date, date_to: date, market_name: str | None) -> bytes:
-    period = f'Ngày nhận hàng: {date_from:%d/%m/%Y} – {date_to:%d/%m/%Y}'
+    period = f'Pickup dates: {date_from:%d/%m/%Y} – {date_to:%d/%m/%Y}'
     if market_name:
-        period += f' · Chợ: {market_name}'
+        period += f' · Market: {market_name}'
 
     workbook = Workbook()
     workbook.remove(workbook.active)
-    _sheet(workbook, 'Tổng quan đơn', period, ['Trạng thái', 'Số đơn'],
+    _sheet(workbook, 'Orders by status', period, ['Status', 'Orders'],
            [[STATUS_LABELS[row['status']], row['count']] for row in report['orders_by_status']])
-    _sheet(workbook, 'Doanh thu theo chợ', period, ['Chợ', 'Số đơn hoàn tất', 'Doanh thu (VND)'],
+    _sheet(workbook, 'Revenue by market', period, ['Market', 'Completed orders', 'Revenue (VND)'],
            [[row['market_name'], row['completed_orders'], row['revenue']] for row in report['revenue_by_market']],
            money_columns=(3,))
-    _sheet(workbook, 'Nông dân tích cực', period,
-           ['Tên sạp', 'Số đơn hoàn tất', 'Doanh thu (VND)', 'Điểm đánh giá TB'],
+    _sheet(workbook, 'Top farmers', period,
+           ['Stall', 'Completed orders', 'Revenue (VND)', 'Average rating'],
            [[row['stall_name'], row['completed_orders'], row['revenue'], row['rating_avg'] or '—']
             for row in report['top_farmers']],
            money_columns=(3,))

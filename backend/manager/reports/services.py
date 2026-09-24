@@ -25,23 +25,23 @@ TOP_FARMERS = 10
 def report_filters(params) -> dict:
     """`from` and `to` (required, YYYY-MM-DD, at most 366 days) and optional `market_id`."""
     raw = {field: (params.get(field) or '').strip() for field in ('from', 'to')}
-    errors = {field: ['Vui lòng chọn ngày'] for field, value in raw.items() if not value}
+    errors = {field: ['Please choose a date'] for field, value in raw.items() if not value}
     days = {}
     for field, value in raw.items():
         if value:
             try:
                 days[field] = date.fromisoformat(value)
             except ValueError:
-                errors[field] = ['Ngày không hợp lệ (định dạng YYYY-MM-DD)']
+                errors[field] = ['Invalid date (use YYYY-MM-DD)']
     market_id = (params.get('market_id') or '').strip()
     if market_id and not (market_id.isdigit() and Market.objects.filter(id=int(market_id)).exists()):
-        errors['market_id'] = ['Chợ không tồn tại']
+        errors['market_id'] = ['Market not found']
     if not errors and days['to'] < days['from']:
-        errors['to'] = ['Ngày kết thúc phải từ ngày bắt đầu trở đi']
+        errors['to'] = ['The end date must be on or after the start date']
     if not errors and (days['to'] - days['from']).days + 1 > MAX_RANGE_DAYS:
-        errors['to'] = [f'Khoảng ngày tối đa {MAX_RANGE_DAYS} ngày']
+        errors['to'] = [f'The range can span at most {MAX_RANGE_DAYS} days']
     if errors:
-        raise BusinessValidationError('Dữ liệu không hợp lệ', errors=errors)
+        raise BusinessValidationError('Invalid data', errors=errors)
     return {'date_from': days['from'], 'date_to': days['to'], 'market_id': int(market_id) if market_id else None}
 
 

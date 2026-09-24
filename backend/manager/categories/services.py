@@ -26,7 +26,7 @@ def delete_category(*, category_id: int) -> None:
         category = Category.objects.select_for_update(of=('self',)).get(id=category_id)
         if category.products.exists():
             raise UnprocessableEntityError(
-                'Danh mục đang có sản phẩm nên không thể xóa, bạn có thể ẩn danh mục',
+                'This category still has products and cannot be deleted; hide it instead',
                 code='RESOURCE_IN_USE',
             )
         category.delete()

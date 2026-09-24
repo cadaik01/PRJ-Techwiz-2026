@@ -15,7 +15,7 @@ from marketlink_core.utils import api_response
 
 class ContractPagination(PageNumberPagination):
     page_size = 20
-    message = 'Lấy danh sách thành công'
+    message = 'List retrieved'
 
     def get_paginated_response(self, data):
         page = self.page

@@ -8,7 +8,7 @@ from rest_framework.validators import UniqueValidator
 
 from catalog.models import Category
 
-NAME_LENGTH_MESSAGE = 'Vui lòng nhập 2–50 ký tự'
+NAME_LENGTH_MESSAGE = 'Please enter 2–50 characters'
 
 
 class CategoryAdminReadSerializer(serializers.ModelSerializer):
@@ -22,13 +22,15 @@ class CategoryAdminReadSerializer(serializers.ModelSerializer):
 
 class CategoryAdminCreateSerializer(serializers.ModelSerializer):
     # The column's as_ci collation makes this lookup case-insensitive but
-    # accent-sensitive, so "rau lá" clashes with "Rau lá" and "Rau la" does not.
+    # accent-sensitive: "CAFÉ" clashes with "Café" but "Cafe" does not.
     name = serializers.CharField(
         min_length=2,
         max_length=50,
         error_messages={'min_length': NAME_LENGTH_MESSAGE, 'max_length': NAME_LENGTH_MESSAGE,
                         'blank': NAME_LENGTH_MESSAGE, 'required': NAME_LENGTH_MESSAGE},
-        validators=[UniqueValidator(queryset=Category.objects.all(), message='Tên danh mục đã tồn tại')],
+        validators=[UniqueValidator(
+            queryset=Category.objects.all(), message='A category with this name already exists',
+        )],
     )
     icon = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
     display_order = serializers.IntegerField(min_value=0, max_value=32767, required=False)

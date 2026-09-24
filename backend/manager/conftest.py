@@ -22,14 +22,14 @@ def inline_email(settings):
 
 
 def make_customer(email='khach@test.com', full_name='Nguyễn Văn A', phone='0901234567', **user_fields):
-    role = Role.objects.get_or_create(code=RoleCode.CUSTOMER, defaults={'name': 'Khách hàng'})[0]
+    role = Role.objects.get_or_create(code=RoleCode.CUSTOMER, defaults={'name': 'Customer'})[0]
     user = User.objects.create_user(email=email, password=PASSWORD, role=role, **user_fields)
     CustomerProfile.objects.create(user=user, full_name=full_name, phone=phone, address='12 Lê Lợi, Quận 1')
     return user
 
 
 def make_farmer(email='farmer@test.com', stall_name='Rau Sạch Đà Lạt', status=FarmerStatus.APPROVED, **fields):
-    role = Role.objects.get_or_create(code=RoleCode.FARMER, defaults={'name': 'Nông dân'})[0]
+    role = Role.objects.get_or_create(code=RoleCode.FARMER, defaults={'name': 'Farmer'})[0]
     user = User.objects.create_user(email=email, password=PASSWORD, role=role)
     return FarmerProfile.objects.create(
         user=user, stall_name=stall_name, contact_person='Bà Tư', phone='0907654321',

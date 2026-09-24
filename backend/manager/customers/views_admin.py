@@ -60,7 +60,7 @@ class CustomerAdminDetailView(APIView):
         data = CustomerAdminDetailSerializer(
             customer, context={'recent_orders': OrderSummarySerializer(recent, many=True).data},
         ).data
-        return api_response(message='Lấy thông tin khách hàng thành công', data=data, request=request)
+        return api_response(message='Customer retrieved', data=data, request=request)
 
 
 class CustomerDeactivationImpactView(APIView):
@@ -89,7 +89,7 @@ class CustomerDeactivateView(APIView):
             result_details=lambda count: {'affected_orders': count},
         )
         return api_response(
-            message=f'Đã khóa tài khoản, {affected} đơn đang mở đã bị hủy',
+            message=f'Account locked, {affected} open orders cancelled',
             data={**_row(pk), 'affected_orders': affected}, request=request,
         )
 
@@ -105,4 +105,4 @@ class CustomerActivateView(APIView):
             request, action=AuditAction.CUSTOMER_ACTIVATED, details={'customer_id': pk},
             operation=lambda: activate_customer(customer_id=pk),
         )
-        return api_response(message='Đã kích hoạt lại tài khoản', data=_row(pk), request=request)
+        return api_response(message='Account reactivated', data=_row(pk), request=request)

@@ -26,7 +26,7 @@ def review(farmer, market, rating, hidden=False, customer=None):
     customer = customer or make_customer(f'k{FarmerReview.objects.count()}@test.com', full_name='Nguyễn Văn An')
     order = make_order(customer, farmer, market, [(make_product(farmer, name=f'Món {rating}'), 1)],
                        status=OrderStatus.COMPLETED)
-    return FarmerReview.objects.create(order=order, rating=rating, comment='Tươi', is_hidden_by_admin=hidden)
+    return FarmerReview.objects.create(order=order, rating=rating, comment='Fresh', is_hidden_by_admin=hidden)
 
 
 def stalls(client, **params):
@@ -57,7 +57,7 @@ def test_directory_lists_public_farmers_only(api_client, directory):
 
 @pytest.mark.django_db
 def test_directory_orderings(api_client, directory):
-    make_product(directory['nam'], name='Hết hàng', stock=0)
+    make_product(directory['nam'], name='Sold out', stock=0)
 
     assert stalls(api_client, ordering='rating') == ['Rau Sạch', 'Xoài Cát', 'Nấm Rơm']
     assert stalls(api_client, ordering='distance', lat=10.7725, lng=106.6981) == ['Rau Sạch', 'Xoài Cát', 'Nấm Rơm']

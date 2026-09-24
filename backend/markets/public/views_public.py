@@ -31,7 +31,7 @@ def day_param(params) -> int | None:
     if not raw:
         return None
     if raw not in {'1', '2', '3', '4', '5', '6', '7'}:
-        raise BusinessValidationError('Dữ liệu không hợp lệ', errors={'day': ['Thứ trong tuần từ 1 đến 7']})
+        raise BusinessValidationError('Invalid data', errors={'day': ['The weekday must be between 1 and 7']})
     return int(raw)
 
 
@@ -61,8 +61,8 @@ class MarketPublicListView(APIView):
         ordering = params.get('ordering', 'name').strip() or 'name'
         if ordering not in {'name', 'distance'} or (ordering == 'distance' and not point):
             raise BusinessValidationError(
-                'Dữ liệu không hợp lệ', errors={'ordering': ['Sắp xếp theo khoảng cách cần vị trí (lat, lng)']
-                                                if ordering == 'distance' else ['Kiểu sắp xếp không hợp lệ']},
+                'Invalid data', errors={'ordering': ['Ordering by distance needs a location (lat, lng)']
+                                                if ordering == 'distance' else ['Invalid ordering']},
             )
         queryset = public_markets(request, point)
         if q := params.get('q', '').strip():
@@ -87,7 +87,7 @@ class MarketPublicDetailView(APIView):
     def get(self, request, pk):
         market = get_object_or_404(public_markets(request, read_point(request.query_params)), pk=pk)
         data = MarketDetailSerializer(market, context={'request': request}).data
-        return api_response(message='Lấy thông tin chợ thành công', data=data, request=request)
+        return api_response(message='Market retrieved', data=data, request=request)
 
 
 class MarketPublicFarmersView(APIView):

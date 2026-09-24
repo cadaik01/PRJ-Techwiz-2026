@@ -47,12 +47,12 @@ def catalog(db):
     items = {
         'cai': product(rau, 'Cải ngọt', price=15000),
         'ca_chua': product(rau, 'Cà chua', price=30000),
-        'het': product(rau, 'Hết hàng', stock=0),
-        'tam_ngung': product(rau, 'Tạm ngừng', is_available=False),
-        'luu_tru': product(rau, 'Lưu trữ', is_archived=True),
-        'bi_go': product(rau, 'Bị gỡ', is_hidden_by_admin=True),
+        'het': product(rau, 'Sold out', stock=0),
+        'tam_ngung': product(rau, 'Paused', is_available=False),
+        'luu_tru': product(rau, 'Archived', is_archived=True),
+        'bi_go': product(rau, 'Removed', is_hidden_by_admin=True),
         'xoai': product(xoai, 'Xoài cát', price=60000, category=fruit),
-        'cho_duyet': product(pending, 'Của nông dân chờ duyệt'),
+        'cho_duyet': product(pending, 'From a pending farmer'),
     }
     return {'ben_thanh': ben_thanh, 'rau': rau, 'xoai': xoai, 'fruit': fruit, **items}
 
@@ -64,7 +64,7 @@ def test_default_list_shows_only_public_in_stock_products(api_client, catalog):
 
 @pytest.mark.django_db
 def test_in_stock_false_adds_out_of_stock_and_paused(api_client, catalog):
-    assert set(names(api_client, in_stock='false')) == {'Cải ngọt', 'Cà chua', 'Xoài cát', 'Hết hàng', 'Tạm ngừng'}
+    assert set(names(api_client, in_stock='false')) == {'Cải ngọt', 'Cà chua', 'Xoài cát', 'Sold out', 'Paused'}
 
 
 @pytest.mark.django_db
@@ -74,7 +74,7 @@ def test_ids_refresh_the_cart_without_archived_or_removed(api_client, catalog):
     rows = api_client.get(LIST_URL, {'ids': ids}).data['data']['results']
 
     assert {row['name']: row['availability'] for row in rows} == {
-        'Cải ngọt': 'IN_STOCK', 'Hết hàng': 'OUT_OF_STOCK', 'Tạm ngừng': 'UNAVAILABLE'}
+        'Cải ngọt': 'IN_STOCK', 'Sold out': 'OUT_OF_STOCK', 'Paused': 'UNAVAILABLE'}
     too_many = ','.join(str(n) for n in range(1, 52))
     assert api_client.get(LIST_URL, {'ids': too_many}).status_code == 400
 
