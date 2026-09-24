@@ -66,4 +66,5 @@ class OrderSummaryReadSerializer(serializers.ModelSerializer):
         }
 
     def get_item_count(self, order) -> int:
-        return order.items.count()
+        annotated = getattr(order, "item_count", None)
+        return annotated if annotated is not None else order.items.count()

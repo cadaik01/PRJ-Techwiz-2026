@@ -1,10 +1,14 @@
+from unittest import mock
+
 import pytest
+from django.core.cache import cache
 
 from orders.exceptions import IdempotencyInProgressError, IdempotencyKeyReusedError
 from orders.services import idempotency_service
-from orders.services.idempotency_service import run_idempotent
+from orders.services.idempotency_service import fingerprint, run_idempotent
 
 KEY = "5f0c2c1e-8a3b-4b8e-9d7e-2a61c0f4b9a1"
+CACHE_KEY = f"idem:1:{KEY}"
 
 
 def _run(payload, action=lambda: (201, {"ok": True}), user_id=1):
@@ -32,7 +36,7 @@ class TestRunIdempotent:
             _run({"a": 2})
 
     def test_request_still_processing_is_rejected(self):
-        idempotency_service._begin(user_id=1, key=KEY, request_hash=idempotency_service.fingerprint({"a": 1}))
+        idempotency_service._claim(user_id=1, key=KEY, request_hash=fingerprint({"a": 1}))
 
         with pytest.raises(IdempotencyInProgressError):
             _run({"a": 1})
@@ -50,3 +54,38 @@ class TestRunIdempotent:
         _run({"a": 1}, user_id=1)
 
         assert _run({"a": 2}, user_id=2).replayed is False
+
+    def test_failed_request_never_erases_another_requests_result(self):
+        def slow_then_fail():
+            # Our claim expired meanwhile and a retry with the same key finished first.
+            cache.set(CACHE_KEY, {"state": "done", "hash": fingerprint({"a": 1}), "status": 201, "body": {"id": 7}})
+            raise RuntimeError("limit exceeded")
+
+        with pytest.raises(RuntimeError):
+            _run({"a": 1}, action=slow_then_fail)
+
+        replay = _run({"a": 1})
+        assert (replay.replayed, replay.body) == (True, {"id": 7})
+
+    def test_key_freed_between_add_and_get_is_claimed(self):
+        with mock.patch.object(idempotency_service.cache, "add", side_effect=[False, True]), \
+                mock.patch.object(idempotency_service.cache, "get", return_value=None):
+            result = _run({"a": 1})
+
+        assert result.replayed is False
+
+    def test_result_cache_failure_still_returns_the_response(self):
+        with mock.patch.object(idempotency_service.cache, "set", side_effect=ConnectionError("redis down")):
+            result = _run({"a": 1})
+
+        assert (result.status, result.replayed) == (201, False)
+
+
+class TestReleaseFailures:
+    def test_cache_error_while_releasing_keeps_the_original_error(self):
+        def boom():
+            raise RuntimeError("stock changed")
+
+        with mock.patch.object(idempotency_service.cache, "get", side_effect=ConnectionError("redis down")):
+            with pytest.raises(RuntimeError):
+                _run({"a": 1}, action=boom)

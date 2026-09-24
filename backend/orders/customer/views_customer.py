@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
@@ -7,16 +8,26 @@ from marketlink_core.headers import require_idempotency_key
 from marketlink_core.permissions import IsCustomer
 from marketlink_core.responses import api_response
 from orders.customer.serializers_customer import CheckoutWriteSerializer, OrderSummaryReadSerializer
+from orders.selectors import order_summary_queryset
 from orders.services.checkout_service import place_orders
 from orders.services.idempotency_service import run_idempotent
+
+
+def _checkout_with_summaries(*, customer, groups) -> list:
+    # The response is built inside the same transaction: if it fails the orders roll back too, so the
+    # idempotency key can safely be released and a retry cannot create the orders a second time.
+    with transaction.atomic():
+        orders = place_orders(customer=customer, groups=groups)
+        return OrderSummaryReadSerializer(order_summary_queryset([order.pk for order in orders]), many=True).data
 
 
 def _place_orders(request) -> tuple[int, dict]:
     serializer = CheckoutWriteSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    orders = run_with_deadlock_retry(place_orders, customer=request.user, groups=serializer.validated_data["groups"])
-    data = {"orders": OrderSummaryReadSerializer(orders, many=True).data}
-    return 201, api_response(data=data, message=f"Placed {len(orders)} order(s) successfully").data
+    summaries = run_with_deadlock_retry(
+        _checkout_with_summaries, customer=request.user, groups=serializer.validated_data["groups"]
+    )
+    return 201, api_response(data={"orders": summaries}, message=f"Placed {len(summaries)} order(s) successfully").data
 
 
 class CustomerOrdersView(APIView):
@@ -24,7 +35,8 @@ class CustomerOrdersView(APIView):
     throttle_scope = "orders"
 
     def get_throttles(self):
-        # D-005 guard 3: only order creation counts toward the 10/hour limit.
+        # Pass 4B §1.4 / D-005 guard 3: every POST to this endpoint counts toward "orders" (10/hour);
+        # modify and cancel live on other endpoints and are not limited by it.
         return [ScopedRateThrottle()] if self.request.method == "POST" else super().get_throttles()
 
     def post(self, request):

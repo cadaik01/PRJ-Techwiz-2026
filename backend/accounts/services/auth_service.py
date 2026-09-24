@@ -16,7 +16,7 @@ from accounts.models import CustomUser
 # password change for the same user run one at a time and can never miss each other's tokens.
 
 
-def _account_locked_error(user: CustomUser) -> AccountLockedError:
+def account_locked_error(user: CustomUser) -> AccountLockedError:
     profile = getattr(user, "customer_profile", None)
     reason = profile.deactivation_reason if profile else None
     return AccountLockedError(errors={"reason": [reason]} if reason else None)
@@ -40,7 +40,7 @@ def authenticate_user(*, email: str, password: str) -> CustomUser:
     if not user.check_password(password):
         raise InvalidCredentialsError()
     if not user.is_active:
-        raise _account_locked_error(user)
+        raise account_locked_error(user)
     return user
 
 
@@ -90,7 +90,7 @@ def rotate_refresh_token(*, refresh: str) -> dict:
         if user is None:
             raise TokenInvalidError()
         if not user.is_active:
-            raise _account_locked_error(user)
+            raise account_locked_error(user)
         outstanding = OutstandingToken.objects.filter(jti=token["jti"]).first()
         if outstanding is None or BlacklistedToken.objects.filter(token=outstanding).exists():
             raise TokenInvalidError()

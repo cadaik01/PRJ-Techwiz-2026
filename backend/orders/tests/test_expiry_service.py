@@ -67,3 +67,18 @@ class TestExpireOverdueOrders:
         call_command("expire_orders", stdout=out)
 
         assert "Expired 1 order(s)" in out.getvalue()
+
+
+def test_management_command_retries_a_deadlock():
+    from unittest import mock
+
+    from django.db import OperationalError
+
+    out = StringIO()
+    with mock.patch(
+        "orders.management.commands.expire_orders.expire_overdue_orders",
+        side_effect=[OperationalError(1213, "Deadlock found"), 3],
+    ):
+        call_command("expire_orders", stdout=out)
+
+    assert "Expired 3 order(s)" in out.getvalue()

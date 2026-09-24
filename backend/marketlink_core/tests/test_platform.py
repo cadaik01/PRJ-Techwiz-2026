@@ -36,6 +36,17 @@ class TestDeadlockRetry:
         with pytest.raises(ConflictRetryError):
             run_with_deadlock_retry(work)
 
+    def test_lock_wait_timeout_becomes_conflict_retry(self):
+        calls = []
+
+        def work():
+            calls.append(1)
+            raise OperationalError(1205, "Lock wait timeout exceeded")
+
+        with pytest.raises(ConflictRetryError):
+            run_with_deadlock_retry(work)
+        assert len(calls) == 1
+
     def test_other_database_errors_propagate(self):
         def work():
             raise OperationalError(2006, "MySQL server has gone away")

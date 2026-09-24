@@ -1,8 +1,9 @@
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from accounts.models import CustomerProfile, FarmerProfile, FarmerStatus
+from accounts.models import CustomerProfile, CustomUser, FarmerProfile, FarmerStatus
+from accounts.services.auth_service import account_locked_error
 from catalog.models import Product
 from notifications.models import NotificationType
 from notifications.services import notify
@@ -15,21 +16,45 @@ from orders.exceptions import (
     SlotNotAvailableError,
 )
 from orders.models import OPEN_STATUSES, ActorRole, Order, OrderItem, OrderStatus, Transition
-from orders.services.expiry_service import expire_overdue_orders
+from orders.services.expiry_service import finish_expiry, lock_overdue_orders, returned_stock
 from orders.services.history_service import record_status_change
+from orders.services.locking import lock_products
 from orders.services.pickup_service import resolve_pickup
 
-# Lock order (Pass 4A §5.2, Implementation Notes §3): customer_profiles -> orders (lazy expiry) -> products.
+# Lock order (Implementation Notes §3: users / profiles -> orders -> products), taken once each, ascending id:
+# users -> customer_profiles -> farmer_profiles (shared) -> overdue orders -> products (overdue + cart items).
+# Locking the customer and farmer rows orders checkout against AD-12 (lock customer) and AD-07 (suspend
+# farmer), so an order can never be created for an account that was locked or suspended concurrently.
 
 
-def _load_farmers(groups) -> dict:
-    ids = [group["farmer_id"] for group in groups]
-    farmers = {
-        farmer.pk: farmer
-        for farmer in FarmerProfile.objects.select_related("user").filter(
-            pk__in=ids, status=FarmerStatus.APPROVED, user__is_active=True
+def _lock_customer(customer) -> CustomUser:
+    user = CustomUser.objects.select_for_update(of=("self",)).get(pk=customer.pk)
+    user.customer_profile = CustomerProfile.objects.select_for_update(of=("self",)).get(user=user)
+    if not user.is_active:
+        raise account_locked_error(user)
+    return user
+
+
+def _share_lock_farmer_rows(farmer_ids) -> None:
+    # FOR SHARE (Django has no select_for_share): blocks AD-07 from suspending these farmers until we commit,
+    # while checkouts for the same farmer still run side by side. Rows are locked in primary-key order.
+    table = connection.ops.quote_name(FarmerProfile._meta.db_table)
+    column = connection.ops.quote_name(FarmerProfile._meta.pk.column)
+    placeholders = ", ".join(["%s"] * len(farmer_ids))
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"SELECT {column} FROM {table} WHERE {column} IN ({placeholders}) ORDER BY {column} FOR SHARE",
+            sorted(farmer_ids),
         )
-    }
+
+
+def _lock_farmers(groups) -> dict:
+    ids = [group["farmer_id"] for group in groups]
+    _share_lock_farmer_rows(set(ids))
+    approved = FarmerProfile.objects.select_related("user").filter(
+        pk__in=ids, status=FarmerStatus.APPROVED, user__is_active=True
+    )
+    farmers = {farmer.pk: farmer for farmer in approved}
     missing = {
         f"groups.{index}.farmer_id": ["This farmer is not accepting orders"]
         for index, farmer_id in enumerate(ids)
@@ -40,9 +65,13 @@ def _load_farmers(groups) -> dict:
     return farmers
 
 
-def _check_open_order_limits(customer, groups) -> None:
+def _check_open_order_limits(customer, groups, now) -> None:
+    # A PLACED order past its pickup start is already "expired" for the customer (A-005) even if no sweep
+    # has touched it yet, so it must not block new orders.
     open_farmer_ids = list(
-        Order.objects.filter(customer=customer, status__in=OPEN_STATUSES).values_list("farmer_id", flat=True)
+        Order.objects.filter(customer=customer, status__in=OPEN_STATUSES)
+        .exclude(status=OrderStatus.PLACED, pickup_start_at__lte=now)
+        .values_list("farmer_id", flat=True)
     )
     errors = {
         f"groups.{index}.farmer_id": ["You already have an open order with this farmer"]
@@ -68,12 +97,6 @@ def _resolve_windows(groups, farmers, now) -> list:
         except (SlotNotAvailableError, CutoffPassedError) as exc:
             raise type(exc)(errors={f"groups.{index}.pickup_slot_id": [exc.message]}) from exc
     return windows
-
-
-def _lock_products(groups) -> dict:
-    ids = sorted({item["product_id"] for group in groups for item in group["items"]})
-    locked = Product.objects.filter(id__in=ids).order_by("id").select_for_update(of=("self",))
-    return {product.id: product for product in locked}
 
 
 def _is_published(product: Product) -> bool:
@@ -143,13 +166,17 @@ def _create_order(*, customer, farmer, group, window, products) -> Order:
 def place_orders(*, customer, groups: list[dict], now=None) -> list[Order]:
     now = now or timezone.now()
     with transaction.atomic():
-        CustomerProfile.objects.select_for_update().get(user=customer)
-        farmers = _load_farmers(groups)
-        for farmer_id in sorted(farmers):
-            expire_overdue_orders(farmer_id=farmer_id, now=now)
-        _check_open_order_limits(customer, groups)
+        customer = _lock_customer(customer)
+        farmers = _lock_farmers(groups)
+        overdue = lock_overdue_orders(now=now, farmer_ids=list(farmers))
+        _check_open_order_limits(customer, groups, now)
         windows = _resolve_windows(groups, farmers, now)
-        products = _lock_products(groups)
+
+        returned = returned_stock(overdue)
+        cart_product_ids = {item["product_id"] for group in groups for item in group["items"]}
+        products = lock_products(set(returned) | cart_product_ids)
+        finish_expiry(orders=overdue, products=products, returned=returned)
+
         _validate_products(groups, products)
         return [
             _create_order(

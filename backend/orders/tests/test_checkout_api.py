@@ -151,3 +151,33 @@ class TestCheckoutApi:
         response = _post(shop.customer, {"groups": []})
 
         assert (response.status_code, response.json()["code"]) == (429, "THROTTLED")
+
+
+@pytest.mark.django_db
+class TestOrderSummaryQueries:
+    def test_summaries_use_a_constant_number_of_queries(self, shop, django_assert_max_num_queries):
+        from orders.customer.serializers_customer import OrderSummaryReadSerializer
+        from orders.selectors import order_summary_queryset
+
+        orders = [make_order(customer=shop.customer, product=make_product(farmer=make_farmer())) for _ in range(5)]
+
+        with django_assert_max_num_queries(1):
+            data = OrderSummaryReadSerializer(order_summary_queryset([order.pk for order in orders]), many=True).data
+
+        assert [row["item_count"] for row in data] == [1] * 5
+
+
+@pytest.mark.django_db
+class TestCheckoutIsAtomicWithItsResponse:
+    def test_failure_while_building_the_response_rolls_the_orders_back(self, shop):
+        from unittest import mock
+
+        key = str(uuid.uuid4())
+        with mock.patch("orders.customer.views_customer.order_summary_queryset", side_effect=RuntimeError("db gone")):
+            failed = _post(shop.customer, _body(shop), key=key)
+
+        assert (failed.status_code, failed.json()["code"]) == (500, "INTERNAL_SERVER_ERROR")
+        assert not Order.objects.exists()
+        shop.tomato.refresh_from_db()
+        assert shop.tomato.stock_quantity == 10
+        assert _post(shop.customer, _body(shop), key=key).status_code == 201

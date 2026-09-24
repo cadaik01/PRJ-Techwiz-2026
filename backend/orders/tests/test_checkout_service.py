@@ -5,6 +5,7 @@ import pytest
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from accounts.exceptions import AccountLockedError
 from notifications.models import Notification
 from orders.exceptions import (
     CutoffPassedError,
@@ -129,6 +130,36 @@ class TestPlaceOrders:
         overdue.refresh_from_db()
         assert overdue.status == "EXPIRED"
         assert len(orders) == 1
+
+    def test_overdue_orders_with_farmers_outside_the_cart_do_not_count(self, shop):
+        for _ in range(5):
+            make_order(customer=shop.customer, product=make_product(farmer=make_farmer()),
+                       pickup_start_at=shop.now - timedelta(hours=1))
+
+        orders = _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.tomato, 1)))
+
+        assert len(orders) == 1
+
+    def test_stock_held_by_an_overdue_order_is_released_before_checking(self, shop):
+        shop.herbs.stock_quantity = 0
+        shop.herbs.save()
+        make_order(customer=make_customer(), product=shop.herbs, quantity=3, pickup_start_at=shop.now - timedelta(hours=1))
+
+        _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.herbs, 2)))
+
+        shop.herbs.refresh_from_db()
+        assert shop.herbs.stock_quantity == 1
+
+    def test_locked_customer_cannot_place_orders(self, shop):
+        shop.customer.is_active = False
+        shop.customer.save()
+        shop.customer.customer_profile.deactivation_reason = "Repeated no-shows"
+        shop.customer.customer_profile.save()
+
+        with pytest.raises(AccountLockedError) as caught:
+            _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.tomato, 1)))
+        assert caught.value.errors == {"reason": ["Repeated no-shows"]}
+        assert not Order.objects.exists()
 
     def test_product_of_another_farmer_is_a_validation_error(self, shop):
         with pytest.raises(ValidationError) as caught:
