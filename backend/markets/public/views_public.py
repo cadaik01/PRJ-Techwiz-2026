@@ -26,7 +26,7 @@ SELLING_FARMER = Q(
 ACCENT_INSENSITIVE = 'utf8mb4_0900_ai_ci'
 
 
-def _day(params) -> int | None:
+def day_param(params) -> int | None:
     raw = params.get('day', '').strip()
     if not raw:
         return None
@@ -69,7 +69,7 @@ class MarketPublicListView(APIView):
             queryset = queryset.annotate(name_search=Collate('name', ACCENT_INSENSITIVE)).filter(
                 Q(name_search__icontains=q) | Q(address__icontains=q),
             )
-        if (day := _day(params)) is not None:
+        if (day := day_param(params)) is not None:
             queryset = queryset.filter(operating_days__day_of_week=day)
         queryset = queryset.order_by('distance_km', 'name') if ordering == 'distance' else queryset.order_by('name')
         paginator = ContractPagination()
@@ -99,7 +99,7 @@ class MarketPublicFarmersView(APIView):
     def get(self, request, pk):
         get_object_or_404(Market, pk=pk, is_active=True)
         queryset = public_farmers(request.user).filter(farmer_markets__market_id=pk)
-        if (day := _day(request.query_params)) is not None:
+        if (day := day_param(request.query_params)) is not None:
             queryset = queryset.filter(
                 farmer_markets__market_id=pk,
                 farmer_markets__pickup_slots__day_of_week=day,

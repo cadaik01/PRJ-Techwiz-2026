@@ -53,3 +53,43 @@ class FarmerSummarySerializer(serializers.ModelSerializer):
 
     def get_is_favorite(self, farmer):
         return getattr(farmer, 'is_favorite', None)
+
+
+class FarmerPublicSerializer(FarmerSummarySerializer):
+    """FarmerPublic = FarmerSummary & contact, location, cutoff and pickup windows (PU-07).
+
+    Pickup windows list active slots at active markets only (Pass 4B §6.2).
+    """
+
+    latitude = serializers.SerializerMethodField()
+    longitude = serializers.SerializerMethodField()
+    pickup_windows = serializers.SerializerMethodField()
+
+    class Meta(FarmerSummarySerializer.Meta):
+        fields = [
+            *FarmerSummarySerializer.Meta.fields,
+            'contact_person', 'phone', 'address', 'description', 'latitude', 'longitude',
+            'order_cutoff_hours', 'pickup_windows',
+        ]
+        read_only_fields = fields
+
+    def get_latitude(self, farmer):
+        return None if farmer.latitude is None else float(farmer.latitude)
+
+    def get_longitude(self, farmer):
+        return None if farmer.longitude is None else float(farmer.longitude)
+
+    def get_pickup_windows(self, farmer) -> list[dict]:
+        return [
+            {
+                'farmer_market_id': fm.id, 'market_id': fm.market_id, 'market_name': fm.market.name,
+                'stall_label': fm.stall_label,
+                'latitude': float(fm.market.latitude), 'longitude': float(fm.market.longitude),
+                'slots': [
+                    {'id': slot.id, 'day_of_week': slot.day_of_week, 'start_time': slot.start_time.strftime('%H:%M'),
+                     'end_time': slot.end_time.strftime('%H:%M'), 'is_active': slot.is_active}
+                    for slot in sorted(fm.pickup_slots.all(), key=lambda s: (s.day_of_week, s.start_time))
+                ],
+            }
+            for fm in farmer.farmer_markets.all()
+        ]
