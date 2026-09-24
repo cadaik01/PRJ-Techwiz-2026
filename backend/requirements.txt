@@ -5,8 +5,9 @@ asgiref==3.11.1
 sqlparse==0.5.5
 tzdata==2026.2
 
-# --- Database & Storage ---
-psycopg2-binary==2.9.12
+# --- Database & Storage (MySQL InnoDB) ---
+PyMySQL==1.1.1
+cryptography==44.0.2
 pillow==12.3.0
 
 # --- Authentication & Security ---
@@ -21,21 +22,19 @@ django-redis==7.0.0
 
 # --- Audit Logging & Documentation ---
 django-simple-history==3.12.0
-drf-spectacular==0.27.2
+drf-spectacular==0.28.0
 
-# --- Django Channels (realtime WebSocket) ---
+# --- File Processing & Export (Admin Report) ---
+openpyxl==3.1.5
+et_xmlfile==2.0.0
+
+# --- Django Channels (Realtime WebSocket) ---
 channels==4.2.2
 channels-redis==4.2.1
 daphne==4.2.0
 
-# --- File Processing & Export (enable per SRS) ---
-# openpyxl==3.1.5
-# et_xmlfile==2.0.0
-# xhtml2pdf==0.2.16
-
-# --- Asynchronous Tasks (enable if the SRS needs background jobs or email) ---
-# celery==5.6.3
-# django-celery-results==2.5.1
+# --- AI Assistant (Gemini Flash) ---
+google-genai==1.3.0
 
 # --- Testing & Code Quality ---
 pytest==8.3.2
