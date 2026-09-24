@@ -23,3 +23,10 @@ frontend/.env
 .DS_Store
 .vscode/
 .idea/
+
+# Claude workspace (local only)
+.claude/
+
+# Documentation (local markdown - keep Document/ for push)
+TuDocs/
+docs/
