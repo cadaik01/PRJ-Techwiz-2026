@@ -154,6 +154,15 @@ def api_response(
    * **Tên Hàm / Phương Thức / Biến**: 100% `snake_case` (ví dụ: `process_payment`, `can_transition`, `total_amount`).
    * **Enum TextChoices**: Tên Class viết `PascalCase`, các thành viên viết `UPPER_SNAKE_CASE` (ví dụ: `class BookingStatus(models.TextChoices): PENDING = "PENDING", "Pending"`).
 
+### 🎯 Nguyên Tắc Bất Biến Dùng Chung (Core Invariants):
+1. **Kỷ luật Zero-Noise Commenting & 100% English Code**:
+   * Tuyệt đối không viết comment mô tả cú pháp hiển nhiên (*WHAT*) hoặc mang giọng điệu chatbot AI. Chỉ comment giải thích lý do nghiệp vụ đặc thù (*WHY/HOW*) ngắn gọn.
+   * 100% mã nguồn, chú thích (comments), tài liệu hàm/lớp (docstrings), nhãn hiển thị enum (`TextChoices` / `IntegerChoices` labels), tiêu đề cấu hình Django Admin (`fieldsets`, `verbose_name`), và dữ liệu fixtures/seed khởi tạo hệ thống (như tên Roles) **BẮT BUỘC viết bằng TIẾNG ANH**.
+   * *Ngoại lệ duy nhất của tiếng Việt*: Chỉ dùng cho trường `message` trong phản hồi JSON trả về Client (`api_response`) phục vụ hiển thị trực tiếp cho người dùng cuối trên giao diện.
+2. **Bảo mật Biến Môi Trường**: 100% Secret Keys, Database URI, Token được lưu trong file `.env`, không bao giờ hardcode trong mã nguồn.
+3. **Đối Chiếu Chéo Thực Tế (Zero Speculation)**: Khi viết code ghép nối giữa 2 tầng, AI và Lập trình viên **bắt buộc phải đọc trực tiếp file mã nguồn đối ứng** (Frontend đọc Serializer Backend; Backend đọc Form/API Service Frontend) để lấy chính xác tên trường. **Tuyệt đối cấm suy đoán**.
+4. **Chống Che Giấu Lỗi (Anti-Masking Data)**: Tuyệt đối không dùng fallback dữ liệu giả tạo kiểu `{ data.field || "Dữ liệu mẫu" }` che giấu lỗi API. Khi mất kết nối hoặc dữ liệu rỗng, phải hiển thị rõ trạng thái Loading (Skeleton), Empty State hoặc báo lỗi đỏ để phát hiện bug ngay lập tức.
+
 ---
 
 ## 3. Bảng Danh Mục Mã Lỗi Toàn Cầu & Chữ Ký Exception (Error Catalog)
