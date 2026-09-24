@@ -7,4 +7,5 @@ urlpatterns = [
     path("django-admin/", admin.site.urls),
     path("api/health/", HealthView.as_view(), name="health"),
     path("api/auth/", include("accounts.auth.urls")),
+    path("api/public/", include("orders.public.urls_public")),
 ]
