@@ -17,3 +17,9 @@ class AccountLockedError(DomainError):
     status_code = 403
     code = "ACCOUNT_LOCKED"
     message = "Your account has been locked"
+
+
+class TokenInvalidError(DomainError):
+    status_code = 401
+    code = "TOKEN_INVALID"
+    message = "Your session has expired, please log in again"

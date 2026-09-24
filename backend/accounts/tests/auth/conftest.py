@@ -38,6 +38,10 @@ def farmer(db):
     return user
 
 
+def bearer(access: str) -> dict:
+    return {"HTTP_AUTHORIZATION": f"Bearer {access}"}
+
+
 @pytest.fixture
 def admin_user(db):
     return CustomUser.objects.create_user(

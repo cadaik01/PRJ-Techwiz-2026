@@ -29,6 +29,24 @@ class LoginWriteSerializer(serializers.Serializer):
         return value.strip().lower()
 
 
+class RefreshTokenWriteSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
+
+class ChangePasswordWriteSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True, trim_whitespace=False)
+    new_password = serializers.CharField(write_only=True, trim_whitespace=False)
+    confirm_password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+    def validate_new_password(self, value: str) -> str:
+        return check_password_strength(value)
+
+    def validate(self, attrs: dict) -> dict:
+        if attrs["new_password"] != attrs.pop("confirm_password"):
+            raise serializers.ValidationError({"confirm_password": ["Passwords do not match"]})
+        return attrs
+
+
 class MeReadSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     email = serializers.EmailField()
