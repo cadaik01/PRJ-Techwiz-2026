@@ -90,10 +90,25 @@ def test_websocket_ticket_handshake_and_event_contract(user):
         assert frame['data']['is_read'] is False
         await socket.disconnect()
 
-        # The ticket was burnt by the first handshake: replaying the URL is refused.
+        # CT-16: the first handshake burnt the ticket, so replaying the URL is accepted
+        # and closed with 4401 (closing before accept would surface as 1006 in browsers).
         replay = WebsocketCommunicator(application, f'/ws/notifications/?ticket={ticket}')
-        connected, code = await replay.connect()
-        assert not connected
-        assert code == 4401
+        connected, _ = await replay.connect()
+        assert connected
+        assert await replay.receive_output() == {'type': 'websocket.close', 'code': 4401}
+
+    async_to_sync(scenario)()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_websocket_rejects_ticket_of_locked_account(user):
+    ticket = create_ws_ticket(user_id=user.pk, role=user.role.code)
+    user.is_active = False
+    user.save(update_fields=['is_active'])
+
+    async def scenario():
+        socket = WebsocketCommunicator(application, f'/ws/notifications/?ticket={ticket}')
+        await socket.connect()
+        assert await socket.receive_output() == {'type': 'websocket.close', 'code': 4401}
 
     async_to_sync(scenario)()

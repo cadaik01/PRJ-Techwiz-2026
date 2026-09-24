@@ -1,11 +1,13 @@
 """Shared pytest fixtures."""
 
+import fakeredis
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from accounts.models import Role
+from core.services import ws_ticket
 
 User = get_user_model()
 PASSWORD = 'Test@1234'
@@ -23,6 +25,16 @@ def local_backends(settings):
     cache.clear()
     yield
     cache.clear()
+
+
+@pytest.fixture(autouse=True)
+def fake_ticket_redis(monkeypatch):
+    """In-memory Redis for WebSocket tickets; sync and async clients share one server."""
+    server = fakeredis.FakeServer()
+    monkeypatch.setattr(ws_ticket, '_sync_client',
+                        lambda: fakeredis.FakeRedis(server=server, decode_responses=True))
+    monkeypatch.setattr(ws_ticket, '_async_client',
+                        lambda: fakeredis.FakeAsyncRedis(server=server, decode_responses=True))
 
 
 @pytest.fixture

@@ -11,7 +11,6 @@ from notifications.models import Notification, NotificationLevel
 from notifications.serializers import NotificationReadSerializer
 
 USER_GROUP = 'user_{user_id}'
-ROLE_GROUP = 'role_{role}'
 EVENT_NEW_NOTIFICATION = 'NEW_NOTIFICATION'
 
 
