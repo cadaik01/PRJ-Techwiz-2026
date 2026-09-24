@@ -1,0 +1,52 @@
+import re
+
+from django.contrib.auth.password_validation import validate_password as django_validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework import serializers
+
+from accounts.auth.tokens import issue_tokens
+
+PHONE_PATTERN = r"^(0|\+84)(3|5|7|8|9)\d{8}$"
+
+
+def check_password_strength(value: str) -> str:
+    if len(value) < 8 or not re.search(r"[A-Za-z]", value) or not re.search(r"\d", value):
+        raise serializers.ValidationError(
+            "Password must be at least 8 characters and contain both letters and digits"
+        )
+    try:
+        django_validate_password(value)
+    except DjangoValidationError as exc:
+        raise serializers.ValidationError(list(exc.messages)) from exc
+    return value
+
+
+class LoginWriteSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=100)
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+    def validate_email(self, value: str) -> str:
+        return value.strip().lower()
+
+
+class MeReadSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    email = serializers.EmailField()
+    role = serializers.CharField(source="role.code")
+    must_change_password = serializers.BooleanField()
+    display_name = serializers.SerializerMethodField()
+    farmer_status = serializers.SerializerMethodField()
+
+    def get_display_name(self, user) -> str:
+        profile = getattr(user, "customer_profile", None) or getattr(user, "farmer_profile", None)
+        if profile is None:
+            return "Administrator"
+        return getattr(profile, "full_name", None) or profile.stall_name
+
+    def get_farmer_status(self, user) -> str | None:
+        farmer_profile = getattr(user, "farmer_profile", None)
+        return farmer_profile.status if farmer_profile else None
+
+
+def build_auth_payload(user) -> dict:
+    return {**issue_tokens(user), "user": MeReadSerializer(user).data}

@@ -21,13 +21,14 @@ STATUS_TO_CODE = {
 
 
 class DomainError(exceptions.APIException):
-    """Base for business errors; subclasses set `status_code` and a frozen `code`."""
+    """Base for business errors; subclasses set `status_code`, a frozen `code` and their own `message`."""
 
     status_code = 422
     code = "FAILED_PRECONDITION"
+    message = default_message("FAILED_PRECONDITION")
 
     def __init__(self, message: str | None = None, errors: dict | None = None):
-        self.message = message or default_message(self.code)
+        self.message = message or type(self).message
         self.errors = errors or {}
         super().__init__(detail=self.message, code=self.code)
 
