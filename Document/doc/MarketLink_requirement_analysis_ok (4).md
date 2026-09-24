@@ -8,20 +8,20 @@
 ---
 
 ## 📋 BẢNG NHẬT KÝ QUYẾT ĐỊNH TOÀN DIỆN (DECISION LOG)
-*(Ghi nhận toàn bộ 21 quyết định kiến trúc chính thức do Lead Architect phê duyệt từ Pass 2)*:
+*(Ghi nhận toàn bộ 26 quyết định kiến trúc chính thức do Lead Architect phê duyệt từ Pass 2)*:
 
 * **D-001 (Tech Stack Cố Định)**: Backend Django REST Framework + MySQL 8.x (InnoDB, `utf8mb4_0900_ai_ci`); Frontend React 19 / Vite + CSS3 thuần (CSS Modules tích hợp sẵn trong Vite + Design Tokens CSS Variables). Khớp danh mục công nghệ SRS §1.8 ("HTML5, CSS3").
 * **D-002 (Actors Hệ Thống)**: 4 Tác nhân thực tế: `Admin`, `Farmer` (Vendor), `Customer`, `Guest` (Public).
 * **D-003 (Ranh Giới Phạm Vi SRS §1.5)**: Không tích hợp cổng thanh toán trực tuyến (Thanh toán COD/tiền mặt tại sạp); Không vận chuyển/shipper (Chỉ nhận hàng tại sạp chợ); Không thẩm định chứng chỉ nông dân (VietGAP, Organic).
 * **D-004 (A-001 Checkout Multi-Farmer)**: Giỏ hàng gom nhiều Farmer; khi checkout sinh **$N$ đơn độc lập**, mỗi Farmer 1 đơn; không dùng bảng Order cha / SubOrder. Một endpoint duy nhất `POST /api/customer/orders/`; All-or-Nothing; khóa kho `.order_by("id").select_for_update()`; giá lấy từ DB; giỏ hàng lưu tại client (Zustand persist trong `localStorage`).
 * **D-005 (A-001b Chống Đặt Đơn Ảo & Giữ Hàng)**: Trừ tồn kho ngay khi tạo đơn `PLACED` (giữ chỗ). Áp dụng 4 chốt chặn: (1) Bắt buộc đăng nhập Customer; (2) Giới hạn tối đa 1 đơn mở/Farmer và 5 đơn mở toàn hệ thống (Mã lỗi 422 `OPEN_ORDER_LIMIT_EXCEEDED`, khóa `CustomerProfile`); (3) Throttle riêng `orders: 10/hour`; (4) Quyền Farmer `DECLINED` và Admin khóa tài khoản vi phạm.
-* **D-006 (A-002 Order FSM Chuẩn Hóa)**: Chuẩn hóa đồ thị FSM 8 trạng thái: 3 trạng thái Mở (`PLACED`, `ACCEPTED`, `READY_FOR_PICKUP`) và 5 trạng thái Kết thúc (`COMPLETED`, `CANCELLED`, `DECLINED`, `NO_SHOW`, `EXPIRED`). Quản lý bằng 13 cạnh chuyển trạng thái T1–T13 (bao gồm các cạnh can thiệp khẩn cấp T12, T13 của Admin khi đình chỉ Farmer hoặc khóa Khách, giải quyết dứt điểm trạng thái `READY_FOR_PICKUP`); Triple-Gate Validation; OCC `version` + `If-Match`; lưu vết `_history_user` và `_change_reason`.
-* **D-007 (A-003 Sửa Đơn & Giờ Cutoff)**: Cutoff gắn theo từng đơn (`order_cutoff_hours`), tính và lưu cứng `cutoff_at`. Khách chỉ sửa trước cutoff. Farmer chỉ được chuyển `READY_FOR_PICKUP` sau cutoff. Khách sửa đơn khi đang `ACCEPTED` thì hệ thống tự chuyển về `PLACED` và điều chỉnh kho theo chênh lệch.
+* **D-006 (A-002 Order FSM Chuẩn Hóa)**: Chuẩn hóa đồ thị FSM 8 trạng thái: 3 trạng thái Mở (`PLACED`, `ACCEPTED`, `READY_FOR_PICKUP`) và 5 trạng thái Kết thúc (`COMPLETED`, `CANCELLED`, `DECLINED`, `NO_SHOW`, `EXPIRED`). Quản lý bằng 13 cạnh chuyển trạng thái T1–T13 (bao gồm các cạnh can thiệp khẩn cấp T12, T13 của Admin khi đình chỉ Farmer hoặc khóa Khách, giải quyết dứt điểm trạng thái `READY_FOR_PICKUP`); Triple-Gate Validation; OCC `version` + `If-Match`; lưu vết mỗi lần chuyển trạng thái / sửa đơn vào bảng `order_status_history` (`from_status`, `to_status`, `transition`, `actor`, `actor_role`, `change_reason`, `request_id`) trong cùng transaction với lệnh cập nhật `orders`.
+* **D-007 (A-003 Sửa Đơn & Giờ Cutoff)**: Cutoff gắn theo từng đơn (`order_cutoff_hours`), tính và lưu cứng `cutoff_at`. Khách chỉ sửa trước cutoff. Farmer chỉ được chuyển `READY_FOR_PICKUP` sau cutoff. Khách sửa đơn khi đang `ACCEPTED` thì hệ thống tự chuyển về `PLACED` và điều chỉnh kho theo chênh lệch. `order_cutoff_hours` nhận giá trị 1–72 (không cho phép 0). Giao diện hiển thị thời điểm chốt cụ thể (`cutoff_at`), không hiển thị số giờ; khung có `cutoff_at` đã qua không cho chọn.
 * **D-008 (A-004 Mẫu Tồn Kho Hàng Tuần)**: Không tạo bảng riêng; thêm `weekly_default_quantity` vào `Product`. Nông dân bấm nút "Áp dụng cho tuần này". Công thức: $\text{tồn\_kho\_mới} = \max(\text{mẫu} - \text{số\_đang\_giữ\_bởi\_đơn\_mở},\; 0)$. Service gọi quét lười `expire_overdue_orders` trước khi nạp kho.
 * **D-009 (A-005 Quét Lười Đơn Quá Hạn)**: Không dùng Celery Beat. Dùng service quét lười `expire_overdue_orders` tại 3 điểm (đầu checkout, đầu nạp mẫu tuần, khi mở dashboard Farmer). Đơn `PLACED` quá giờ bắt đầu pickup tự chuyển `EXPIRED` và cộng trả kho.
 * **D-010 (A-006 Thông Báo Đa Kênh)**: In-app WebSocket (Channels + Daphne + Upstash Redis qua vé 1 lần `ws-ticket`) là kênh chính; Email Gmail SMTP phụ qua `on_commit` + `ThreadPoolExecutor(max_workers=2)`. Điểm phát duy nhất `notify()`. Gửi mail cho 6 loại sự kiện: Khách nhận 4 (`ACCEPTED`, `READY_FOR_PICKUP`, `DECLINED` gồm cả do Admin đình chỉ Farmer, `EXPIRED`); Farmer nhận 2 (khách hủy đơn qua T5/T6, đơn bị hủy do Admin khóa khách qua T5/T6/T13). Restock alert chỉ gửi in-app. Bảng `notifications` và `announcements`.
 * **D-011 (A-007 Trợ Lý AI Chatbot)**: Xếp nhóm Bonus. Chatbot xây dựng bằng Gemini API (dòng Flash) qua `google-genai` với Function Calling (chỉ đọc 4 công cụ, không truy cập DB trực tiếp, không text-to-SQL, không lưu lịch sử trên server).
-* **D-012 (A-008 Bản Đồ Số)**: OpenStreetMap + React-Leaflet cho 100% bản đồ trong app (Ghim vị trí, hiển thị sạp, tính Haversine khoảng cách). Google Maps chỉ dùng cho link chỉ đường ngoại vi và iframe tại trang Contact Us. Tọa độ lưu `DecimalField(max_digits=9, decimal_places=6)`. Điểm nhận hàng suy ra từ chợ.
+* **D-012 (A-008 Bản Đồ Số)**: OpenStreetMap + React-Leaflet cho 100% bản đồ trong app (Ghim vị trí, hiển thị sạp, tính Haversine khoảng cách). Google Maps chỉ dùng cho link chỉ đường ngoại vi và iframe tại trang Contact Us. Tọa độ lưu `DecimalField(max_digits=9, decimal_places=6)`. Điểm nhận hàng suy ra từ chợ. Giữ cột `markets.map_provider` (mặc định `OSM`) để khớp bảng mẫu SRS §1.8.
 * **D-013 (A-009 Khung Pickup)**: Bảng `pickup_slots` lặp lại hàng tuần gắn với cặp Farmer–Chợ (`day_of_week`, `start_time`, `end_time`). Khách chọn ngày cụ thể + 1 khung hợp lệ.
 * **D-014 (A-010 Tồn Kho & Đơn Vị Tính)**: Mỗi sản phẩm dùng 1 kho chung cho mọi chợ. `unit` là TextChoices (`KG`, `BUNCH`, `PIECE`, `PACK`...). Số lượng là số nguyên `stock_quantity INT`.
 * **D-015 (A-011 Vòng Đời Farmer & Khóa User)**: Farmer: `PENDING` $\rightarrow$ `APPROVED` $\rightleftarrows$ `SUSPENDED` / `REJECTED`. Bị đình chỉ: ẩn khỏi public, toàn bộ đơn mở (`PLACED`, `ACCEPTED` qua T3, T4; `READY_FOR_PICKUP` qua T12) chuyển sang `DECLINED` (lý do `FARMER_SUSPENDED_BY_ADMIN`), hoàn kho, thông báo khách. Khách bị khóa: `is_active=False`, toàn bộ đơn mở (`PLACED`, `ACCEPTED` qua T5, T6; `READY_FOR_PICKUP` qua T13) chuyển sang `CANCELLED` (lý do `CUSTOMER_LOCKED_BY_ADMIN`), hoàn kho, thông báo Farmer giải phóng hàng bán tại sạp.
@@ -31,6 +31,11 @@
 * **D-019 (A-015 Yêu Thích & Đặt Lại Nhanh)**: 3 bảng riêng: `favorite_farmers`, `favorite_products`, `favorite_markets`. Nút "Đặt lại" nạp món vào giỏ theo giá hiện tại, bỏ qua món hết hàng/ngừng bán.
 * **D-020 (A-016 Tiền Tệ & Ngôn Ngữ)**: Đơn vị tiền tệ VND (`DecimalField(max_digits=12, decimal_places=0)`), giao diện tiếng Việt.
 * **D-021 (A-017 Chia Sẻ Tài Khoản Gia Đình)**: Đáp ứng chuẩn xác câu chữ SRS *"can be permitted"* thông qua kiến trúc đa phiên đồng thời của JWT (mỗi thiết bị 1 cặp Access/Refresh token riêng, JTI Blacklist chỉ thu hồi thiết bị đăng xuất, giỏ hàng độc lập từng máy qua client storage, dùng chung lịch sử đơn và yêu thích). Chi phí phát triển 0 dòng code thừa; công bố tài liệu tại trang About Us / FAQ.
+* **D-022 (A-018 Giờ Mở Cửa Chợ & Đổi Lịch Chợ)**: Mỗi chợ có một cặp `open_time`/`close_time` chung cho mọi ngày mở cửa (Admin quản lý). Giờ riêng của từng Farmer là `pickup_slots`, bắt buộc rơi vào ngày chợ mở và nằm trong giờ mở cửa của chợ. Admin đổi lịch lâu dài (AD-16) thì hệ thống tự tắt (`is_active = false`) các khung nằm ngoài lịch mới và gửi `MARKET_SCHEDULE_CHANGED` cho Farmer liên quan; đơn đã đặt không bị ảnh hưởng (snapshot D-007). Ngừng hoạt động chợ (AD-17) bị chặn `422 RESOURCE_IN_USE` khi còn đơn mở tại chợ.
+* **D-023 (A-019 Lịch Đóng Cửa Chợ & Lịch Nghỉ Farmer)**: Bảng `market_closures` (Admin khai báo: lễ, Tết, thời tiết) và `farmer_closures` (Farmer khai báo: "closed for the week" — SRS §1.1), theo khoảng ngày `start_date`–`end_date`. Ngày thuộc kỳ đóng cửa / nghỉ không được chọn làm ngày nhận hàng; khung giờ giữ nguyên và tự hoạt động lại sau kỳ nghỉ. Tạo kỳ nghỉ bị chặn `422 RESOURCE_IN_USE` nếu còn đơn mở có ngày nhận trong khoảng đó.
+* **D-024 (A-020 Lý Do Khóa Tài Khoản Khách)**: Cột `customer_profiles.deactivation_reason` (bắt buộc khi khóa, xóa về NULL khi mở khóa; lịch sử khóa/mở vẫn nằm trong `audit_logs`). Đăng nhập đúng mật khẩu nhưng tài khoản đã khóa trả `403 ACCOUNT_LOCKED` kèm lý do; sai mật khẩu vẫn trả `401 INVALID_CREDENTIALS` (không tiết lộ trạng thái khóa cho người ngoài).
+* **D-025 (A-021 Điều Kiện Gửi Restock Alert)**: Chỉ gửi `RESTOCK` khi Farmer chủ động bổ sung hàng (FA-14 sửa tồn kho, FA-18 áp dụng mẫu tuần) làm tồn kho từ `0` lên `> 0`. Không gửi khi hàng quay lại do đơn bị hủy / từ chối / hết hạn / Admin can thiệp.
+* **D-026 (A-022 Vị Trí Sạp Trong Chợ)**: `farmer_markets.stall_label` bắt buộc, `VARCHAR(100)` (nhãn "Vị trí sạp trong chợ"); snapshot `orders.stall_label` `VARCHAR(100)`. Chi tiết đơn luôn hiển thị số điện thoại Farmer kèm nút Gọi để khách tìm sạp.
 
 ---
 
@@ -127,7 +132,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | **UC-33** | Giám sát hệ thống qua Nhật ký an ninh (Audit Log) | Quản trị viên | Sơ đồ luồng Trang 7 ("Monitor System", "Control Access") |
 | **UC-34** | Tự động chuyển đơn quá hạn duyệt sang `EXPIRED` và hoàn kho (quét lười) | Hệ thống | Giả định A-005; D-009 |
 
-> **Tác nhân "Hệ thống"** chỉ xuất hiện ở UC-34 và cạnh T8, T7 (FSM). Đây không phải role đăng nhập; `history_user` để trống.
+> **Tác nhân "Hệ thống"** chỉ xuất hiện ở UC-34 và cạnh T8, T7 (FSM). Đây không phải role đăng nhập; trong `order_status_history` ghi `actor_role = SYSTEM`, `actor` để trống.
 
 ---
 
@@ -140,7 +145,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | :---: | :--- | :--- | :---: | :--- |
 | **A-001** | Khách thêm sản phẩm vào giỏ và đặt hàng (SRS §1.6 Trang 9). | Giỏ hàng cho phép chứa sản phẩm từ nhiều Farmer khác nhau. | ✅ **ĐÃ CHỐT (D-004)**<br>Checkout sinh **$N$ đơn độc lập**; không dùng Master-SubOrder. | 1 endpoint `POST /orders/`; All-or-Nothing; Khóa kho một lần; Giỏ hàng lưu Zustand client. |
 | **A-001b**| Đặt hàng theo tồn kho khả dụng; Farmer duyệt/từ chối (SRS §1.6). | Trừ kho khi đặt hay khi duyệt? Cách chống đặt đơn ảo giam hàng. | ✅ **ĐÃ CHỐT (D-005)**<br>Trừ kho ngay khi đặt (`PLACED`). Áp dụng 4 chốt chặn chống spam. | Tối đa 1 đơn mở/Farmer và 5 đơn toàn sàn (Lỗi 422); Throttle `orders: 10/h`; Khóa `CustomerProfile`. |
-| **A-002** | Xem trạng thái đơn; hủy/sửa trước cutoff; Farmer duyệt/từ chối (SRS §1.6). | Danh sách trạng thái đầy đủ và các bước chuyển hợp lệ của đơn hàng. | ✅ **ĐÃ CHỐT (D-006)**<br>FSM 8 trạng thái; 11 cạnh chuyển T1–T11; Triple-Gate; OCC `version`. | Ma trận `TRANSITIONS` trong service; Kiểm soát OCC qua header `If-Match`; Lịch sử `_change_reason`. |
+| **A-002** | Xem trạng thái đơn; hủy/sửa trước cutoff; Farmer duyệt/từ chối (SRS §1.6). | Danh sách trạng thái đầy đủ và các bước chuyển hợp lệ của đơn hàng. | ✅ **ĐÃ CHỐT (D-006)**<br>FSM 8 trạng thái; 13 cạnh chuyển T1–T13; Triple-Gate; OCC `version`. | Ma trận `TRANSITIONS` trong service; Kiểm soát OCC qua header `If-Match`; Lịch sử ghi bảng `order_status_history`. |
 | **A-003** | Khách hủy hoặc sửa đơn trước giờ cutoff của Farmer (SRS §1.6). | Định nghĩa cutoff và phạm vi các trường khách được phép sửa. | ✅ **ĐÃ CHỐT (D-007)**<br>Cutoff tính theo từng đơn; Sửa khi `ACCEPTED` thì reset về `PLACED`. | Lưu cứng `Order.cutoff_at`; Chặn `READY_FOR_PICKUP` trước cutoff; Điều chỉnh kho bù trừ. |
 | **A-004** | Farmer thiết lập mẫu tồn kho tuần và điều chỉnh linh hoạt (SRS §1.6). | Cơ chế nạp mẫu tuần có ghi đè lượng hàng đang giữ của đơn mở không? | ✅ **ĐÃ CHỐT (D-008)**<br>Nút bấm UI nạp mẫu; Trừ đi lượng hàng đang giữ bởi đơn mở. | Trường `weekly_default_quantity` trong `Product`; Công thức $\max(\text{mẫu} - \text{đang\_giữ}, 0)$. |
 | **A-005** | Đơn `PLACED` Farmer không duyệt hoặc khách không đến lấy (SRS §1.6). | Mốc hết hạn của đơn chưa duyệt và cơ chế quét đơn tự động. | ✅ **ĐÃ CHỐT (D-009)**<br>Hết hạn tại `pickup_start_at` $\rightarrow$ `EXPIRED`. Dùng quét lười 3 điểm. | Service `expire_overdue_orders` chạy tại checkout, nạp mẫu và xem dashboard; Hoàn kho an toàn. |
@@ -156,6 +161,11 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | **A-015** | Lưu yêu thích (Farmer, sản phẩm, chợ) và đặt lại nhanh (SRS §1.6). | Thiết kế bảng lưu yêu thích và nghiệp vụ nút "Đặt lại đơn". | ✅ **ĐÃ CHỐT (D-019)**<br>3 bảng yêu thích riêng; Đặt lại nạp món vào giỏ theo giá hiện tại. | `favorite_farmers`, `favorite_products`, `favorite_markets`; Bỏ qua món hết hàng khi reorder. |
 | **A-016** | Đơn giá sản phẩm và ngôn ngữ giao diện hiển thị. | Lựa chọn tiền tệ (VND/USD) và ngôn ngữ chuẩn cho đồ án. | ✅ **ĐÃ CHỐT (D-020)**<br>Tiền tệ VND (`Decimal(12,0)`), giao diện tiếng Việt. | Format tiền tệ VND; Tin nhắn phản hồi `message` 100% tiếng Việt thân thiện. |
 | **A-017** | Chia sẻ tài khoản giữa các thành viên trong gia đình (SRS §1.6). | Có cần xây dựng module phân quyền gia đình riêng không? | ✅ **ĐÃ CHỐT (D-021)**<br>Đáp ứng đúng nghĩa đen *"can be permitted"*: Đa phiên JWT + Giỏ hàng Client. | Không chặn concurrent sessions; JTI blacklist độc lập; 0 dòng code thừa; Ghi FAQ. |
+| **A-018** | Admin quản lý "operating days, timings" của chợ; Farmer có "operating days, pickup time windows" riêng (SRS §1.6). | Giờ chợ và giờ Farmer quan hệ thế nào? Xử lý khung của Farmer khi chợ đổi lịch. | ✅ **ĐÃ CHỐT (D-022)**<br>Chợ 1 cặp giờ chung; khung Farmer nằm trong giờ chợ; đổi lịch thì tự tắt khung ngoài lịch. | AD-16 tự tắt slot + thông báo `MARKET_SCHEDULE_CHANGED`; AD-17 chặn khi còn đơn mở. |
+| **A-019** | Khách đến chợ mới biết Farmer nghỉ tuần đó (SRS §1.1); chợ thật đóng cửa dịp lễ, Tết. | Biểu diễn ngày nghỉ khi khung giờ lặp hằng tuần. | ✅ **ĐÃ CHỐT (D-023)**<br>2 bảng `market_closures`, `farmer_closures` theo khoảng ngày. | Loại ngày nghỉ khỏi PU-08 và khi tạo đơn; chặn tạo kỳ nghỉ khi còn đơn mở trong khoảng. |
+| **A-020** | Admin khóa khách "in case of policy violations" (SRS §1.6). | Khách bị khóa có được biết lý do không? | ✅ **ĐÃ CHỐT (D-024)**<br>Lưu `deactivation_reason`; báo lý do khi đăng nhập đúng mật khẩu. | Cột mới trong `customer_profiles`; mã `403 ACCOUNT_LOCKED` kèm lý do. |
+| **A-021** | Cảnh báo có hàng lại cho món yêu thích (SRS §1.6). | Nguồn nào làm hàng "có lại" thì được báo? | ✅ **ĐÃ CHỐT (D-025)**<br>Chỉ khi Farmer chủ động bổ sung hàng. | Hook restock chỉ ở FA-14, FA-18; tránh báo liên tục khi đơn hủy/trả kho. |
+| **A-022** | Khách nhận hàng tại sạp trong chợ (SRS §1.5). | Khách tìm đúng sạp bằng cách nào khi không lưu tọa độ sạp? | ✅ **ĐÃ CHỐT (D-026)**<br>`stall_label` bắt buộc, ≤ 100 ký tự; hiển thị SĐT Farmer + nút Gọi. | `farmer_markets.stall_label NOT NULL`; snapshot `orders.stall_label` 100 ký tự. |
 
 ---
 
@@ -265,8 +275,8 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 #### 4. Luật thực thi FSM (theo skill §5)
 * **Gate 1, 2, 3**: Đúng 13 cạnh, đúng Actor (thu hẹp tại `get_queryset()`), đủ điều kiện thời gian/lý do (lỗi 422).
 * **OCC**: Mọi thao tác do Khách hoặc Farmer thực hiện (T2–T6, T9–T11 và sửa đơn) bắt buộc gửi `If-Match: <version>`. Các thao tác do Hệ thống quét lười hoặc Admin kích hoạt khẩn cấp (T8, T12, T13) thực thi dưới khóa dòng `select_for_update()` không cần `If-Match` nhưng vẫn tăng `version`.
-* **Lịch sử & `_change_reason`**:
-  | Cạnh | `_change_reason` bắt buộc |
+* **Lịch sử (`order_status_history`) & `change_reason`**:
+  | Cạnh | `change_reason` bắt buộc |
   | :--- | :--- |
   | **T3, T4** | Lý do Farmer nhập qua form, hoặc `FARMER_SUSPENDED_BY_ADMIN` |
   | **T5, T6** | Lý do Khách hủy qua form, hoặc `CUSTOMER_LOCKED_BY_ADMIN` |
@@ -274,7 +284,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
   | **T8** | `SYSTEM_EXPIRED` |
   | **T12** | `FARMER_SUSPENDED_BY_ADMIN` |
   | **T13** | `CUSTOMER_LOCKED_BY_ADMIN` |
-  * Không dùng trường `cancelled_by`, lấy người thực hiện từ `history_user`.
+  * Không dùng trường `cancelled_by`; người thực hiện lấy từ `order_status_history.actor` + `actor_role`.
 * **Luật nghiệp vụ phụ thuộc**:
   * Doanh thu (Revenue Summary / Báo cáo Admin): Chỉ tính đơn `COMPLETED`.
   * Dashboard Farmer: Hiển thị 2 chỉ số Pending Orders tách biệt: *"Chờ duyệt"* (`PLACED`) và *"Đang xử lý"* (`ACCEPTED` + `READY_FOR_PICKUP`).
@@ -289,6 +299,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
   * Farmer cấu hình `order_cutoff_hours` (ví dụ `12` tiếng trước giờ bắt đầu pickup).
   * Lưu cứng `Order.cutoff_at` lúc tạo đơn (đổi khung pickup thì tính lại mốc mới). Sửa hoặc hủy đơn chỉ cần kiểm tra: `timezone.now() < order.cutoff_at`.
   * Farmer đổi cấu hình chung giữa tuần thì các đơn đã đặt vẫn giữ nguyên mốc cũ.
+  * `order_cutoff_hours` nhận giá trị **1–72** (không cho phép 0: nếu bằng 0, khách sửa đơn đến tận giờ nhận và T9 chỉ thực hiện được khi khách đã có mặt). Giao diện hiển thị thời điểm chốt cụ thể (ví dụ *"Chốt đơn lúc 18:00 thứ Sáu, 12/06"*), không hiển thị số giờ; khung có `cutoff_at` đã qua không xuất hiện trong danh sách chọn (D-007).
 * **Quy tắc READY_FOR_PICKUP sau cutoff**: Thêm vào Gate 3: Farmer chỉ được chuyển `ACCEPTED` $\rightarrow$ `READY_FOR_PICKUP` khi đã qua `cutoff_at`. Đảm bảo trước cutoff đơn chỉ ở `PLACED` hoặc `ACCEPTED`, không bao giờ xảy ra tình trạng khách sửa đơn đã gói xong.
 * **Bảng phân định phạm vi khách được sửa**:
   | Được sửa | Không được sửa |
@@ -299,7 +310,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
   2. Kiểm tra `timezone.now() < order.cutoff_at`.
   3. Khóa các `Product` liên quan theo `.order_by("id")`, tính phần chênh lệch từng món. Món nào tăng thì kiểm tra kho khả dụng, thiếu trả `INSUFFICIENT_STOCK`.
   4. Cập nhật kho và các `order_items`.
-  5. Nếu đơn đang `ACCEPTED` $\rightarrow$ chuyển về `PLACED`, ghi `_change_reason` tóm tắt (ví dụ: *"Khách sửa: cà chua 5→8 kg"*).
+  5. Nếu đơn đang `ACCEPTED` $\rightarrow$ chuyển về `PLACED`, ghi `order_status_history.change_reason` tóm tắt (ví dụ: *"Khách sửa: cà chua 5→8 kg"*).
 
 ---
 
@@ -319,7 +330,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 
 ### 📌 A-005: Xử Lý Đơn Quá Hạn & Cơ Chế Quét Lười (Overdue Orders & Lazy Evaluation)
 * **Điểm chốt hết hạn**: Là **giờ bắt đầu khung pickup** (`pickup_start_at`), không phải cutoff. Cutoff là hạn của khách; sau cutoff Farmer mới bắt đầu soạn hàng nên Farmer duyệt sau cutoff vẫn hợp lệ.
-* **Trạng thái `EXPIRED`**: Là trạng thái kết thúc thứ 8. Không dùng `DECLINED` thay vì `DECLINED` là Farmer chủ động từ chối. Chuyển `PLACED` $\rightarrow$ `EXPIRED` do hệ thống thực hiện (`history_user` để trống, `_change_reason = "SYSTEM_EXPIRED"`) và cộng trả kho.
+* **Trạng thái `EXPIRED`**: Là trạng thái kết thúc thứ 8. Không dùng `DECLINED` thay vì `DECLINED` là Farmer chủ động từ chối. Chuyển `PLACED` $\rightarrow$ `EXPIRED` do hệ thống thực hiện (`order_status_history`: `actor_role = SYSTEM`, `actor` để trống, `change_reason = "SYSTEM_EXPIRED"`) và cộng trả kho.
 * **Service quét lười `expire_overdue_orders(*, farmer_id)` được gọi tại đúng 3 điểm**:
   1. Đầu service checkout, với từng Farmer có trong giỏ hàng (giải phóng hàng tồn bị giam trước khi kiểm tra kho cho khách mới).
   2. Đầu service áp dụng mẫu tồn kho (A-004).
@@ -338,11 +349,12 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
   | Khách sửa đơn (`ACCEPTED` $\rightarrow$ `PLACED`) | Farmer | ✅ | — | A-003 |
   | Khách hủy đơn (T5, T6 do Khách) | Farmer | ✅ | ✅ | A-003; Farmer cần biết sớm để không soạn hàng |
   | Đơn bị hủy do Admin khóa khách (T5, T6, T13) | Farmer | ✅ | ✅ | D-015; báo Farmer giải phóng hàng, bán lẻ tại sạp |
+  | Chợ đổi lịch làm tắt khung nhận hàng (`MARKET_SCHEDULE_CHANGED`) | Farmer | ✅ | — | D-022 |
   | `ACCEPTED` | Khách | ✅ | ✅ | SRS: *"order confirmations"* |
   | `READY_FOR_PICKUP` | Khách | ✅ | ✅ | SRS: *"orders ready for pickup"* |
   | `DECLINED` (T3, T4 do Farmer; T3, T4, T12 do Admin đình chỉ Farmer) | Khách | ✅ | ✅ | Giả định: tránh khách ra chợ lấy đơn đã hủy |
   | `EXPIRED` | Khách | ✅ | ✅ | Giả định: thông báo đơn hết hạn (A-005) |
-  | Restock món yêu thích (tồn kho từ 0 lên >0) | Khách đã yêu thích món | ✅ | — | SRS: *"restock alerts"* |
+  | Restock món yêu thích (Farmer bổ sung hàng làm tồn kho từ 0 lên >0 — D-025) | Khách đã yêu thích món | ✅ | — | SRS: *"restock alerts"* |
   | Thông báo toàn sàn | Toàn bộ User | Bảng riêng `announcements` | — | SRS: Admin *"publish announcements"* |
 * **Cấu trúc dữ liệu & API**:
   * Bảng `notifications`: `recipient` (FK User, `CASCADE`), `type` (TextChoices), `title`, `message`, `target_url`, `is_read`, `created_at`. Index: `(recipient, is_read, created_at)`.
@@ -416,9 +428,10 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
   | :--- | :--- | :--- |
   | `markets` | `address`, `latitude`, `longitude` | Cả 3 bắt buộc |
   | `farmer_profiles` | `address`, `latitude`, `longitude` | `address` bắt buộc; tọa độ nullable (phải cùng có hoặc cùng null) |
-  | `farmer_markets` (trung gian) | `stall_label` (ví dụ: "Sạp B12") | Không lưu tọa độ |
+  | `farmer_markets` (trung gian) | `stall_label` bắt buộc, ≤ 100 ký tự (ví dụ: "Dãy B, sạp 12, gần cổng chính") | Không lưu tọa độ (D-026) |
   | `customer_profiles` | `address` dạng chữ | Bắt buộc theo SRS |
   *(Quy cách: `DecimalField(max_digits=9, decimal_places=6)`, độ chính xác ~0.1m. Điểm nhận hàng của đơn hàng suy ra từ tọa độ Chợ)*.
+* **Cột `map_provider`**: Giữ trong bảng `markets` (mặc định `OSM`) để khớp bảng mẫu SRS §1.8; toàn hệ thống chỉ dùng một nguồn bản đồ nên giá trị cố định.
 * **Năm bẫy tích hợp Frontend bắt buộc xử lý**:
   1. `import "leaflet/dist/leaflet.css"` (thiếu dòng này tile bản đồ vỡ).
   2. Sửa icon marker hỏng khi build Vite: Import 3 file `marker-icon.png`, `marker-icon-2x.png`, `marker-shadow.png` và gọi `L.Icon.Default.mergeOptions(...)`.
@@ -426,6 +439,57 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
   4. Bản `react-leaflet` v5 dùng cho React 19.
   5. Geolocation chỉ hoạt động trên HTTPS hoặc localhost.
 * **Bản quyền**: Giữ nguyên dòng ghi công *"© OpenStreetMap contributors"*.
+
+---
+
+### 📌 A-018: Giờ Mở Cửa Chợ & Đổi Lịch Chợ (Market Opening Hours)
+* **Hai tầng thời gian**:
+  | Tầng | Ý nghĩa | Người nhập | Căn cứ SRS | Bảng |
+  | :--- | :--- | :--- | :--- | :--- |
+  | Chợ | Ngày mở cửa và giờ mở cửa (một cặp giờ chung cho mọi ngày mở cửa) | Admin | *"operating days, timings"* (Manage Markets) | `markets`, `market_operating_days` |
+  | Farmer | Ngày có mặt và khung giờ nhận hàng tại từng chợ | Farmer | *"operating days, pickup time windows"* | `farmer_markets`, `pickup_slots` |
+* **Ràng buộc**: khung của Farmer phải rơi vào ngày chợ mở và nằm trong `open_time`–`close_time` của chợ (U-04). Farmer không tự tạo chợ; chợ chưa có trong danh sách thì liên hệ Admin qua Contact Us.
+* **Đổi lịch lâu dài (AD-16)**: Admin được sửa ngày / giờ mở cửa. Khung nào nằm ngoài lịch mới thì tự `is_active = false` và gửi `MARKET_SCHEDULE_CHANGED` cho Farmer liên quan. Đơn đã đặt giữ nguyên (snapshot D-007). Response trả `deactivated_slot_count`.
+* **Ngừng hoạt động chợ (AD-17)**: chặn `422 RESOURCE_IN_USE` nếu còn đơn mở tại chợ. Khi đã ngừng: ẩn khỏi trang công khai, không nhận đơn mới (`SLOT_NOT_AVAILABLE`), khung giờ giữ nguyên để kích hoạt lại sau.
+* **Không làm**: giờ mở cửa khác nhau theo từng ngày; giờ đặc biệt ngày lễ (coi là đóng cửa qua A-019 hoặc mở bình thường).
+
+---
+
+### 📌 A-019: Lịch Đóng Cửa Chợ & Lịch Nghỉ Farmer (Market & Farmer Closures)
+* **Căn cứ**: SRS §1.1 *"make a trip only to discover a Farmer is closed for the week"*; chợ thật đóng cửa dịp lễ, Tết, thời tiết.
+* **Hai bảng cùng khuôn, theo khoảng ngày**:
+  | Bảng | Người tạo | Phạm vi | Ví dụ |
+  | :--- | :--- | :--- | :--- |
+  | `market_closures` | Admin (A-06) | Toàn bộ Farmer tại chợ đó | "Nghỉ Tết Nguyên đán" 28/01–04/02 |
+  | `farmer_closures` | Farmer (F-07) | Mọi chợ của Farmer đó | "Nghỉ thu hoạch" 10/06–16/06 |
+* **Quy tắc**:
+  1. `start_date` từ hôm nay trở đi; `end_date >= start_date`; hai kỳ nghỉ của cùng một chợ / Farmer không chồng lấn (service).
+  2. Còn đơn mở có `pickup_date` trong khoảng thì chặn `422 RESOURCE_IN_USE` kèm danh sách đơn; Farmer từ chối các đơn đó trước (T3/T4, có lý do). Không tự hủy hàng loạt.
+  3. Khung giờ (`pickup_slots`) giữ nguyên, tự hoạt động lại sau kỳ nghỉ; không ai phải bật lại.
+  4. Được xóa kỳ nghỉ nếu mở cửa / bán lại sớm.
+* **Một ngày nhận hàng hợp lệ khi thỏa đủ**: (1) ngày chợ mở (`market_operating_days`); (2) chợ không đóng cửa (`market_closures`); (3) Farmer không nghỉ (`farmer_closures`); (4) khung `is_active` và chợ `is_active`; (5) trong `BOOKING_HORIZON_DAYS` và trước `cutoff_at`. Áp dụng ở PU-08 và khi tạo / sửa đơn; vi phạm trả `SLOT_NOT_AVAILABLE`.
+* **Hiển thị**: badge "Nghỉ bán 10/06 – 16/06" trên card / hồ sơ Farmer; badge "Đóng cửa 28/01 – 04/02" trên card / trang chợ; công cụ chatbot `get_market_info`, `get_farmer_availability` trả thêm kỳ nghỉ sắp tới.
+
+---
+
+### 📌 A-020: Lý Do Khóa Tài Khoản Khách (Customer Deactivation Reason)
+* Cột `customer_profiles.deactivation_reason VARCHAR(500) NULL`: AD-12 bắt buộc nhập lý do (5–500 ký tự); AD-13 mở khóa thì xóa về NULL. Lịch sử khóa / mở vẫn ghi `audit_logs` (`CUSTOMER_DEACTIVATED`, `CUSTOMER_ACTIVATED`).
+* **Đăng nhập (AU-03)**: email + mật khẩu đúng nhưng `is_active = false` thì trả `403 ACCOUNT_LOCKED`, `errors.reason` chứa lý do. Mật khẩu sai trả `401 INVALID_CREDENTIALS` như bình thường, để người ngoài không dò được tài khoản nào đang bị khóa.
+* Admin xem lý do ở danh sách khách (A-04).
+
+---
+
+### 📌 A-021: Điều Kiện Gửi Cảnh Báo Có Hàng Lại (Restock Alert Trigger)
+* **Chỉ gửi** khi Farmer chủ động bổ sung hàng làm tồn kho sản phẩm công khai từ `0` lên `> 0`: FA-14 (sửa tồn kho) và FA-18 (áp dụng mẫu tuần).
+* **Không gửi** khi hàng quay lại do đơn bị hủy (T5, T6, T13), từ chối (T3, T4, T12), hết hạn (T8) hoặc giảm số lượng khi sửa đơn.
+* **Lý do**: tránh bắn thông báo liên tục khi kho dao động quanh 0 do đơn đặt / hủy; người nhận vào xem thì hàng thường đã hết.
+
+---
+
+### 📌 A-022: Vị Trí Sạp Trong Chợ (Stall Label)
+* `farmer_markets.stall_label` bắt buộc khi Farmer thêm chợ, tối đa 100 ký tự; nhãn form "Vị trí sạp trong chợ", placeholder *"Ví dụ: Dãy B, sạp 12, gần cổng chính"*.
+* `orders.stall_label` là snapshot 100 ký tự lúc đặt / sửa đơn.
+* Chi tiết đơn (C-05) và email / thông báo `ORDER_READY` hiển thị: chợ + nút Chỉ đường, vị trí sạp, tên sạp + người liên hệ + SĐT kèm nút Gọi (`tel:`), khung giờ, mã đơn.
 
 ---
 
@@ -476,8 +540,8 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 
 ### 🟢 Phân hệ Bắt buộc (Must-Have — Cốt tử hoàn thành)
 1. **Xác thực & Tài khoản (IAM)**: Đăng ký (Customer, Farmer), Đăng nhập JWT đa phiên, Profile, Phân quyền PBAC 3 Roles.
-2. **Quản lý Danh mục Chợ (Admin & Public)**: CRUD chợ, địa chỉ, ngày họp, khung giờ, tọa độ OpenStreetMap + Leaflet.
-3. **Quản lý Nông dân & Sạp hàng (Farmer, Admin & Public)**: Hồ sơ nông dân, sạp chợ (`stall_label`), giờ `order_cutoff_hours`, khung giờ nhận hàng (`pickup_slots`), Admin duyệt/đình chỉ Farmer.
+2. **Quản lý Danh mục Chợ (Admin & Public)**: CRUD chợ, địa chỉ, ngày mở cửa, giờ mở cửa, lịch đóng cửa tạm thời (`market_closures`), tọa độ OpenStreetMap + Leaflet.
+3. **Quản lý Nông dân & Sạp hàng (Farmer, Admin & Public)**: Hồ sơ nông dân, sạp chợ (`stall_label`), giờ `order_cutoff_hours`, khung giờ nhận hàng (`pickup_slots`), lịch nghỉ bán (`farmer_closures`), Admin duyệt/đình chỉ Farmer.
 4. **Quản lý Sản phẩm & Kho hàng (Farmer & Public)**: CRUD sản phẩm (kèm ảnh, danh mục, đơn vị tính TextChoices, số lượng `INT`), Mẫu tồn kho hàng tuần (`weekly_default_quantity`), nút nạp mẫu trừ hàng đơn mở.
 5. **Duyệt hàng & Đặt hàng trước (Customer)**: Tìm kiếm, lọc đa tiêu chí, giỏ hàng Zustand client gom nhiều Farmer, checkout sinh $N$ đơn độc lập (All-or-Nothing, khóa kho chống Deadlock).
 6. **Quản lý Vòng đời Đơn hàng (FSM 8 trạng thái)**: Luồng FSM chuẩn 13 cạnh, kiểm soát sửa/hủy trước cutoff, Farmer duyệt/từ chối, chuyển sẵn sàng nhận hàng, xác nhận hoàn thành, quét lười đơn quá hạn (`EXPIRED`), và các cạnh can thiệp khẩn cấp của Admin khi đình chỉ Farmer hoặc khóa Khách (T12, T13).
@@ -546,7 +610,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | FR-42 | Mẫu tồn kho hàng tuần + điều chỉnh | UC-14 | §1.6 Manage Weekly Stock and Pricing | SRS | D-008 |
 | FR-43 | Đánh dấu hết hàng / tạm ngừng bán | UC-15 | §1.6 Manage Weekly Stock and Pricing | SRS | — |
 | FR-44 | Xem đơn đến, duyệt / từ chối, đánh dấu sẵn sàng | UC-17 | §1.6 Manage pre-orders | SRS | D-006 |
-| FR-45 | Thiết lập giờ cutoff + quản lý khung nhận hàng | UC-16 | §1.6 Manage pre-orders | SRS | D-007, D-013 |
+| FR-45 | Thiết lập giờ cutoff (1–72 giờ) + quản lý khung nhận hàng + lịch nghỉ bán | UC-16 | §1.6 Manage pre-orders; §1.1 "closed for the week" | SRS | D-007, D-013, D-023 |
 | FR-46 | Lịch sử bán, sản phẩm bán chạy, Tổng đơn, Đơn chờ, Doanh thu | UC-18 | §1.6 View Order History and Insights | SRS | D-006 |
 | FR-47 | Xem và phản hồi đánh giá | UC-19 | §1.6 Respond to Reviews | SRS | D-016 |
 | FR-48 | Nhận thông báo: đơn mới, khách sửa (in-app); khách hủy, đơn bị hủy do khách bị khóa (in-app + email) | UC-31 | Suy ra từ "view incoming pre-orders" | Suy ra | D-010, D-006 |
@@ -557,8 +621,8 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | :---: | :--- | :---: | :--- | :---: | :---: |
 | FR-50 | Dashboard riêng: tổng Nông dân, Khách hàng, chợ, đơn | UC-20 | §1.6 Admin Login and Dashboard | SRS | — |
 | FR-51 | Xem / duyệt / từ chối / đình chỉ / khôi phục Nông dân; đình chỉ kéo theo đơn mở → `DECLINED` | UC-21 | §1.6 Manage Farmers and Customers | SRS | D-015, D-006 |
-| FR-52 | Xem / kích hoạt / khóa Khách hàng; khóa kéo theo đơn mở → `CANCELLED` | UC-22 | §1.6 Manage Farmers and Customers | SRS | D-015, D-006 |
-| FR-53 | Thêm / sửa / gỡ chợ: tên, địa chỉ, ngày họp, giờ, tọa độ | UC-23 | §1.6 Manage Markets | SRS | D-012, D-017 |
+| FR-52 | Xem / kích hoạt / khóa Khách hàng (bắt buộc lý do); khóa kéo theo đơn mở → `CANCELLED` | UC-22 | §1.6 Manage Farmers and Customers | SRS | D-015, D-006, D-024 |
+| FR-53 | Thêm / sửa / gỡ chợ: tên, địa chỉ, ngày mở cửa, giờ mở cửa, tọa độ, lịch đóng cửa tạm thời | UC-23 | §1.6 Manage Markets | SRS | D-012, D-017, D-022, D-023 |
 | FR-54 | Gỡ sản phẩm / ẩn đánh giá vi phạm | UC-25 | §1.6 Content Moderation | SRS | D-016, D-017 |
 | FR-55 | Báo cáo: tổng đơn, doanh thu theo chợ, Nông dân tích cực nhất; xuất Excel | UC-26 | §1.6 Reports and Analytics | SRS | D-018 |
 | FR-56 | Quản lý danh mục sản phẩm gốc | UC-24 | §1.6 System Configuration | SRS | — |
@@ -592,7 +656,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 
 # 🎨 PASS 3: THIẾT KẾ MÀN HÌNH & LUỒNG GIAO DIỆN (FRONTEND UI/UX FLOW & DATA SPEC)
 ## DỰ ÁN MARKETLINK — TECHWIZ 7
-> **Đầu vào**: Use Case UC-01 → UC-27 (Pass 1) và Decision Log D-001 → D-021 (Pass 2, bản sửa: FSM 13 cạnh T1–T13).
+> **Đầu vào**: Use Case UC-01 → UC-27 (Pass 1) và Decision Log D-001 → D-026 (Pass 2, bản sửa: FSM 13 cạnh T1–T13).
 > **Tác nhân & định tuyến**: 3 role đăng nhập `CUSTOMER`, `FARMER`, `ADMIN` + tác nhân `Guest` (chưa đăng nhập, không phải role trong CSDL). Route và thư mục `pages/` đặt tên đúng theo 4 tác nhân này.
 > **Phạm vi**: 100% tính năng được thi công, không loại bỏ phân hệ nào.
 > **Stack giao diện (D-001)**: React 19 + Vite, CSS3 thuần (CSS Modules + design tokens CSS Custom Properties), Radix UI primitives (headless), TanStack Query/Table, React Hook Form + Zod, Zustand, React-Leaflet (D-012), Recharts.
@@ -649,7 +713,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | FR-42 | Mẫu tồn kho hàng tuần + điều chỉnh | UC-14 | D-008 | F-06 |
 | FR-43 | Đánh dấu hết hàng / tạm ngừng bán | UC-15 | — | F-04 |
 | FR-44 | Xem đơn đến, duyệt / từ chối, đánh dấu sẵn sàng (+ hoàn tất, không đến) | UC-17 | D-006 | F-02, F-03 |
-| FR-45 | Thiết lập cutoff + quản lý khung pickup | UC-16 | D-007, D-013 | F-07 |
+| FR-45 | Thiết lập cutoff (1–72 giờ) + quản lý khung pickup + lịch nghỉ bán | UC-16 | D-007, D-013, D-023 | F-07 |
 | FR-46 | Lịch sử bán, sản phẩm bán chạy, Tổng đơn, Đơn chờ, Doanh thu | UC-18 | D-006 | F-01, F-02 |
 | FR-47 | Xem và phản hồi đánh giá | UC-19 | D-016 | F-09 |
 | FR-48 | Farmer nhận thông báo: đơn mới, khách sửa (in-app); khách hủy đơn, đơn bị hủy do khách bị khóa (in-app + email, T5, T6, T13) | UC-31 | D-010, D-006 | N-01, F-10 |
@@ -660,8 +724,8 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | :---: | :--- | :---: | :---: | :--- |
 | FR-50 | Dashboard riêng: tổng Farmer, Customer, chợ, đơn | UC-20 | — | A-01 |
 | FR-51 | Xem / duyệt / từ chối / đình chỉ / khôi phục Farmer; đình chỉ kéo theo đơn mở → `DECLINED` (T3, T4, T12) | UC-21 | D-015, D-006 | A-02, A-03 |
-| FR-52 | Xem / kích hoạt / khóa Customer; khóa kéo theo đơn mở → `CANCELLED` (T5, T6, T13) | UC-22 | D-015, D-006 | A-04 |
-| FR-53 | Thêm / sửa / gỡ chợ kèm tọa độ bản đồ | UC-23 | D-012, D-017 | A-05, A-06 |
+| FR-52 | Xem / kích hoạt / khóa Customer (bắt buộc lý do); khóa kéo theo đơn mở → `CANCELLED` (T5, T6, T13) | UC-22 | D-015, D-006, D-024 | A-04, G-09 |
+| FR-53 | Thêm / sửa / gỡ chợ kèm tọa độ bản đồ, lịch đóng cửa tạm thời | UC-23 | D-012, D-017, D-022, D-023 | A-05, A-06 |
 | FR-54 | Gỡ sản phẩm / đánh giá vi phạm | UC-25 | D-016, D-017 | A-08 |
 | FR-55 | Báo cáo: tổng đơn, doanh thu theo chợ, Farmer tích cực | UC-26 | D-018 | A-09 |
 | FR-56 | Quản lý danh mục sản phẩm gốc | UC-24 | — | A-07 |
@@ -707,9 +771,10 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 | Thực thể | Giá trị → Nhãn |
 | :--- | :--- |
 | Farmer (D-015) | `PENDING` Chờ duyệt · `APPROVED` Đã duyệt · `SUSPENDED` Đình chỉ · `REJECTED` Từ chối |
+| Farmer (lịch nghỉ) | Nghỉ bán dd/mm – dd/mm (`farmer_closures`, D-023) |
 | Customer | `is_active=true` Hoạt động · `false` Đã khóa |
 | Sản phẩm | Còn hàng · Hết hàng (`stock_quantity = 0`) · Tạm ngừng (`is_available=false`) · Bị Admin gỡ (`is_hidden_by_admin`) · Đã lưu trữ (`is_archived`) |
-| Chợ | Hoạt động · Ngừng hoạt động (`is_active=false`) |
+| Chợ | Hoạt động · Ngừng hoạt động (`is_active=false`) · Đóng cửa dd/mm – dd/mm (`market_closures`, D-023) |
 | Đánh giá | Hiển thị · Bị ẩn (`is_hidden_by_admin`) |
 
 ### 1.4 Định dạng dữ liệu
@@ -757,6 +822,8 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 | 409 `RESOURCE_MODIFIED` | Dialog "Đơn hàng vừa được cập nhật bởi người khác" + nút "Tải lại" (refetch lấy `version` mới) |
 | 422 `OPEN_ORDER_LIMIT_EXCEEDED` | Dialog giải thích giới hạn (D-005) + link "Xem đơn đang mở" |
 | 422 `FAILED_PRECONDITION` | Toast với `message` từ server (ví dụ: đã quá giờ cutoff) |
+| 422 `RESOURCE_IN_USE` | Toast với `message` + danh sách đối tượng liên quan (ví dụ đơn mở trong kỳ nghỉ, D-022/D-023) |
+| 403 `ACCOUNT_LOCKED` | Thông báo trên form đăng nhập kèm lý do khóa (D-024) |
 | 428 | Lỗi lập trình: log console dev, toast chung |
 | 429 | Toast "Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút" |
 | 5xx | Toast chung + mã sự cố |
@@ -877,7 +944,7 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 - **Mục đích**: Điểm vào tìm kiếm nhanh.
 - **Khối nội dung**:
   1. Hero: ô tìm kiếm lớn (placeholder "Tìm rau, trái cây, chợ, nông dân...") → điều hướng `/products?q=` hoặc tab kết quả chợ/Farmer.
-  2. "Chợ gần bạn": nút "Dùng vị trí của tôi" (Geolocation) → 4 card chợ gần nhất (`name`, `address`, `distance_km`, ngày họp hôm nay có/không).
+  2. "Chợ gần bạn": nút "Dùng vị trí của tôi" (Geolocation) → 4 card chợ gần nhất (`name`, `address`, `distance_km`, hôm nay chợ có mở cửa không).
   3. "Danh mục": lưới icon danh mục (từ master categories).
   4. "Hàng mới trong tuần": 8 card sản phẩm mới cập nhật.
   5. Banner thông báo toàn sàn (N-04).
@@ -885,15 +952,15 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 
 ### G-02 · Danh sách chợ + bản đồ
 - **Bố cục**: Desktop chia 2 cột (danh sách 40% | bản đồ 60%); mobile có tab "Danh sách / Bản đồ".
-- **Bộ lọc**: từ khóa (tên/địa chỉ), ngày họp (Thứ 2 → Chủ nhật, mặc định "Tất cả"), nút "Gần tôi" (bật sắp xếp theo `distance_km`).
-- **Card chợ**: tên, địa chỉ, ngày họp (chip), giờ mở–đóng, số Farmer đang hoạt động, khoảng cách (nếu có), nút ♥ lưu chợ (Customer), nút "Chỉ đường" (Google Maps link).
+- **Bộ lọc**: từ khóa (tên/địa chỉ), ngày mở cửa (Thứ 2 → Chủ nhật, mặc định "Tất cả"), nút "Gần tôi" (bật sắp xếp theo `distance_km`).
+- **Card chợ**: tên, địa chỉ, ngày mở cửa (chip), giờ mở–đóng, badge "Đóng cửa dd/mm – dd/mm" nếu có kỳ đóng cửa trong `BOOKING_HORIZON_DAYS` (D-023), số Farmer đang hoạt động, khoảng cách (nếu có), nút ♥ lưu chợ (Customer), nút "Chỉ đường" (Google Maps link).
 - **Bản đồ**: marker mỗi chợ; click marker → popup tên + nút "Xem chợ"; hover card → highlight marker.
 - **Phân trang**: 20 / trang.
 
 ### G-03 · Chi tiết chợ
-- **Header**: tên, địa chỉ, ngày họp, giờ mở–đóng, ♥ lưu chợ, nút "Chỉ đường".
+- **Header**: tên, địa chỉ, ngày mở cửa, giờ mở–đóng, ♥ lưu chợ, nút "Chỉ đường"; các kỳ đóng cửa sắp tới (D-023).
 - **Bản đồ**: marker chợ, cao 320px.
-- **Danh sách Farmer tại chợ**: lọc theo ngày; card gồm ảnh sạp, tên sạp, `stall_label` (ví dụ "Sạp B12"), điểm đánh giá TB + số đánh giá, ngày có mặt tại chợ này, số sản phẩm còn hàng → click tới G-06.
+- **Danh sách Farmer tại chợ**: lọc theo ngày; card gồm ảnh sạp, tên sạp, `stall_label` (ví dụ "Dãy B, sạp 12"), điểm đánh giá TB + số đánh giá, ngày có mặt tại chợ này, số sản phẩm còn hàng → click tới G-06.
 - **Chỉ hiển thị Farmer `APPROVED`** (D-015).
 
 ### G-04 · Danh mục sản phẩm
@@ -917,11 +984,11 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 - **Đánh giá sản phẩm**: điểm TB, phân bố 5 → 1 sao, danh sách review (tên khách rút gọn, sao, nhận xét, ngày, phản hồi của Farmer nếu có), phân trang 10.
 
 ### G-06 · Hồ sơ Farmer (công khai)
-- **Header**: ảnh sạp, tên sạp, người liên hệ, điểm TB, ♥ yêu thích Farmer.
+- **Header**: ảnh sạp, tên sạp, người liên hệ, điểm TB, ♥ yêu thích Farmer; badge "Nghỉ bán dd/mm – dd/mm" nếu có kỳ nghỉ sắp tới (D-023).
 - **Tab "Hàng trong tuần"**: lưới sản phẩm còn bán của Farmer (card như G-04).
 - **Tab "Chợ & giờ nhận hàng"**: bảng mỗi chợ tham gia: tên chợ, `stall_label`, ngày + khung pickup, nút "Chỉ đường"; bản đồ marker các chợ + vị trí sạp (nếu Farmer có tọa độ).
 - **Tab "Đánh giá"**: review về Farmer (D-016) + phản hồi.
-- **Ghi chú**: hiển thị "Đặt trước tối thiểu `order_cutoff_hours` giờ trước giờ nhận".
+- **Ghi chú**: hiển thị giờ chốt cụ thể của các khung sắp tới lấy từ PU-08 (ví dụ "Chốt đơn lúc 18:00 thứ Sáu, 12/06"), không hiển thị số giờ `order_cutoff_hours` (D-007).
 
 ### G-13 · Danh bạ nông dân (FR-12, FR-16)
 - **Mục đích**: Đáp ứng câu SRS "search markets, **Farmers**, or products"; trước đây chỉ tìm được Farmer gián tiếp qua chợ.
@@ -946,7 +1013,7 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 | Email | email | * | §1.5 |
 | Mật khẩu | password (nút hiện/ẩn) | * | Không rỗng |
 - Lỗi 401 hiển thị trên form: "Email hoặc mật khẩu không đúng" (không kích hoạt refresh).
-- Tài khoản bị khóa: "Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên."
+- Tài khoản bị khóa (`403 ACCOUNT_LOCKED`, chỉ trả khi mật khẩu đúng): "Tài khoản đã bị khóa. Lý do: {errors.reason}. Vui lòng liên hệ quản trị viên." (D-024)
 - Link: "Đăng ký khách hàng", "Đăng ký bán hàng (Nông dân)".
 
 ### G-10 · Đăng ký Customer (FR-01)
@@ -997,7 +1064,7 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
   | Trường | Kiểu | Bắt buộc | Quy tắc |
   | :--- | :--- | :---: | :--- |
   | Chợ nhận hàng | Select | * | Các chợ Farmer tham gia có khung pickup |
-  | Ngày nhận | Date chips | * | Chỉ những ngày khớp `day_of_week` của khung, trong `BOOKING_HORIZON_DAYS` ngày tới (D-013) |
+  | Ngày nhận | Date chips | * | Chỉ những ngày khớp `day_of_week` của khung, trong `BOOKING_HORIZON_DAYS` ngày tới (D-013); loại ngày chợ đóng cửa và ngày Farmer nghỉ bán (D-023) |
   | Khung giờ | Radio | * | Các `pickup_slots` của ngày đã chọn; khung đã qua cutoff hiện disabled kèm tooltip "Đã quá giờ đặt trước" |
   | Ghi chú cho Farmer | textarea | — | ≤ 300 ký tự |
 - **Hiển thị sau khi chọn khung**: "Hạn sửa/hủy: `cutoff_at`", bản đồ nhỏ vị trí chợ + `stall_label`.
@@ -1020,7 +1087,7 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 
 ### C-05 · Chi tiết đơn (Customer)
 - **Header**: mã đơn, badge, ngày đặt, "Hạn sửa/hủy" (đếm ngược).
-- **Khối nhận hàng**: chợ, địa chỉ, `stall_label`, ngày + khung, bản đồ marker chợ, nút "Chỉ đường" (FR-25).
+- **Khối nhận hàng**: chợ, địa chỉ, `stall_label`, ngày + khung, bản đồ marker chợ, nút "Chỉ đường" (FR-25); tên sạp + người liên hệ + SĐT kèm nút "Gọi" (`tel:`) (D-026).
 - **Bảng món**: tên, đơn giá (snapshot), số lượng, đơn vị, thành tiền; tổng cộng; chú thích "Thanh toán khi nhận".
 - **Timeline (Audit Trail)**: mỗi bước: trạng thái, thời gian, người thực hiện (Bạn / Nông dân / Hệ thống), lý do (khi từ chối / hệ thống tự hủy / tóm tắt sửa đơn).
 - **Lý do từ chối** (`DECLINED`): khung đỏ nổi bật.
@@ -1051,7 +1118,7 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 - **Tabs**: Nông dân · Sản phẩm · Chợ.
 - **Nông dân**: card sạp, sao TB, số sản phẩm còn hàng, nút bỏ ♥.
 - **Sản phẩm**: card sản phẩm, trạng thái tồn kho, "+ Giỏ" (nếu còn), nhãn "Sẽ báo khi có hàng lại" (nếu hết), bỏ ♥.
-- **Chợ**: card chợ, ngày họp, nút "Chỉ đường", bỏ ♥.
+- **Chợ**: card chợ, ngày mở cửa, nút "Chỉ đường", bỏ ♥.
 - **Nút ♥ toàn hệ thống** (G-02 → G-06, G-13): optimistic toggle; Guest bấm → modal "Đăng nhập để lưu yêu thích".
 
 ---
@@ -1130,9 +1197,9 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 - **Khối "Cài đặt đặt trước"**:
   | Trường | Kiểu | Bắt buộc | Validate |
   | :--- | :--- | :---: | :--- |
-  | Số giờ chốt đơn trước giờ nhận (`order_cutoff_hours`) | number | * | Số nguyên 0–72 |
+  | Số giờ chốt đơn trước giờ nhận (`order_cutoff_hours`) | number | * | Số nguyên 1–72 |
   - Ghi chú: "Thay đổi chỉ áp dụng cho đơn đặt mới" (D-007).
-- **Khối "Chợ tham gia"**: danh sách chợ đang bán; nút "+ Thêm chợ" → modal chọn chợ (từ danh sách Admin quản lý) + `stall_label` (ví dụ "Sạp B12", ≤ 30 ký tự). Gỡ chợ: khóa nếu còn đơn mở tại chợ đó.
+- **Khối "Chợ tham gia"**: danh sách chợ đang bán; nút "+ Thêm chợ" → modal chọn chợ (từ danh sách Admin quản lý) + `stall_label` bắt buộc (nhãn "Vị trí sạp trong chợ", ví dụ "Dãy B, sạp 12, gần cổng chính", ≤ 100 ký tự). Gỡ chợ: khóa nếu còn đơn mở tại chợ đó.
 - **Khối "Khung nhận hàng" theo từng chợ**:
   | Cột | Kiểu | Quy tắc |
   | :--- | :--- | :--- |
@@ -1141,6 +1208,14 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
   | Giờ kết thúc | time | > giờ bắt đầu, trong giờ đóng cửa chợ |
   | Hành động | Sửa / Xóa | Xóa có ConfirmDialog |
 - **Ngày hoạt động của Farmer** (SRS "operating days"): hiển thị tự tổng hợp từ các khung nhận hàng, dạng chip "T3, T5, T7".
+- **Khung bị tắt do chợ đổi lịch** (D-022): hiển thị nhãn "Đã tắt do chợ đổi lịch"; Farmer sửa lại cho khớp lịch mới rồi bật lại.
+- **Khối "Lịch nghỉ bán"** (D-023): danh sách kỳ nghỉ sắp tới + nút "+ Thêm kỳ nghỉ".
+  | Trường | Kiểu | Bắt buộc | Validate |
+  | :--- | :--- | :---: | :--- |
+  | Từ ngày | date | * | ≥ hôm nay |
+  | Đến ngày | date | * | ≥ Từ ngày |
+  | Lý do (hiển thị công khai) | text | — | ≤ 200 ký tự |
+  - Lỗi `RESOURCE_IN_USE`: hiển thị danh sách đơn mở trong khoảng nghỉ, kèm link tới F-03 để từ chối trước. Xóa kỳ nghỉ có ConfirmDialog.
 
 ### F-08 · Hồ sơ sạp (FR-40)
 | Trường | Kiểu | Bắt buộc | Validate |
@@ -1189,26 +1264,28 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 
 ### A-04 · Quản lý khách hàng (FR-52)
 - **Tìm kiếm**: tên, email, SĐT. **Lọc**: Hoạt động / Đã khóa.
-- **Cột**: Họ tên · Email · SĐT · Ngày đăng ký · Tổng đơn · Đơn mở · Số lần `NO_SHOW` · Trạng thái · Hành động.
+- **Cột**: Họ tên · Email · SĐT · Ngày đăng ký · Tổng đơn · Đơn mở · Số lần `NO_SHOW` · Trạng thái · Lý do khóa (khi Đã khóa, D-024) · Hành động.
 - **Khóa tài khoản**: Lý do * + cảnh báo "X đơn đang mở sẽ bị hủy và hoàn kho. Khách không thể đăng nhập." (D-015).
 - **Kích hoạt lại**: xác nhận thường.
 - **Xem chi tiết** (drawer): thông tin + danh sách đơn gần đây.
 
 ### A-05 · Danh sách chợ (FR-53)
-- Bảng + bản đồ tổng (tab). **Cột**: Tên · Địa chỉ · Ngày họp · Giờ mở–đóng · Số Farmer · Trạng thái · Hành động (Sửa / Ngừng hoạt động / Kích hoạt).
-- **Ngừng hoạt động** (D-017): ConfirmDialog "Chợ sẽ bị ẩn khỏi trang công khai. Không nhận đơn mới tại chợ này." Hiển thị số đơn mở đang gắn với chợ.
+- Bảng + bản đồ tổng (tab). **Cột**: Tên · Địa chỉ · Ngày mở cửa · Giờ mở–đóng · Số Farmer · Trạng thái · Hành động (Sửa / Ngừng hoạt động / Kích hoạt).
+- **Ngừng hoạt động** (D-017, D-022): còn đơn mở tại chợ thì nút bị khóa, hiển thị "Còn X đơn mở tại chợ này" (`open_order_count`); server trả `422 RESOURCE_IN_USE` nếu vẫn gọi. Không còn đơn mở: ConfirmDialog "Chợ sẽ bị ẩn khỏi trang công khai. Không nhận đơn mới tại chợ này."
 
 ### A-06 · Form chợ
 | Trường | Kiểu | Bắt buộc | Validate |
 | :--- | :--- | :---: | :--- |
 | Tên chợ | text | * | 2–100, duy nhất |
 | Địa chỉ | textarea | * | 5–255 |
-| Ngày họp | Checkbox group Thứ 2 → CN | * | ≥ 1 ngày |
+| Ngày mở cửa | Checkbox group Thứ 2 → CN | * | ≥ 1 ngày |
 | Giờ mở cửa | time | * | — |
 | Giờ đóng cửa | time | * | > giờ mở |
 | Mô tả | textarea | — | ≤ 1.000 |
 | Vị trí | `MapPicker` + "Tìm theo địa chỉ" | * | Lat/Lng bắt buộc (D-012) |
 | Nhà cung cấp bản đồ | Hiển thị cố định "OpenStreetMap" | — | Tương ứng cột `map_provider` trong SRS |
+- **Sửa ngày / giờ mở cửa** (D-022): lưu xong hiển thị toast "Đã tắt N khung nhận hàng của M nông dân nằm ngoài lịch mới" (`deactivated_slot_count`); đơn đã đặt không bị ảnh hưởng.
+- **Khối "Lịch đóng cửa tạm thời"** (D-023, chỉ ở chế độ sửa): danh sách kỳ đóng cửa + nút "+ Thêm" (Từ ngày *, Đến ngày *, Lý do ≤ 200). Lỗi `RESOURCE_IN_USE` hiển thị số đơn mở trong khoảng đóng cửa.
 
 ### A-07 · Danh mục sản phẩm (FR-56)
 - Bảng: Tên danh mục · Biểu tượng · Số sản phẩm · Thứ tự hiển thị · Trạng thái · Hành động.
@@ -1374,16 +1451,18 @@ A-02 [Khôi phục] ──► APPROVED
 | Thực thể | Trường UI cần | Màn hình nguồn |
 | :--- | :--- | :--- |
 | User | email, role, is_active, must_change_password | G-09, A-04 |
-| CustomerProfile | full_name, phone, address | G-10, C-10, A-04 |
+| CustomerProfile | full_name, phone, address, deactivation_reason | G-10, C-10, A-04 |
 | FarmerProfile | stall_name, contact_person, phone, address, description, image, latitude, longitude, status, status_reason, order_cutoff_hours, rating_avg*, rating_count* | G-11, F-08, F-07, A-02 |
 | Market | name, address, operating_days, open_time, close_time, description, latitude, longitude, map_provider, is_active, distance_km* , farmer_count* | A-06, G-02 |
 | FarmerMarket | farmer, market, stall_label | F-07, G-06 |
 | PickupSlot | farmer_market, day_of_week, start_time, end_time | F-07, C-02 |
+| MarketClosure | market, start_date, end_date, reason | A-06, G-02, G-03 |
+| FarmerClosure | farmer, start_date, end_date, reason | F-07, G-06, G-13 |
 | Category | name, icon, display_order, is_active, product_count* | A-07 |
 | Product | name, category, price, unit, stock_quantity, weekly_default_quantity, description, image, is_available, is_archived, is_hidden_by_admin, hidden_reason, held_quantity*, rating_avg* | F-04 → F-06, G-04 |
 | Order | id, customer, farmer, market, pickup_date, pickup_start_at, pickup_end_at, cutoff_at, status, note, total_amount, version, created_at, is_overdue*, decline_reason (từ history) | C-02 → C-06, F-02, F-03 |
 | OrderItem | product, product_name, unit, unit_price (snapshot), quantity, line_total | C-05, F-03 |
-| Order history | status, history_date, history_user, change_reason | Timeline C-05, F-03 |
+| Order history | from_status, to_status, transition, actor, actor_role, change_reason, created_at | Timeline C-05, F-03 |
 | ProductReview / FarmerReview | order, target, rating, comment, reply, replied_at, is_hidden_by_admin, hidden_reason, created_at | C-07, G-05, G-06, F-09, A-08 |
 | FavoriteFarmer / FavoriteProduct / FavoriteMarket | customer, target, created_at | C-08 |
 | Notification | type, title, message, target_url, is_read, created_at | N-01, C-09, F-10 |
@@ -1410,7 +1489,7 @@ A-02 [Khôi phục] ──► APPROVED
 
 # 🗄️ PASS 4 (PHẦN A): THIẾT KẾ CƠ SỞ DỮ LIỆU (ERD & DATA DICTIONARY)
 ## DỰ ÁN MARKETLINK — TECHWIZ 7
-> **Đầu vào**: SRS §1.8 (Database Design mẫu) · UC-01 → UC-34, FR-01 → FR-59, NFR-01 → NFR-12 (`MarketLink_requirement_analysis.md`) · Decision Log D-001 → D-021 (FSM 13 cạnh) · Kiểm kê dữ liệu UI (Pass 3 §11).
+> **Đầu vào**: SRS §1.8 (Database Design mẫu) · UC-01 → UC-34, FR-01 → FR-59, NFR-01 → NFR-12 (`MarketLink_requirement_analysis.md`) · Decision Log D-001 → D-026 (FSM 13 cạnh) · Kiểm kê dữ liệu UI (Pass 3 §11).
 > **CSDL**: MySQL 8.4 LTS · InnoDB · `utf8mb4` / `utf8mb4_0900_ai_ci` · Django 5.2 ORM · `DEFAULT_AUTO_FIELD = BigAutoField` · `TIME_ZONE = "Asia/Ho_Chi_Minh"`, `USE_TZ = True`.
 > **Phạm vi phần A**: ERD, từ điển dữ liệu, ràng buộc toàn vẹn, index, kiểm soát đồng thời. **Phần B (API Contract Freeze 10 điểm)** làm sau khi Lead duyệt phần A.
 > **Trạng thái**: ✅ Lead Architect đã duyệt hướng thiết kế (bản nền Pass 4 + 3 điểm gộp từ thiết kế của Lead: `order_status_history`, `pickup_slots.is_active`, `markets.image`).
@@ -1423,7 +1502,7 @@ A-02 [Khôi phục] ──► APPROVED
 | :---: | :--- | :--- |
 | 1 | Khóa chính | `id BIGINT AUTO_INCREMENT` (BigAutoField). Ngoại lệ: bảng profile 1-1 dùng `user_id` làm PK |
 | 2 | Tên bảng | `snake_case` số nhiều, khai báo `db_table` tường minh |
-| 3 | Dấu thời gian | Mọi bảng nghiệp vụ kế thừa `core.BaseModel`: `created_at` (auto_now_add), `updated_at` (auto_now). CSDL lưu UTC |
+| 3 | Dấu thời gian | Mọi bảng nghiệp vụ kế thừa `core.BaseModel`: `created_at` (auto_now_add), `updated_at` (auto_now). Ngoại lệ: bảng append-only (chỉ thêm / xóa, không sửa) kế thừa `core.CreatedAtModel` chỉ có `created_at`: `order_status_history`, `notifications`, `favorite_farmers`, `favorite_products`, `favorite_markets`, `audit_logs`. `users` dùng `date_joined` của `AbstractUser` + `updated_at`. CSDL lưu UTC |
 | 4 | Enum | Lưu `VARCHAR` chữ HOA `UPPER_SNAKE_CASE`; so sánh trong code qua `TextChoices` |
 | 5 | Tiền tệ (D-020) | `DECIMAL(12,0)` — VND, không phần thập phân |
 | 6 | Tọa độ (D-012) | `DECIMAL(9,6)` |
@@ -1462,6 +1541,8 @@ erDiagram
     farmer_profiles ||--o{ farmer_markets : "bán tại"
     markets ||--o{ farmer_markets : "có sạp"
     farmer_markets ||--o{ pickup_slots : "khung nhận"
+    markets ||--o{ market_closures : "đóng cửa tạm thời"
+    farmer_profiles ||--o{ farmer_closures : "nghỉ bán"
 
     categories ||--o{ products : "phân loại"
     farmer_profiles ||--o{ products : "sở hữu"
@@ -1494,14 +1575,14 @@ erDiagram
 | App | Bảng | Số bảng |
 | :--- | :--- | :---: |
 | `accounts` | `roles`, `users`, `customer_profiles`, `farmer_profiles`, `farmer_profile_histories` | 5 |
-| `markets` | `markets`, `market_operating_days`, `farmer_markets`, `pickup_slots` | 4 |
+| `markets` | `markets`, `market_operating_days`, `farmer_markets`, `pickup_slots`, `market_closures`, `farmer_closures` | 6 |
 | `catalog` | `categories`, `products` | 2 |
 | `orders` | `orders`, `order_items`, `order_status_history` | 3 |
 | `reviews` | `product_reviews`, `farmer_reviews` | 2 |
 | `favorites` | `favorite_farmers`, `favorite_products`, `favorite_markets` | 3 |
 | `notifications` | `notifications`, `announcements` | 2 |
 | `system` | `audit_logs` | 1 |
-| **Tổng** | | **22** |
+| **Tổng** | | **24** |
 
 `chat` không có bảng (D-011: không lưu lịch sử trên server). Dữ liệu ngắn hạn nằm trong Redis, không thuộc CSDL: JTI blacklist, vé WebSocket (TTL 30s), `Idempotency-Key` (TTL 24h).
 
@@ -1543,6 +1624,7 @@ erDiagram
 | full_name | VARCHAR(100) | ✗ | | FR-01 |
 | phone | VARCHAR(15) | ✗ | | Regex VN ở serializer |
 | address | VARCHAR(255) | ✗ | | FR-01 |
+| deactivation_reason | VARCHAR(500) | ✓ | | Lý do Admin khóa tài khoản (D-024): bắt buộc khi khóa (service), xóa về NULL khi mở khóa; trả trong `403 ACCOUNT_LOCKED` khi đăng nhập đúng mật khẩu |
 - **Khóa dòng**: service checkout gọi `select_for_update()` trên dòng này trước khi đếm đơn mở (D-005, chốt 2).
 
 #### `farmer_profiles` (có `HistoricalRecords` → `farmer_profile_histories`)
@@ -1559,7 +1641,7 @@ erDiagram
 | longitude | DECIMAL(9,6) | ✓ | | |
 | status | VARCHAR(20) | ✗ | default `PENDING` | `PENDING`, `APPROVED`, `SUSPENDED`, `REJECTED` (D-015) |
 | status_reason | VARCHAR(500) | ✓ | | Bắt buộc khi `REJECTED` / `SUSPENDED` (service) |
-| order_cutoff_hours | SMALLINT UNSIGNED | ✗ | default 12, CHECK 0–72 | D-007 |
+| order_cutoff_hours | SMALLINT UNSIGNED | ✗ | default 12, CHECK 1–72 | D-007: không cho phép 0 |
 - **Index**: `(status)` cho lọc công khai chỉ `APPROVED` và tab Admin A-02.
 - **Lịch sử**: `farmer_profile_histories` (django-simple-history) lưu người đổi trạng thái, thời điểm, `history_change_reason` → hiển thị ở A-03.
 - **Không có `version`**: Farmer chỉ sửa trường hồ sơ, Admin chỉ sửa `status`; thao tác đổi trạng thái của Admin chạy dưới `select_for_update()` (xem §5).
@@ -1582,6 +1664,8 @@ erDiagram
 | close_time | TIME | ✗ | CHECK `close_time > open_time` | |
 | is_active | BOOLEAN | ✗ | default TRUE | Gỡ mềm (D-017) |
 - **Index**: `(is_active)`.
+- **`open_time`, `close_time`**: một cặp giờ chung cho mọi ngày mở cửa (D-022); giờ riêng của Farmer nằm ở `pickup_slots`.
+- **Đổi lịch (AD-16)**: slot nằm ngoài ngày / giờ mới tự `is_active = false` + thông báo `MARKET_SCHEDULE_CHANGED` (D-022). **Ngừng hoạt động (AD-17)**: chặn khi còn đơn mở tại chợ.
 
 #### `market_operating_days`
 | Cột | Kiểu MySQL | Null | Ràng buộc | Ghi chú |
@@ -1598,7 +1682,7 @@ erDiagram
 | id | BIGINT | ✗ | PK | |
 | farmer_id | BIGINT | ✗ | FK → `farmer_profiles.user_id` **CASCADE** | `related_name="farmer_markets"` |
 | market_id | BIGINT | ✗ | FK → `markets.id` **RESTRICT** | `related_name="farmer_markets"` |
-| stall_label | VARCHAR(30) | ✓ | | "Sạp B12" |
+| stall_label | VARCHAR(100) | ✗ | | **Bắt buộc**. Mô tả vị trí sạp trong chợ, ví dụ "Dãy B, sạp 12, gần cổng chính" |
 - **Unique**: `(farmer_id, market_id)`.
 - **Xóa cứng được**: đơn hàng không trỏ vào bảng này mà lưu snapshot `market_id` (xem `orders`). Service chặn xóa khi còn đơn mở tại chợ đó (F-07).
 
@@ -1613,6 +1697,30 @@ erDiagram
 | is_active | BOOLEAN | ✗ | default TRUE | Farmer tạm tắt khung giờ mà không phải xóa; khung tắt không hiện ở Checkout (C-02) |
 - **Unique**: `(farmer_market_id, day_of_week, start_time)`.
 - **Sửa / xóa slot không ảnh hưởng đơn đã đặt**: đơn lưu snapshot thời gian (D-007).
+- **Tự tắt khi chợ đổi lịch** (D-022): service AD-16 đặt `is_active = false` cho slot nằm ngoài lịch mới. Ngày nghỉ không tắt slot mà được loại khi tính ngày nhận (D-023).
+
+#### `market_closures` (D-023 — Admin khai báo chợ đóng cửa tạm thời)
+| Cột | Kiểu MySQL | Null | Ràng buộc | Ghi chú |
+| :--- | :--- | :---: | :--- | :--- |
+| id | BIGINT | ✗ | PK | |
+| market_id | BIGINT | ✗ | FK → `markets.id` **CASCADE** | `related_name="closures"` (dòng con thuần) |
+| start_date | DATE | ✗ | | Giờ VN |
+| end_date | DATE | ✗ | CHECK `end_date >= start_date` | |
+| reason | VARCHAR(200) | ✓ | | Hiển thị công khai, ví dụ "Nghỉ Tết Nguyên đán" |
+- **Index**: `(market_id, end_date)` để tìm kỳ đóng cửa còn hiệu lực.
+- **Service**: `start_date >= hôm nay`; không chồng lấn với kỳ khác của cùng chợ; còn đơn mở có `pickup_date` trong khoảng thì `422 RESOURCE_IN_USE`.
+
+#### `farmer_closures` (D-023 — Farmer báo nghỉ bán, SRS §1.1 "closed for the week")
+| Cột | Kiểu MySQL | Null | Ràng buộc | Ghi chú |
+| :--- | :--- | :---: | :--- | :--- |
+| id | BIGINT | ✗ | PK | |
+| farmer_id | BIGINT | ✗ | FK → `farmer_profiles.user_id` **CASCADE** | `related_name="closures"` (dòng con thuần) |
+| start_date | DATE | ✗ | | Giờ VN |
+| end_date | DATE | ✗ | CHECK `end_date >= start_date` | |
+| reason | VARCHAR(200) | ✓ | | Hiển thị công khai, ví dụ "Nghỉ thu hoạch" |
+- **Index**: `(farmer_id, end_date)`.
+- **Phạm vi**: áp dụng cho mọi chợ của Farmer. Quy tắc service giống `market_closures`.
+- **Ngày nhận hợp lệ** (PU-08, CU-04, CU-07): ngày chợ mở · chợ không đóng cửa · Farmer không nghỉ · slot và chợ `is_active` · trong `BOOKING_HORIZON_DAYS` và trước `cutoff_at` (A-019).
 
 ### 3.3 App `catalog`
 
@@ -1658,7 +1766,7 @@ erDiagram
 | farmer_id | BIGINT | ✗ | FK → `farmer_profiles.user_id` **RESTRICT** | `related_name="orders"` — mỗi đơn đúng 1 Farmer (D-004) |
 | market_id | BIGINT | ✗ | FK → `markets.id` **RESTRICT** | **Snapshot** điểm nhận; phục vụ báo cáo doanh thu theo chợ (FR-55) |
 | pickup_slot_id | BIGINT | ✓ | FK → `pickup_slots.id` **SET_NULL** | Tham chiếu mềm; slot bị xóa thì đơn vẫn đủ dữ liệu |
-| stall_label | VARCHAR(30) | ✓ | | **Snapshot** vị trí sạp lúc đặt |
+| stall_label | VARCHAR(100) | ✓ | | **Snapshot** vị trí sạp lúc đặt (luôn có giá trị với đơn mới; giữ NULL cho an toàn) |
 | pickup_date | DATE | ✗ | | Ngày nhận (giờ VN) |
 | pickup_start_at | DATETIME(6) | ✗ | | **Snapshot** = `pickup_date` + `start_time` (VN → UTC) |
 | pickup_end_at | DATETIME(6) | ✗ | CHECK `> pickup_start_at` | |
@@ -1709,7 +1817,7 @@ erDiagram
 - **Index**: `(order_id, created_at)` cho Timeline.
 - **Quy tắc ghi**: mọi service đổi trạng thái hoặc sửa đơn ghi đúng 1 dòng vào bảng này **trong cùng `transaction.atomic()`** với lệnh cập nhật `orders`. Không có API sửa/xóa.
 - **Timeline UI (C-05, F-03)** đọc thẳng `from_status → to_status`, `actor_role`, `change_reason`, `created_at`; không cần so sánh hai bản ghi liền kề. `orders` không có cột `cancelled_by`, `decline_reason` (D-006).
-- **Thay cho django-simple-history trên `orders`**: nhẹ hơn (không sao chép toàn bộ cột đơn), có sẵn `from_status`/`actor_role`, không phải đổi kiểu `history_change_reason`. D-006 cần cập nhật câu "lưu vết `_history_user` và `_change_reason`" thành "lưu vết vào `order_status_history`".
+- **Thay cho django-simple-history trên `orders`**: nhẹ hơn (không sao chép toàn bộ cột đơn), có sẵn `from_status`/`actor_role`, không phải đổi kiểu `history_change_reason`. D-006 đã cập nhật theo bảng này.
 
 ### 3.5 App `reviews` (D-016)
 
@@ -1808,7 +1916,7 @@ erDiagram
 | `ActorRole` | `order_status_history.actor_role` | `CUSTOMER`, `FARMER`, `ADMIN`, `SYSTEM` |
 | `Transition` | `order_status_history.transition` | `T1` … `T13` (D-006) |
 | `ChangeReason` (mã hệ thống) | `order_status_history.change_reason` | `SYSTEM_EXPIRED`, `FARMER_SUSPENDED_BY_ADMIN`, `CUSTOMER_LOCKED_BY_ADMIN` (lý do do người nhập là text tự do) |
-| `NotificationType` | `notifications.type` | Khách: `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`, `RESTOCK`. Farmer: `ORDER_PLACED`, `ORDER_MODIFIED`, `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`, `ACCOUNT_STATUS_CHANGED` |
+| `NotificationType` | `notifications.type` | Khách: `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`, `RESTOCK`. Farmer: `ORDER_PLACED`, `ORDER_MODIFIED`, `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`, `ACCOUNT_STATUS_CHANGED`, `MARKET_SCHEDULE_CHANGED` (D-022) |
 | `AnnouncementAudience` | `announcements.audience` | `ALL`, `CUSTOMER`, `FARMER` |
 | `AuditAction` | `audit_logs.action` | `LOGIN`, `LOGIN_FAILED`, `LOGOUT`, `PASSWORD_CHANGED`, `ACCESS_DENIED`, `EXPORT_DATA`, `FARMER_APPROVED`, `FARMER_REJECTED`, `FARMER_SUSPENDED`, `FARMER_REINSTATED`, `CUSTOMER_DEACTIVATED`, `CUSTOMER_ACTIVATED`, `PRODUCT_HIDDEN`, `PRODUCT_RESTORED`, `REVIEW_HIDDEN`, `REVIEW_RESTORED` |
 
@@ -1836,6 +1944,9 @@ erDiagram
 | Khóa Khách (T5, T6, T13 hàng loạt) | `users`, `orders`, `products`, `order_status_history`, `audit_logs` | 1. `users` → 2. đơn mở `order_by("id")` → 3. `products` `order_by("id")` |
 | Áp dụng mẫu tuần (D-008) | `products`, (quét lười) `orders` | 1. quét lười → 2. `products` của Farmer `order_by("id")` |
 | Đổi tồn kho thủ công (F-04) | `products`, `notifications` (restock) | `products` |
+| Admin sửa lịch chợ (AD-16, D-022) | `markets`, `market_operating_days`, `pickup_slots`, `notifications` | 1. `markets` → 2. `pickup_slots` của chợ `order_by("id")` |
+| Tạo kỳ nghỉ chợ / Farmer (D-023) | `market_closures` / `farmer_closures` | 1. dòng `markets` / `farmer_profiles` (tuần tự hóa kiểm tra chồng lấn) → 2. đếm đơn mở trong khoảng |
+| Ngừng hoạt động chợ (AD-17) | `markets` | 1. `markets` → 2. đếm đơn mở tại chợ |
 - **Quy tắc chung**: luôn khóa `orders` trước `products`; khóa nhiều dòng luôn theo `id` tăng dần; deadlock (MySQL 1213) → retry 1 lần rồi trả `409`.
 - **Email / WebSocket** phát qua `transaction.on_commit` (D-010), không nằm trong giao dịch.
 
@@ -1866,6 +1977,11 @@ erDiagram
 | Slot thuộc Farmer, đúng thứ, trong giờ chợ | — | Validate khi tạo slot / đặt đơn |
 | Chỉ Farmer `APPROVED` được tạo sản phẩm / nhận đơn | — | Policy |
 | Chuyển trạng thái đơn đúng 13 cạnh | — | FSM Triple-Gate (D-006) |
+| `order_cutoff_hours` trong 1–72 | CHECK | Serializer (D-007) |
+| Kỳ nghỉ: `end_date >= start_date` | CHECK | Serializer |
+| Kỳ nghỉ không chồng lấn; không có đơn mở trong khoảng | — | Khóa dòng cha rồi kiểm tra (D-023) |
+| Slot nằm trong lịch chợ sau khi Admin đổi lịch | — | Service AD-16 tự tắt slot vi phạm (D-022) |
+| `farmer_markets.stall_label` bắt buộc | NOT NULL | Serializer 1–100 ký tự (D-026) |
 
 ---
 
@@ -1875,7 +1991,7 @@ erDiagram
 | FR-01, 02, 03, 04, 31 | `roles`, `users`, `customer_profiles`, `farmer_profiles` |
 | FR-05, 06 | *(tĩnh)* |
 | FR-10, 11, 13, 25 | `markets`, `market_operating_days`, `farmer_markets`, `favorite_markets` |
-| FR-12, 16, 40, 45 | `farmer_profiles`, `farmer_markets`, `pickup_slots` (`is_active`) |
+| FR-12, 16, 40, 45 | `farmer_profiles`, `farmer_markets`, `pickup_slots` (`is_active`), `farmer_closures` |
 | FR-14, 15, 41, 42, 43, 56 | `products`, `categories` |
 | FR-17 | *(client — Zustand persist, D-004)* |
 | FR-18, 19, 20, 21, 22, 44, 49, 59 | `orders`, `order_items`, `order_status_history`, `products` |
@@ -1887,8 +2003,8 @@ erDiagram
 | FR-30 | *(không bảng — đa phiên JWT, D-021)* |
 | FR-50, 55 | Truy vấn tổng hợp `users`, `farmer_profiles`, `markets`, `orders`; xuất Excel ghi `audit_logs` |
 | FR-51 | `farmer_profiles`, `farmer_profile_histories`, `orders`, `audit_logs` |
-| FR-52 | `users`, `orders`, `audit_logs` |
-| FR-53 | `markets`, `market_operating_days` |
+| FR-52 | `users`, `customer_profiles` (`deactivation_reason`), `orders`, `audit_logs` |
+| FR-53 | `markets`, `market_operating_days`, `market_closures`, `pickup_slots` (tự tắt khi đổi lịch), `notifications` |
 | FR-54 | `products`, `product_reviews`, `farmer_reviews`, `audit_logs` |
 | FR-57 | `announcements` |
 | FR-58 | `audit_logs` |
@@ -1907,6 +2023,7 @@ erDiagram
 | `products` | ≥ 1.000 | Phục vụ đo NFR-05; ảnh có nguồn bản quyền (NFR-12) |
 | `orders` | ~ 300 | Phủ đủ 8 trạng thái, có đơn quá hạn để demo quét lười |
 | Reviews | ~ 150 | Có review bị ẩn, có phản hồi |
+| Lịch nghỉ | 3 | 1 kỳ đóng cửa chợ, 2 kỳ nghỉ Farmer trong 7 ngày tới để demo D-023 |
 - Lệnh `python manage.py seed_demo` (model-bakery), xuất kèm `database_seed_data.sql`.
 
 ---
@@ -1921,6 +2038,9 @@ erDiagram
 | DB-05 | `products` không gắn history; `farmer_profiles` dùng django-simple-history (lịch sử duyệt A-03) | Áp dụng |
 | DB-06 | Lịch sử đơn dùng bảng tự thiết kế `order_status_history` thay cho simple-history; cập nhật câu chữ D-006 | ✅ Đã chốt |
 | DB-07 | Thêm `pickup_slots.is_active` và `markets.image` | ✅ Đã chốt |
+| DB-08 | Thêm `market_closures`, `farmer_closures` (khoảng ngày) thay vì tắt / bật slot thủ công | ✅ Đã chốt (D-023) |
+| DB-09 | Thêm `customer_profiles.deactivation_reason` | ✅ Đã chốt (D-024) |
+| DB-10 | Bảng append-only kế thừa `CreatedAtModel` (không có `updated_at`) | ✅ Đã chốt |
 
 ~~~ Hết Pass 4 phần A — Chờ Lead Architect duyệt trước khi sang phần B (API Contract Freeze) ~~~
 
@@ -1928,7 +2048,7 @@ erDiagram
 
 # 📡 PASS 4 (PHẦN B): ĐÓNG BĂNG HỢP ĐỒNG API (API CONTRACT FREEZE — 10 ĐIỂM)
 ## DỰ ÁN MARKETLINK — TECHWIZ 7
-> **Đầu vào**: Pass 3 (màn hình G/C/F/A) · Pass 4A (22 bảng) · Decision Log D-001 → D-021 · FSM 13 cạnh T1–T13.
+> **Đầu vào**: Pass 3 (màn hình G/C/F/A) · Pass 4A (24 bảng) · Decision Log D-001 → D-026 · FSM 13 cạnh T1–T13.
 > **Phạm vi**: Toàn bộ REST endpoint + kênh WebSocket thông báo.
 > **Kỷ luật Freeze**: Sau khi Lead Architect chốt, **không** đổi tên trường, kiểu dữ liệu, URL, mã lỗi. Mọi thay đổi phải qua Lead và ghi vào §8 (Change Log).
 > **Trạng thái**: đóng băng.
@@ -2088,7 +2208,7 @@ erDiagram
 | 401 | `NOT_AUTHENTICATED` | Thiếu / hết hạn access token | Interceptor refresh |
 | 401 | `INVALID_CREDENTIALS` | Sai email / mật khẩu | Lỗi trên form, không refresh |
 | 401 | `TOKEN_INVALID` | Refresh token sai / đã thu hồi | Đăng xuất về `/login` |
-| 403 | `ACCOUNT_LOCKED` | Tài khoản `is_active = false` | Thông báo trên form đăng nhập |
+| 403 | `ACCOUNT_LOCKED` | Tài khoản `is_active = false` (AU-03 chỉ trả khi mật khẩu đúng; `errors.reason` chứa lý do khóa, D-024) | Thông báo trên form đăng nhập kèm lý do |
 | 403 | `PERMISSION_DENIED` | Sai role cho nhánh API | `/403` hoặc toast |
 | 403 | `ACTION_NOT_PERMITTED_FOR_ROLE` | Gate 2 FSM | Toast |
 | 403 | `FARMER_NOT_APPROVED` | Farmer chưa `APPROVED` tạo sản phẩm / mẫu tuần | Toast + banner |
@@ -2102,11 +2222,11 @@ erDiagram
 | 422 | `CUTOFF_NOT_REACHED` | Đánh dấu Sẵn sàng trước `cutoff_at` (T9) | Toast |
 | 422 | `PICKUP_ALREADY_STARTED` | Duyệt / từ chối đơn `PLACED` sau `pickup_start_at` | Toast + refetch |
 | 422 | `PICKUP_NOT_ENDED` | Đánh dấu Không đến trước `pickup_end_at` (T11) | Toast |
-| 422 | `SLOT_NOT_AVAILABLE` | Khung giờ tắt / sai thứ / ngoài `BOOKING_HORIZON_DAYS` / chợ ngừng hoạt động | Yêu cầu chọn lại |
+| 422 | `SLOT_NOT_AVAILABLE` | Khung giờ tắt / sai thứ / ngoài `BOOKING_HORIZON_DAYS` / chợ ngừng hoạt động / chợ đóng cửa hoặc Farmer nghỉ ngày đó (D-023) | Yêu cầu chọn lại |
 | 422 | `PRODUCT_NOT_AVAILABLE` | Sản phẩm lưu trữ / tạm ngừng / bị gỡ / Farmer không `APPROVED` | Tô xám dòng |
 | 422 | `REVIEW_NOT_ALLOWED` | Đơn chưa `COMPLETED` hoặc đã đánh giá | Toast |
 | 422 | `REPLY_ALREADY_EXISTS` | Farmer phản hồi lần 2 | Toast |
-| 422 | `RESOURCE_IN_USE` | Xóa danh mục còn sản phẩm; gỡ chợ khỏi Farmer khi còn đơn mở; xóa khung giờ còn đơn mở | Toast |
+| 422 | `RESOURCE_IN_USE` | Xóa danh mục còn sản phẩm; gỡ chợ khỏi Farmer khi còn đơn mở; xóa khung giờ còn đơn mở; ngừng hoạt động chợ còn đơn mở (D-022); tạo kỳ nghỉ khi còn đơn mở trong khoảng (D-023) | Toast + danh sách liên quan |
 | 422 | `IDEMPOTENCY_KEY_REUSED` | Cùng `Idempotency-Key` nhưng body khác lần trước | Sinh key mới, gửi lại |
 | 422 | `FAILED_PRECONDITION` | Điều kiện tiên quyết khác (dự phòng) | Toast `message` |
 | 428 | `PRECONDITION_REQUIRED` | Thiếu `If-Match` / `Idempotency-Key` | Lỗi lập trình |
@@ -2140,6 +2260,7 @@ MarketSummary = {
   latitude: number, longitude: number
   operating_days: integer[]            // [2, 4, 7]
   open_time: "HH:MM", close_time: "HH:MM"
+  upcoming_closures: Closure[]          // kỳ đóng cửa trong BOOKING_HORIZON_DAYS tới (D-023)
   farmer_count: integer                // Farmer APPROVED đang bán tại chợ
   distance_km: number | null           // chỉ khi request có lat & lng
   is_favorite: boolean | null          // null nếu không phải Customer
@@ -2153,6 +2274,7 @@ FarmerSummary = {
   markets: { market_id: integer, market_name: string, stall_label: string | null }[]
   operating_days: integer[]            // suy ra từ pickup_slots đang bật
   in_stock_product_count: integer
+  upcoming_closures: Closure[]          // kỳ nghỉ bán trong BOOKING_HORIZON_DAYS tới (D-023)
   distance_km: number | null
   is_favorite: boolean | null
 }
@@ -2165,6 +2287,7 @@ FarmerPublic = FarmerSummary & {
                     slots: PickupSlot[] }[]
 }
 PickupSlot = { id: integer, day_of_week: integer, start_time: "HH:MM", end_time: "HH:MM", is_active: boolean }
+Closure = { id: integer, start_date: "YYYY-MM-DD", end_date: "YYYY-MM-DD", reason: string | null }   // market_closures / farmer_closures
 
 PickupOption = {                        // dùng cho Checkout (C-02) và sửa đơn (C-06)
   market_id: integer, market_name: string, stall_label: string | null
@@ -2277,7 +2400,7 @@ RatingSummary = { rating_avg: number | null, rating_count: integer, distribution
 ```ts
 NotificationType = "ORDER_ACCEPTED" | "ORDER_READY" | "ORDER_DECLINED" | "ORDER_EXPIRED" | "RESTOCK"
                  | "ORDER_PLACED" | "ORDER_MODIFIED" | "ORDER_CANCELLED"
-                 | "ORDER_CANCELLED_CUSTOMER_LOCKED" | "ACCOUNT_STATUS_CHANGED"
+                 | "ORDER_CANCELLED_CUSTOMER_LOCKED" | "ACCOUNT_STATUS_CHANGED" | "MARKET_SCHEDULE_CHANGED"
 Notification = { id, type: NotificationType, title: string, message: string,
                  target_url: string | null, is_read: boolean, read_at: datetime | null, created_at: datetime }
 Announcement = { id, title: string, content: string, audience: "ALL" | "CUSTOMER" | "FARMER",
@@ -2306,6 +2429,7 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | AU-08 | `POST /api/auth/ws-ticket/` | Authenticated (Customer, Farmer) | — | `{ ticket: uuid, expires_in: 30 }` | 200 | — | N-01 |
 - Quy tắc validate: §1.5 Pass 3 (email chuẩn hóa lowercase; mật khẩu ≥ 8 ký tự, có chữ và số; SĐT regex VN).
 - AU-03 ghi `audit_logs` `LOGIN` / `LOGIN_FAILED`; AU-05 ghi `LOGOUT`; AU-07 ghi `PASSWORD_CHANGED`.
+- AU-03 với tài khoản bị khóa (D-024): kiểm tra mật khẩu trước; đúng mật khẩu mới trả `403 ACCOUNT_LOCKED` với `errors: { reason: [deactivation_reason] }`; sai mật khẩu trả `401 INVALID_CREDENTIALS`.
 
 ### 4.2 Công khai — `/api/public/`
 | Mã | Method & URL | Auth / Scope | Query / Request | `data` trả về | OK | Lỗi riêng | Màn hình |
@@ -2317,7 +2441,7 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | PU-05 | `GET /api/public/markets/<id>/farmers/` **[P]** | AllowAny · Farmer `APPROVED` | `day?` | `FarmerSummary[]` (kèm `stall_label` của chợ này) | 200 | — | G-03 |
 | PU-06 | `GET /api/public/farmers/` **[P]** | AllowAny · Farmer `APPROVED` | `q?`, `market_id?`, `day?`, `category_id?`, `lat?`, `lng?`, `ordering?` = `rating` \| `in_stock` \| `distance` \| `name` | `FarmerSummary[]` | 200 | — | G-13 |
 | PU-07 | `GET /api/public/farmers/<id>/` | AllowAny · Farmer `APPROVED` | — | `FarmerPublic` | 200 | — | G-06 |
-| PU-08 | `GET /api/public/farmers/<id>/pickup-options/` | AllowAny · Farmer `APPROVED`, slot `is_active`, chợ `is_active` | `from?` (mặc định hôm nay), `days?` (≤ `booking_horizon_days`) | `PickupOption[]` | 200 | — | C-02, C-06, G-06 |
+| PU-08 | `GET /api/public/farmers/<id>/pickup-options/` | AllowAny · Farmer `APPROVED`, slot `is_active`, chợ `is_active`; loại ngày chợ đóng cửa và ngày Farmer nghỉ (D-023); không trả slot có `cutoff_at` đã qua (D-007) | `from?` (mặc định hôm nay), `days?` (≤ `booking_horizon_days`) | `PickupOption[]` | 200 | — | C-02, C-06, G-06 |
 | PU-09 | `GET /api/public/farmers/<id>/reviews/` **[P10]** | AllowAny · review không bị ẩn | `rating?` | `{ summary: RatingSummary, results: Review[] … }` | 200 | — | G-06 |
 | PU-10 | `GET /api/public/products/` **[P]** | AllowAny · §6.2 "công khai" | `q?`, `category?` (ids), `market_id?`, `day?`, `farmer_id?`, `price_min?`, `price_max?`, `in_stock?` (mặc định `true`), `ids?` (tối đa 50, dùng làm mới giỏ C-01), `ordering?` = `newest` \| `price_asc` \| `price_desc` \| `rating` | `ProductCard[]` | 200 | — | G-01, G-04, G-06, C-01 |
 | PU-11 | `GET /api/public/products/<id>/` | AllowAny · công khai | — | `ProductDetail` | 200 | — | G-05 |
@@ -2353,9 +2477,9 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | :---: | :--- | :--- | :--- | :--- | :---: | :--- | :--- |
 | FA-01 | `GET /api/farmer/dashboard/` | Farmer · chính mình · chạy quét lười (D-009) | `from?`, `to?` (mặc định 7 ngày) | `{ kpis: { total_orders, pending_approval, in_progress, revenue }, revenue_by_day: { date, revenue }[], top_products: { product_id, name, quantity_sold, revenue }[≤5], overdue_open_count: integer, upcoming: OrderSummary[≤5], status: FarmerStatus, status_reason: string \| null }` | 200 | — | F-01 |
 | FA-02 | `GET /api/farmer/profile/` | Farmer · chính mình | — | `FarmerPublic` + `{ email, status, status_reason }` | 200 | — | F-08 |
-| FA-03 | `PATCH /api/farmer/profile/` | Farmer · chính mình · multipart nếu có ảnh | `{ stall_name?, contact_person?, phone?, address?, description?, image?: file, latitude?, longitude?, order_cutoff_hours?: 0–72 }` | như FA-02 | 200 | `VALIDATION_ERROR` (tọa độ thiếu một nửa) | F-07, F-08 |
+| FA-03 | `PATCH /api/farmer/profile/` | Farmer · chính mình · multipart nếu có ảnh | `{ stall_name?, contact_person?, phone?, address?, description?, image?: file, latitude?, longitude?, order_cutoff_hours?: 1–72 }` | như FA-02 | 200 | `VALIDATION_ERROR` (tọa độ thiếu một nửa) | F-07, F-08 |
 | FA-04 | `GET /api/farmer/markets/` | Farmer · `farmer = me` | — | `{ id (farmer_market_id), market: MarketSummary, stall_label, slots: PickupSlot[], open_order_count }[]` | 200 | — | F-07 |
-| FA-05 | `POST /api/farmer/markets/` | Farmer · `farmer = me` | `{ market_id, stall_label?: ≤ 30 }` | 1 phần tử như FA-04 | 201 | `VALIDATION_ERROR` (đã tham gia chợ này / chợ ngừng hoạt động) | F-07 |
+| FA-05 | `POST /api/farmer/markets/` | Farmer · `farmer = me` | `{ market_id, stall_label: 1–100 }` | 1 phần tử như FA-04 | 201 | `VALIDATION_ERROR` (đã tham gia chợ này / chợ ngừng hoạt động) | F-07 |
 | FA-06 | `PATCH /api/farmer/markets/<farmer_market_id>/` | Farmer · `farmer = me` | `{ stall_label }` | như FA-04 | 200 | — | F-07 |
 | FA-07 | `DELETE /api/farmer/markets/<farmer_market_id>/` | Farmer · `farmer = me` | — | — | 204 | `RESOURCE_IN_USE` (còn đơn mở tại chợ) | F-07 |
 | FA-08 | `POST /api/farmer/pickup-slots/` | Farmer · `farmer_market.farmer = me` | `{ farmer_market_id, day_of_week, start_time, end_time }` | `PickupSlot` | 201 | `VALIDATION_ERROR` (không phải ngày chợ họp / ngoài giờ chợ / trùng khung) | F-07 |
@@ -2381,6 +2505,9 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | FA-28 | `GET /api/farmer/reviews/` **[P]** | Farmer · review thuộc sạp / sản phẩm của me | `type?` = `FARMER` \| `PRODUCT`, `rating?`, `replied?` | `Review[]` | 200 | — | F-09 |
 | FA-29 | `POST /api/farmer/farmer-reviews/<id>/reply/` | Farmer · `order.farmer = me` | `{ reply: string 1–500 }` | `Review` | 200 | `REPLY_ALREADY_EXISTS`, `FAILED_PRECONDITION` (review bị ẩn) | F-09 |
 | FA-30 | `POST /api/farmer/product-reviews/<id>/reply/` | Farmer · `product.farmer = me` | `{ reply: string 1–500 }` | `Review` | 200 | như FA-29 | F-09 |
+| FA-31 | `GET /api/farmer/closures/` | Farmer · `farmer = me` | `include_past?` (mặc định `false`) | `Closure[]` | 200 | — | F-07 |
+| FA-32 | `POST /api/farmer/closures/` | Farmer · `farmer = me` | `{ start_date, end_date, reason?: ≤ 200 }` | `Closure` | 201 | `VALIDATION_ERROR` (ngày quá khứ / `end_date < start_date` / chồng lấn), `RESOURCE_IN_USE` (còn đơn mở trong khoảng, `errors.order_ids`) | F-07 |
+| FA-33 | `DELETE /api/farmer/closures/<id>/` | Farmer · `farmer = me` | — | — | 204 | — | F-07 |
 - **Farmer `SUSPENDED`**: mọi endpoint ghi của `/api/farmer/` trả 403 `FARMER_SUSPENDED`; endpoint đọc vẫn dùng được (Pass 3 §2.2).
 - **Farmer `PENDING` / `REJECTED`**: được sửa hồ sơ, chợ, khung giờ; không tạo / sửa sản phẩm, không áp dụng mẫu tuần (`FARMER_NOT_APPROVED`).
 
@@ -2395,15 +2522,15 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | AD-06 | `POST /api/admin/farmers/<id>/reject/` | Admin | `{ reason: 5–500 }` | `AdminFarmerRow` | 200 | như AD-05 | A-02, A-03 |
 | AD-07 | `POST /api/admin/farmers/<id>/suspend/` | Admin | `{ reason: 5–500 }` | `AdminFarmerRow` + `{ affected_orders: integer }` — §5.4 | 200 | `INVALID_STATUS_TRANSITION` (không ở `APPROVED`), `CONFLICT_RETRY` | A-02, A-03 |
 | AD-08 | `POST /api/admin/farmers/<id>/reinstate/` | Admin | `{}` | `AdminFarmerRow` | 200 | `INVALID_STATUS_TRANSITION` (không ở `SUSPENDED`) | A-02, A-03 |
-| AD-09 | `GET /api/admin/customers/` **[P]** | Admin | `is_active?`, `q?` | `{ id, full_name, email, phone, date_joined, is_active, total_orders, open_orders, no_show_count }[]` | 200 | — | A-04 |
+| AD-09 | `GET /api/admin/customers/` **[P]** | Admin | `is_active?`, `q?` | `{ id, full_name, email, phone, date_joined, is_active, deactivation_reason, total_orders, open_orders, no_show_count }[]` | 200 | — | A-04 |
 | AD-10 | `GET /api/admin/customers/<id>/` | Admin | — | Như dòng AD-09 + `{ address, recent_orders: OrderSummary[≤10] }` | 200 | — | A-04 |
 | AD-11 | `GET /api/admin/customers/<id>/deactivation-impact/` | Admin | — | `{ open_orders: { PLACED, ACCEPTED, READY_FOR_PICKUP, total }, affected_farmers: integer }` | 200 | — | Dialog A-04 |
 | AD-12 | `POST /api/admin/customers/<id>/deactivate/` | Admin | `{ reason: 5–500 }` | Dòng AD-09 + `{ affected_orders }` — §5.4 | 200 | `INVALID_STATUS_TRANSITION` (đã khóa), `CONFLICT_RETRY` | A-04 |
 | AD-13 | `POST /api/admin/customers/<id>/activate/` | Admin | `{}` | Dòng AD-09 | 200 | `INVALID_STATUS_TRANSITION` (đang hoạt động) | A-04 |
 | AD-14 | `GET /api/admin/markets/` **[P]** | Admin · gồm chợ ngừng hoạt động | `q?`, `is_active?` | `MarketAdmin[]` | 200 | — | A-05 |
 | AD-15 | `POST /api/admin/markets/` | Admin · multipart nếu có ảnh | `{ name, address, description?, image?: file, latitude, longitude, operating_days: integer[] (≥ 1), open_time, close_time }` | `MarketAdmin` | 201 | `VALIDATION_ERROR` (trùng tên, giờ đóng ≤ giờ mở) | A-06 |
-| AD-16 | `GET · PATCH /api/admin/markets/<id>/` | Admin | Các trường AD-15 (tùy chọn) | `MarketAdmin` | 200 | như AD-15 | A-06 |
-| AD-17 | `POST /api/admin/markets/<id>/deactivate/` · `…/activate/` | Admin | `{}` | `MarketAdmin` | 200 | — | A-05 |
+| AD-16 | `GET · PATCH /api/admin/markets/<id>/` | Admin | Các trường AD-15 (tùy chọn) | `MarketAdmin` + `{ deactivated_slot_count: integer }` (PATCH, D-022) | 200 | như AD-15 | A-06 |
+| AD-17 | `POST /api/admin/markets/<id>/deactivate/` · `…/activate/` | Admin | `{}` | `MarketAdmin` | 200 | `RESOURCE_IN_USE` (deactivate khi còn đơn mở tại chợ, D-022) | A-05 |
 | AD-18 | `GET · POST /api/admin/categories/` | Admin | `{ name, icon?, display_order? }` | `CategoryAdmin[]` / `CategoryAdmin` | 200 / 201 | `VALIDATION_ERROR` (trùng tên) | A-07 |
 | AD-19 | `PATCH · DELETE /api/admin/categories/<id>/` | Admin | `{ name?, icon?, display_order?, is_active? }` | `CategoryAdmin` / — | 200 / 204 | `RESOURCE_IN_USE` (DELETE khi còn sản phẩm) | A-07 |
 | AD-20 | `GET /api/admin/products/` **[P]** | Admin | `q?`, `farmer_id?`, `is_hidden?` | `FarmerProduct` + `{ farmer: { id, stall_name } }` | 200 | — | A-08 |
@@ -2417,8 +2544,13 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | AD-28 | `PATCH · DELETE /api/admin/announcements/<id>/` | Admin | các trường AD-27 (tùy chọn) | `AnnouncementAdmin` / — | 200 / 204 | — | A-10 |
 | AD-29 | `GET /api/admin/audit-logs/` **[P]** | Admin · chỉ đọc | `action?`, `user_id?`, `from?`, `to?` | `AuditLog[]` | 200 | — | A-11 |
 | AD-30 | `GET /api/admin/audit-logs/<id>/` | Admin · chỉ đọc | — | `AuditLog` | 200 | — | A-11 |
+| AD-31 | `GET /api/admin/markets/<id>/closures/` | Admin | `include_past?` | `Closure[]` | 200 | — | A-06 |
+| AD-32 | `POST /api/admin/markets/<id>/closures/` | Admin | `{ start_date, end_date, reason?: ≤ 200 }` | `Closure` | 201 | `VALIDATION_ERROR` (ngày quá khứ / `end_date < start_date` / chồng lấn), `RESOURCE_IN_USE` (còn đơn mở trong khoảng) | A-06 |
+| AD-33 | `DELETE /api/admin/market-closures/<id>/` | Admin | — | — | 204 | — | A-06 |
 - Mọi hành động Admin AD-05 → AD-08, AD-12, AD-13, AD-21, AD-23, AD-24 ghi `audit_logs` với action tương ứng (Pass 4A §4).
 - `status_history` ở AD-03 lấy từ `farmer_profile_histories`.
+- **AD-16 đổi ngày / giờ mở cửa** (D-022): trong cùng transaction, khóa `markets` → khóa `pickup_slots` của chợ `order_by("id")` → slot không còn thuộc ngày mở cửa hoặc nằm ngoài `open_time`–`close_time` thì `is_active = false`; sau commit `notify()` mỗi Farmer bị ảnh hưởng loại `MARKET_SCHEDULE_CHANGED` (chỉ in-app). Đơn đã đặt không đổi.
+- **AD-12 / AD-13** (D-024): AD-12 lưu `reason` vào `customer_profiles.deactivation_reason`; AD-13 xóa về NULL.
 
 ### 4.6 Thông báo — `/api/notifications/` (Customer, Farmer)
 | Mã | Method & URL | Auth / Scope | Query / Request | `data` trả về | OK | Màn hình |
@@ -2564,7 +2696,7 @@ Content-Type: application/json
 ### 5.4 AD-07 / AD-12 — Hành động Admin kéo theo đơn hàng
 | Bước | AD-07 Đình chỉ Farmer | AD-12 Khóa Khách |
 | :---: | :--- | :--- |
-| 1 | Khóa `farmer_profiles`; `APPROVED → SUSPENDED`, lưu `status_reason` | Khóa `users`; `is_active → false` |
+| 1 | Khóa `farmer_profiles`; `APPROVED → SUSPENDED`, lưu `status_reason` | Khóa `users`; `is_active → false`; lưu `customer_profiles.deactivation_reason` (D-024) |
 | 2 | Khóa đơn mở của Farmer `order_by("id")` | Khóa đơn mở của Khách `order_by("id")` |
 | 3 | `PLACED → DECLINED` (T3), `ACCEPTED → DECLINED` (T4), `READY_FOR_PICKUP → DECLINED` (T12) | `PLACED → CANCELLED` (T5), `ACCEPTED → CANCELLED` (T6), `READY_FOR_PICKUP → CANCELLED` (T13) |
 | 4 | Khóa `products` liên quan `order_by("id")`, cộng trả kho | như bên trái |
@@ -2574,7 +2706,7 @@ Content-Type: application/json
 - Toàn bộ bước 1 → 5 trong một `transaction.atomic()`; bước 6 qua `on_commit`; bước 7 ghi ngoài transaction nghiệp vụ.
 
 ### 5.5 Cảnh báo có hàng lại (RESTOCK · FR-24)
-- Kích hoạt khi `stock_quantity` của sản phẩm công khai đổi từ `0` lên `> 0` qua FA-14 hoặc FA-18, hoặc khi đơn bị hủy / từ chối / hết hạn làm kho từ `0` lên `> 0`.
+- Kích hoạt **chỉ** khi Farmer chủ động bổ sung hàng làm `stock_quantity` của sản phẩm công khai đổi từ `0` lên `> 0`: FA-14 hoặc FA-18 (D-025). Không kích hoạt khi kho tăng do đơn bị hủy / từ chối / hết hạn / Admin can thiệp (T3–T8, T12, T13) hoặc do sửa đơn giảm số lượng.
 - Người nhận: khách trong `favorite_products` của sản phẩm đó. Chỉ in-app (D-010). FA-14 / FA-18 trả số người được báo (`restock_notified`).
 
 ---
@@ -2590,6 +2722,7 @@ Content-Type: application/json
 | Farmer | `orders` | `farmer_id = me` | 404 |
 | Farmer | `farmer_markets`, `pickup_slots` | `farmer_id = me` / `farmer_market.farmer_id = me` | 404 |
 | Farmer | reviews | `order.farmer_id = me` / `order_item.product.farmer_id = me` | 404 |
+| Farmer | `farmer_closures` | `farmer_id = me` | 404 |
 | Admin | mọi tài nguyên trong `/api/admin/` | không lọc | — |
 | Mọi role | Gọi sai nhánh role (Customer gọi `/api/farmer/…`) | Permission class | **403** + `audit_logs` `ACCESS_DENIED` |
 
@@ -2599,7 +2732,7 @@ Content-Type: application/json
 | Chợ | `is_active = true` |
 | Nông dân | `status = APPROVED` và `user.is_active = true` |
 | Sản phẩm | `is_archived = false`, `is_hidden_by_admin = false`, Farmer thỏa điều kiện trên (hết hàng / tạm ngừng vẫn hiện nếu `in_stock=false` hoặc qua `ids`) |
-| Khung giờ | `is_active = true`, chợ `is_active = true` |
+| Khung giờ | `is_active = true`, chợ `is_active = true`; ngày nhận không thuộc `market_closures` / `farmer_closures` (D-023) |
 | Review | `is_hidden_by_admin = false` |
 | Thông cáo | `is_active = true`, `starts_at ≤ now`, (`ends_at` null hoặc `> now`), đúng `audience` |
 
@@ -2637,6 +2770,7 @@ Content-Type: application/json
 | Phiên bản | Ngày | Thay đổi | Người duyệt |
 | :---: | :--- | :--- | :--- |
 | v1.0 | — | Bản đóng băng đầu tiên | Lead Architect |
+| v1.1 | — | D-022 → D-026: AD-16 tự tắt slot + `MARKET_SCHEDULE_CHANGED`; AD-17 chặn khi còn đơn mở; `market_closures` (AD-31 → AD-33), `farmer_closures` (FA-31 → FA-33), `Closure` schema, PU-08 loại ngày nghỉ; `deactivation_reason` + `ACCOUNT_LOCKED` kèm lý do; RESTOCK chỉ từ FA-14 / FA-18; `order_cutoff_hours` 1–72; `stall_label` bắt buộc ≤ 100 | Lead Architect |
 
 ---
 
