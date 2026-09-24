@@ -122,6 +122,16 @@ class TestEnvelope:
         assert response.data["code"] == "INSUFFICIENT_STOCK"
         assert response.data["errors"] == {"items.0.quantity": ["only 3"]}
 
+    def test_domain_error_can_carry_data(self):
+        class OutOfStock(DomainError):
+            status_code = 400
+            code = "INSUFFICIENT_STOCK"
+
+        response = _call_view(OutOfStock(errors={"items.0.quantity": ["Out of stock"]}, data={"available": {"7": 0}}))
+
+        assert response.data["data"] == {"available": {"7": 0}}
+        assert response.data["errors"] == {"items.0.quantity": ["Out of stock"]}
+
     def test_unexpected_error_returns_500_envelope(self):
         response = _call_view(RuntimeError("boom"))
 

@@ -15,12 +15,12 @@ def api_response(data=None, message: str | None = None, status: int = 200, heade
     return Response(body, status=status, headers=headers)
 
 
-def error_body(code: str, message: str, errors: dict | None = None) -> dict:
+def error_body(code: str, message: str, errors: dict | None = None, data: dict | None = None) -> dict:
     return {
         "success": False,
         "message": message,
         "code": code,
         "request_id": get_request_id(),
-        "data": {},
+        "data": data or {},
         "errors": errors or {},
     }

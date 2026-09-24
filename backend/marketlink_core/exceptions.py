@@ -27,10 +27,23 @@ class DomainError(exceptions.APIException):
     code = "FAILED_PRECONDITION"
     message = default_message("FAILED_PRECONDITION")
 
-    def __init__(self, message: str | None = None, errors: dict | None = None):
+    def __init__(self, message: str | None = None, errors: dict | None = None, data: dict | None = None):
         self.message = message or type(self).message
         self.errors = errors or {}
+        self.data = data or {}
         super().__init__(detail=self.message, code=self.code)
+
+
+class ConflictRetryError(DomainError):
+    status_code = 409
+    code = "CONFLICT_RETRY"
+    message = "The system is busy, please try again"
+
+
+class PreconditionRequiredError(DomainError):
+    status_code = 428
+    code = "PRECONDITION_REQUIRED"
+    message = "A required request header is missing"
 
 
 def _flatten_errors(detail, prefix: str = "") -> dict:
@@ -52,7 +65,7 @@ def _flatten_errors(detail, prefix: str = "") -> dict:
 def envelope_exception_handler(exc, context):
     if isinstance(exc, DomainError):
         set_rollback()
-        return Response(error_body(exc.code, exc.message, exc.errors), status=exc.status_code)
+        return Response(error_body(exc.code, exc.message, exc.errors, exc.data), status=exc.status_code)
 
     response = drf_exception_handler(exc, context)
     if response is None:
