@@ -7,4 +7,5 @@ from django.urls import include, path
 
 urlpatterns = [
     path('', include('manager.categories.urls_admin')),
+    path('', include('manager.markets.urls_admin')),
 ]
