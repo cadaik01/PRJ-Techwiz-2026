@@ -18,7 +18,7 @@ class CategoryReadSerializer(serializers.ModelSerializer):
 class ProductCardSerializer(serializers.ModelSerializer):
     """ProductCard (Pass 4B §3.3). Needs catalog.public.products.public_products()."""
 
-    price = serializers.IntegerField()
+    price = serializers.DecimalField(max_digits=10, decimal_places=2)
     availability = serializers.SerializerMethodField()
     category = serializers.SerializerMethodField()
     farmer = serializers.SerializerMethodField()

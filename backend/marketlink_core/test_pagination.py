@@ -1,14 +1,14 @@
-"""ContractPagination follows the frozen shape of Pass 4B §2.2."""
+"""StandardPagination follows the frozen shape of Pass 4B §2.2."""
 
 from django.test import RequestFactory
 from rest_framework.request import Request
 
-from marketlink_core.pagination import ContractPagination
+from marketlink_core.pagination import StandardPagination
 
 
 def paginate(page):
     request = Request(RequestFactory().get('/api/admin/x/', {'page': page}))
-    paginator = ContractPagination()
+    paginator = StandardPagination()
     rows = paginator.paginate_queryset(list(range(45)), request)
     return paginator.get_paginated_response(rows).data['data']
 

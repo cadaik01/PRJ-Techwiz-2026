@@ -1,6 +1,7 @@
 """Public products (FR-14, FR-15, FR-27, PU-10 -> PU-12, Pass 4B §6.2)."""
 
 from datetime import time
+from decimal import Decimal
 
 import pytest
 from django.urls import reverse
@@ -25,7 +26,7 @@ def slot(farmer, market, day):
 
 
 def product(farmer, name, **fields):
-    created = make_product(farmer, name=name, stock=fields.pop('stock', 5), price=fields.pop('price', 20000))
+    created = make_product(farmer, name=name, stock=fields.pop('stock', 5), price=fields.pop('price', Decimal('20.00')))
     Product.objects.filter(pk=created.pk).update(**fields)
     created.refresh_from_db()
     return created
@@ -45,13 +46,13 @@ def catalog(db):
     slot(xoai, tan_dinh, 7)
     fruit = Category.objects.create(name='Trái cây')
     items = {
-        'cai': product(rau, 'Cải ngọt', price=15000),
-        'ca_chua': product(rau, 'Cà chua', price=30000),
+        'cai': product(rau, 'Cải ngọt', price=Decimal('15.00')),
+        'ca_chua': product(rau, 'Cà chua', price=Decimal('30.00')),
         'het': product(rau, 'Sold out', stock=0),
         'tam_ngung': product(rau, 'Paused', is_available=False),
         'luu_tru': product(rau, 'Archived', is_archived=True),
         'bi_go': product(rau, 'Removed', is_hidden_by_admin=True),
-        'xoai': product(xoai, 'Xoài cát', price=60000, category=fruit),
+        'xoai': product(xoai, 'Xoài cát', price=Decimal('60.00'), category=fruit),
         'cho_duyet': product(pending, 'From a pending farmer'),
     }
     return {'ben_thanh': ben_thanh, 'rau': rau, 'xoai': xoai, 'fruit': fruit, **items}
@@ -84,7 +85,7 @@ def test_filters(api_client, catalog):
     assert names(api_client, q='ca chua') == ['Cà chua']
     assert names(api_client, category=catalog['fruit'].pk) == ['Xoài cát']
     assert set(names(api_client, farmer_id=catalog['rau'].pk)) == {'Cải ngọt', 'Cà chua'}
-    assert set(names(api_client, price_min=20000, price_max=60000)) == {'Cà chua', 'Xoài cát'}
+    assert set(names(api_client, price_min=20, price_max=60)) == {'Cà chua', 'Xoài cát'}
     assert set(names(api_client, market_id=catalog['ben_thanh'].pk)) == {'Cải ngọt', 'Cà chua'}
     assert names(api_client, day=7) == ['Xoài cát']
     assert names(api_client, market_id=catalog['ben_thanh'].pk, day=7) == []
@@ -113,7 +114,7 @@ def test_card_schema_and_favorites(catalog, user):
 
     assert set(rows[0]) == {'id', 'name', 'image', 'price', 'unit', 'stock_quantity', 'is_available',
                             'availability', 'category', 'farmer', 'rating_avg', 'rating_count', 'is_favorite'}
-    assert (rows[0]['price'], rows[0]['is_favorite'], rows[1]['is_favorite']) == (15000, True, False)
+    assert (rows[0]['price'], rows[0]['is_favorite'], rows[1]['is_favorite']) == ('15.00', True, False)
     assert rows[0]['farmer'] == {'id': catalog['rau'].pk, 'stall_name': 'Rau Sạch'}
 
 

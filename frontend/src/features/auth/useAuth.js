@@ -7,6 +7,9 @@ import { QUERY_KEYS } from '../../config/constants';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { authApi } from './authApi';
 
+// Landing page per role after sign-in (Pass 3 §2.2).
+const HOME_BY_ROLE = Object.freeze({ ADMIN: '/admin', FARMER: '/farmer', CUSTOMER: '/customer' });
+
 export function useAuth() {
   const { accessToken, setTokens, clearTokens } = useAuthStore();
   const queryClient = useQueryClient();
@@ -31,7 +34,9 @@ export function useAuth() {
     const onLost = () => {
       clearTokens();
       queryClient.clear();
-      navigate('/login', { replace: true });
+      navigate(window.location.pathname.startsWith('/admin') ? '/admin/login' : '/login', {
+        replace: true,
+      });
     };
     window.addEventListener('auth:session-lost', onLost);
     return () => window.removeEventListener('auth:session-lost', onLost);
@@ -43,7 +48,7 @@ export function useAuth() {
       setTokens({ access: data.access, refresh: data.refresh });
       // Seed the cache so no extra /me/ round-trip happens right after login.
       queryClient.setQueryData(QUERY_KEYS.ME, data.user);
-      navigate(data.user?.must_change_password ? '/change-password' : '/', { replace: true });
+      navigate(HOME_BY_ROLE[data.user?.role] ?? '/', { replace: true });
     },
     onError: (error) => toast.error(error.apiMessage || 'Invalid email or password.'),
   });
@@ -52,9 +57,11 @@ export function useAuth() {
     mutationFn: authApi.logout,
     // Clear locally even when the call fails; the token is useless to us either way.
     onSettled: () => {
+      const role = queryClient.getQueryData(QUERY_KEYS.ME)?.role;
       clearTokens();
       queryClient.clear();
-      navigate('/login', { replace: true });
+      // Admins sign in at /admin/login; customers and farmers go back to the home page (D-027).
+      navigate(role === 'ADMIN' ? '/admin/login' : '/', { replace: true });
     },
   });
 

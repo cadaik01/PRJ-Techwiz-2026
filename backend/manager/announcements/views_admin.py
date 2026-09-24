@@ -12,9 +12,9 @@ from manager.announcements.serializers_admin import (
     AnnouncementAdminReadSerializer,
     AnnouncementAdminWriteSerializer,
 )
-from marketlink_core.pagination import ContractPagination
+from marketlink_core.pagination import StandardPagination
 from marketlink_core.permissions import IsAdmin
-from marketlink_core.utils import api_response
+from marketlink_core.responses import api_response
 from notifications.models import Announcement
 
 
@@ -28,7 +28,7 @@ class AnnouncementAdminListView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        paginator = ContractPagination()
+        paginator = StandardPagination()
         page = paginator.paginate_queryset(_announcements(), request, view=self)
         return paginator.get_paginated_response(AnnouncementAdminReadSerializer(page, many=True).data)
 

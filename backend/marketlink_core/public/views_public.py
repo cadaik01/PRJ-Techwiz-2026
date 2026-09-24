@@ -7,7 +7,7 @@ from django.conf import settings
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
-from marketlink_core.utils import api_response
+from marketlink_core.responses import api_response
 
 # Defaults frozen by the contract (U-01, D-005, Pass 3 §1.5); settings may override them.
 DEFAULTS = {

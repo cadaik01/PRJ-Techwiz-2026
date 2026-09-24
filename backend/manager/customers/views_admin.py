@@ -16,9 +16,9 @@ from manager.customers.services import (
     deactivate_customer,
     deactivation_impact,
 )
-from marketlink_core.pagination import ContractPagination
+from marketlink_core.pagination import StandardPagination
 from marketlink_core.permissions import IsAdmin
-from marketlink_core.utils import api_response
+from marketlink_core.responses import api_response
 from orders.models import Order
 from system.models import AuditAction
 
@@ -44,7 +44,7 @@ class CustomerAdminListView(APIView):
             )
         if (is_active := BOOLEAN_PARAMS.get(request.query_params.get('is_active', ''))) is not None:
             queryset = queryset.filter(is_active=is_active)
-        paginator = ContractPagination()
+        paginator = StandardPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         return paginator.get_paginated_response(CustomerAdminRowSerializer(page, many=True).data)
 

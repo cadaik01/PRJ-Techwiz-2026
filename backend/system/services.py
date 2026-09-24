@@ -1,49 +1,43 @@
-"""
-Module: system.services
-Description: Writes security events to audit_logs.
-
-Call these outside the business transaction (ATOMIC_REQUESTS is False), so a rolled
-back business operation does not also erase the trace of who attempted it.
-"""
-
 import ipaddress
 from typing import Any
 
 from marketlink_core.context import get_request_id
+from marketlink_core.http import client_ip, normalize_request_id
 from system.models import AuditLog
 
-SENSITIVE_KEY_PARTS = ('password', 'token', 'secret', 'credential', 'authorization')
-ENDPOINT_MAX_LENGTH = 255
-USER_AGENT_MAX_LENGTH = 255
+SENSITIVE_KEY_PARTS = ("password", "token", "secret", "credential", "authorization", "api_key")
+REDACTED = "[REDACTED]"
 
 
-def _sanitize(value: Any) -> Any:
-    """Drop any key that looks like a password, token or credential, at any depth."""
+def _scrub(value: Any) -> Any:
     if isinstance(value, dict):
         return {
-            key: _sanitize(item)
+            key: REDACTED
+            if any(part in str(key).lower() for part in SENSITIVE_KEY_PARTS)
+            else _scrub(item)
             for key, item in value.items()
-            if not any(part in str(key).lower() for part in SENSITIVE_KEY_PARTS)
         }
-    if isinstance(value, list):
-        return [_sanitize(item) for item in value]
+    if isinstance(value, (list, tuple)):
+        return [_scrub(item) for item in value]
     return value
 
 
-def valid_ip(raw: str | None) -> str | None:
-    """The address in canonical form, or None if it is not an IP address."""
-    if not raw:
-        return None
+def _truncate(value: str | None, limit: int) -> str | None:
+    return value[:limit] if value else None
+
+
+def _valid_ip(value: str | None) -> str | None:
+    """The address in canonical form, or None: the column only fits an IP."""
     try:
-        return str(ipaddress.ip_address(raw.strip()))
+        return str(ipaddress.ip_address(value))
     except ValueError:
         return None
 
 
 def log_security_event(
     *,
-    user: Any | None,
     action: str,
+    user: Any | None,
     endpoint: str | None,
     method: str | None,
     ip_address: str | None,
@@ -52,14 +46,41 @@ def log_security_event(
     request_id: str | None,
     details: dict | None = None,
 ) -> AuditLog:
+    """Append one row to audit_logs; strips password, token and credential keys from details.
+
+    Call it outside the business transaction (after the atomic block ends, or via
+    transaction.on_commit) so a rollback never erases the security trail.
+    """
     return AuditLog.objects.create(
-        user=user,
+        user=user if user is not None and getattr(user, "is_authenticated", False) else None,
         action=action,
-        endpoint=endpoint[:ENDPOINT_MAX_LENGTH] if endpoint else None,
-        method=method,
-        ip_address=valid_ip(ip_address),
-        user_agent=user_agent[:USER_AGENT_MAX_LENGTH] if user_agent else None,
+        endpoint=_truncate(endpoint, 255),
+        method=_truncate(method, 10),
+        ip_address=_valid_ip(ip_address),
+        user_agent=_truncate(user_agent, 255),
         status_code=status_code,
-        request_id=request_id or get_request_id(),
-        details=_sanitize(details or {}),
+        request_id=normalize_request_id(request_id),
+        details=_scrub(details or {}),
+    )
+
+
+def log_request_event(
+    request: Any,
+    *,
+    action: str,
+    status_code: int | None,
+    user: Any | None = None,
+    details: dict | None = None,
+) -> AuditLog:
+    """Convenience wrapper that pulls endpoint, method, IP, user agent and request_id from a request."""
+    return log_security_event(
+        action=action,
+        user=user if user is not None else getattr(request, "user", None),
+        endpoint=request.get_full_path(),
+        method=request.method,
+        ip_address=client_ip(request),
+        user_agent=request.META.get("HTTP_USER_AGENT"),
+        status_code=status_code,
+        request_id=getattr(request, "id", None) or get_request_id(),
+        details=details,
     )

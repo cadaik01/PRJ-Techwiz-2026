@@ -4,12 +4,10 @@ Description: Public review lists: 10 per page (Pass 4B §2.2) with the RatingSum
              to the page (PU-09, PU-12: `{ summary, results … }`).
 """
 
-from marketlink_core.pagination import ContractPagination
+from marketlink_core.pagination import PublicReviewPagination
 
 
-class ReviewPagination(ContractPagination):
-    page_size = 10
-
+class ReviewPagination(PublicReviewPagination):
     def __init__(self, summary: dict):
         super().__init__()
         self.summary = summary

@@ -48,7 +48,8 @@ def market(db):
 @pytest.fixture
 def product(farmer):
     category = Category.objects.create(name='Rau lá')
-    return Product.objects.create(farmer=farmer, category=category, name='Cải ngọt', price=15000, unit=Unit.BUNCH)
+    return Product.objects.create(farmer=farmer, category=category, name='Cải ngọt',
+                                  price=Decimal('15.00'), unit=Unit.BUNCH)
 
 
 @pytest.fixture
@@ -57,12 +58,14 @@ def order(user, farmer, market):
     return Order.objects.create(
         customer=user, farmer=farmer, market=market, pickup_date=start.date(),
         pickup_start_at=start, pickup_end_at=start + timedelta(hours=1),
-        cutoff_at=start - timedelta(hours=12), total_amount=30000,
+        cutoff_at=start - timedelta(hours=12), total_amount=Decimal('30.00'),
     )
 
 
-def test_product_price_below_1000_is_rejected(product):
-    _rejects(lambda: Product.objects.filter(pk=product.pk).update(price=999))
+def test_product_price_outside_the_usd_range_is_rejected(product):
+    # D-020: $0.01 - $10,000.00.
+    _rejects(lambda: Product.objects.filter(pk=product.pk).update(price=Decimal('0.00')))
+    _rejects(lambda: Product.objects.filter(pk=product.pk).update(price=Decimal('10000.01')))
 
 
 def test_farmer_coordinates_must_be_set_together(farmer):
@@ -91,10 +94,10 @@ def test_order_cutoff_cannot_be_after_pickup_start(order):
 
 
 def test_order_item_is_unique_per_product_and_quantity_at_least_one(order, product):
-    item = dict(order=order, product=product, product_name=product.name, unit=product.unit, unit_price=15000)
-    OrderItem.objects.create(**item, quantity=2, line_total=30000)
+    item = dict(order=order, product=product, product_name=product.name, unit=product.unit, unit_price=Decimal('15.00'))
+    OrderItem.objects.create(**item, quantity=2, line_total=Decimal('30.00'))
 
-    _rejects(lambda: OrderItem.objects.create(**item, quantity=1, line_total=15000))
+    _rejects(lambda: OrderItem.objects.create(**item, quantity=1, line_total=Decimal('15.00')))
     _rejects(lambda: OrderItem.objects.filter(order=order).update(quantity=0))
 
 

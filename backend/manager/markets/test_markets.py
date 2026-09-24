@@ -205,7 +205,8 @@ def test_operating_day_out_of_range_is_rejected(admin_client):
     response = admin_client.post(LIST_URL, {**VALID, 'operating_days': [0, 8]}, format='json')
 
     assert response.status_code == 400
-    assert 'operating_days' in response.data['errors']
+    # Errors on list items keep their index (Pass 4B §2.1), e.g. `operating_days.0`.
+    assert set(response.data['errors']) == {'operating_days.0', 'operating_days.1'}
 
 
 @pytest.mark.django_db
@@ -321,8 +322,8 @@ def test_deactivate_is_refused_while_orders_are_open(admin_client, user):
 
     refused = admin_client.post(detail_url(market, 'deactivate'))
 
-    assert (refused.status_code, refused.data['code'], refused.data['data']) == (
-        422, 'RESOURCE_IN_USE', {'open_orders': 1})
+    assert (refused.status_code, refused.data['code'], refused.data['errors']) == (
+        422, 'RESOURCE_IN_USE', {'open_orders': ['1']})
     market.refresh_from_db()
     assert market.is_active is True
 
@@ -390,5 +391,5 @@ def test_closure_over_open_orders_is_refused_with_their_ids(admin_client, user):
     }, format='json')
 
     assert (response.status_code, response.data['code']) == (422, 'RESOURCE_IN_USE')
-    assert response.data['data'] == {'open_order_ids': [order.pk]}
+    assert response.data['errors'] == {'order_ids': [str(order.pk)]}
     assert not MarketClosure.objects.exists()

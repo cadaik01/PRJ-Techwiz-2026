@@ -15,9 +15,9 @@ from manager.common import notify as notify_module
 from manager.common.dates import day_range
 from manager.common.images import IMAGE_RULE_MESSAGE, MAX_IMAGE_BYTES, validate_image_upload
 from manager.common.notify import notify_user
-from manager.common.retry import run_with_deadlock_retry
 from manager.conftest import make_customer
 from marketlink_core.exceptions import BusinessValidationError, ConflictError
+from marketlink_core.services.db_retry import run_with_deadlock_retry
 from notifications.models import Notification, NotificationType
 
 # --- retry (MySQL deadlock 1213) ------------------------------------------------

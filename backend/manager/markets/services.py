@@ -128,7 +128,7 @@ def set_market_active(*, market_id: int, is_active: bool) -> None:
         if not is_active and (open_count := _open_orders(market_id).count()):
             raise UnprocessableEntityError(
                 f'{open_count} open orders are still at this market. Close them before deactivating it.',
-                code='RESOURCE_IN_USE', data={'open_orders': open_count},
+                code='RESOURCE_IN_USE', errors={'open_orders': [str(open_count)]},
             )
         market.is_active = is_active
         market.save(update_fields=['is_active', 'updated_at'])
@@ -164,7 +164,7 @@ def create_market_closure(
             raise UnprocessableEntityError(
                 f'{len(open_ids)} open orders are picked up in this period. '
                 'The farmers must decline them before the market can close.',
-                code='RESOURCE_IN_USE', data={'open_order_ids': open_ids},
+                code='RESOURCE_IN_USE', errors={'order_ids': [str(order_id) for order_id in open_ids]},
             )
         return MarketClosure.objects.create(
             market_id=market_id, start_date=start_date, end_date=end_date, reason=reason,

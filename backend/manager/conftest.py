@@ -1,6 +1,7 @@
 """Factories shared by the manager tests: accounts, a market, products and orders."""
 
 from datetime import datetime, time, timedelta
+from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -44,7 +45,7 @@ def make_market(name='Chợ Bến Thành'):
     )
 
 
-def make_product(farmer, name='Cải ngọt', stock=10, price=15000):
+def make_product(farmer, name='Cải ngọt', stock=10, price=Decimal('15.00')):
     category = Category.objects.get_or_create(name='Rau lá')[0]
     return Product.objects.create(
         farmer=farmer, category=category, name=name, price=price, unit=Unit.BUNCH, stock_quantity=stock,

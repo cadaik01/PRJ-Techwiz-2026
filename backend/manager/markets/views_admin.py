@@ -24,9 +24,9 @@ from manager.markets.services import (
     set_market_active,
     update_market,
 )
-from marketlink_core.pagination import ContractPagination
+from marketlink_core.pagination import StandardPagination
 from marketlink_core.permissions import IsAdmin
-from marketlink_core.utils import api_response
+from marketlink_core.responses import api_response
 from markets.models import Market, MarketClosure
 from markets.public.closures import ClosureSerializer
 
@@ -53,7 +53,7 @@ class MarketAdminListView(APIView):
             )
         if (is_active := BOOLEAN_PARAMS.get(request.query_params.get('is_active', ''))) is not None:
             queryset = queryset.filter(is_active=is_active)
-        paginator = ContractPagination()
+        paginator = StandardPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         data = MarketAdminReadSerializer(page, many=True, context={'request': request}).data
         return paginator.get_paginated_response(data)

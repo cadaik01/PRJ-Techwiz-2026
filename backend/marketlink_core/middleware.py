@@ -1,41 +1,29 @@
-"""
-Module: marketlink_core.middleware
-Description: RequestIDMiddleware - reads or generates X-Request-ID and binds it to
-             request.id, the response header and marketlink_core.context for the whole request.
-"""
-
 import uuid
+from typing import Callable
 
-from marketlink_core.context import reset_request_id, set_request_id
+from django.http import HttpRequest, HttpResponse
 
-HEADER = 'X-Request-ID'
-
-
-def _clean(raw: str | None) -> str | None:
-    """Accept a client-supplied id only if it is a UUID.
-
-    The value is echoed into logs and the audit table, so arbitrary text from the
-    client would allow log injection.
-    """
-    if not raw:
-        return None
-    try:
-        return str(uuid.UUID(raw.strip()))
-    except ValueError:
-        return None
+from marketlink_core.context import set_request_id
+from marketlink_core.http import normalize_request_id
 
 
 class RequestIDMiddleware:
-    def __init__(self, get_response):
+    """Attach a UUID request_id to request.id, the context var and the X-Request-ID header.
+
+    A client-supplied X-Request-ID is reused only when it is a valid UUID; anything else
+    would overflow the CHAR(36) request_id columns and turn a log write into a 500.
+    """
+
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
 
-    def __call__(self, request):
-        request_id = _clean(request.headers.get(HEADER)) or str(uuid.uuid4())
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        request_id = normalize_request_id(request.headers.get("X-Request-ID")) or str(uuid.uuid4())
         request.id = request_id
-        token = set_request_id(request_id)
+        set_request_id(request_id)
         try:
             response = self.get_response(request)
         finally:
-            reset_request_id(token)
-        response[HEADER] = request_id
+            set_request_id(None)
+        response["X-Request-ID"] = request_id
         return response

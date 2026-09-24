@@ -10,9 +10,9 @@ from rest_framework.views import APIView
 from manager.audit_logs.serializers_admin import AuditLogReadSerializer
 from manager.common.dates import day_range
 from marketlink_core.exceptions import BusinessValidationError
-from marketlink_core.pagination import ContractPagination
+from marketlink_core.pagination import StandardPagination
 from marketlink_core.permissions import IsAdmin
-from marketlink_core.utils import api_response
+from marketlink_core.responses import api_response
 from system.models import AuditLog
 
 
@@ -38,7 +38,7 @@ class AuditLogAdminListView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        paginator = ContractPagination()
+        paginator = StandardPagination()
         page = paginator.paginate_queryset(_filtered_logs(request.query_params), request, view=self)
         return paginator.get_paginated_response(AuditLogReadSerializer(page, many=True).data)
 

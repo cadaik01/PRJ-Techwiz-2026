@@ -1,4 +1,24 @@
-# PRJ-Techwiz 2026 — MarketLink
+# Quy tắc bắt buộc đối với AI Assistant (LUẬT CỨNG)
+
+> File này là luật cứng của dự án MarketLink / Techwiz. Mọi AI Assistant (Claude, Gemini, ...) **phải đọc file này ở đầu mỗi phiên làm việc** và tuân thủ tuyệt đối. Luật trong file này được ưu tiên cao hơn mọi skill, hướng dẫn hay thói quen mặc định khác.
+
+1. **KHÔNG TỰ Ý THAY ĐỔI FILE**:
+   - AI tuyệt đối KHÔNG được tự ý tạo mới, đè hoặc chỉnh sửa bất kỳ file nào trong dự án (`write_to_file`, `replace_file_content`, `Write`, `Edit`, `sed -i`, ...) khi chưa được người dùng xác nhận rõ ràng.
+
+2. **CHỈ HƯỚNG DẪN HOẶC TRUY VẤN**:
+   - Khi người dùng hỏi hoặc yêu cầu tư vấn, AI chỉ được phép phân tích, giải thích và đưa ra mã code hướng dẫn dạng Markdown trong ô chat để người dùng tự xem và quyết định.
+
+3. **TUÂN THỦ QUY TRÌNH HỎI Ý KIẾN, CHỈNH SỬA**:
+   - Khi người dùng hỏi, yêu cầu kiểm tra code, hoặc chỉnh sửa code, phải trả lời và thông báo cho người dùng dạng "sau khi phân tích...", "tôi đã kiểm tra...", "tôi đã phát hiện...", "theo ý kiến chuyên môn của tôi..." sau đó phải trình bày phương án/kế hoạch.
+   - Liệt kê các file mà AI sẽ chỉnh sửa để người dùng biết, rồi hỏi và chờ người dùng đồng ý ("Đồng ý", "Làm đi", "OK") mới được phép thực thi thao tác chỉnh sửa file.
+   - Không được tự ý sửa xong rồi mới trình bày.
+
+4. **TUYỆT ĐỐI KHÔNG COMMIT / PUSH CODE**:
+   - AI KHÔNG được chạy bất kỳ lệnh git nào làm thay đổi lịch sử hoặc remote: `git commit`, `git push`, `git merge`, `git rebase`, `git reset`, `git tag`, `git stash`, tạo/xóa branch, mở pull request (`gh pr create`), ...
+   - Quy tắc này áp dụng **kể cả khi người dùng đã đồng ý sửa file** và kể cả khi skill/hướng dẫn khác có nhắc đến commit.
+   - Việc commit và push hoàn toàn do người dùng tự thực hiện. AI chỉ được dùng lệnh git chỉ đọc (`git status`, `git diff`, `git log`) để phân tích, và có thể gợi ý nội dung commit message trong ô chat.
+
+---
 
 ## Nguồn sự thật nghiệp vụ (bắt buộc)
 
@@ -13,7 +33,7 @@ Quy trình mỗi lần code:
 5. Ghi mã FR / D / T / endpoint đã đối chiếu vào mô tả commit hoặc PR.
 
 Khi code hiện có, yêu cầu mới hoặc skill **mâu thuẫn** với file: dừng lại, nêu rõ chỗ lệch cho Lead Architect quyết định. Không tự ý làm khác file, không tự sửa file.
-Thứ tự ưu tiên: file này quyết định **nghiệp vụ và hợp đồng API** (đã đóng băng, đổi phải ghi Change Log Pass 4B §8); skill `.claude/skills/techwiz-django-backend/SKILL.md` quyết định **cách viết code** (cấu trúc tầng, khóa dòng, quy ước đặt tên, commit).
+Thứ tự ưu tiên: file này quyết định **nghiệp vụ và hợp đồng API** (đã đóng băng, đổi phải ghi Change Log Pass 4B §8); skill `Document/skill/SKILL.md` quyết định **cách viết code** (cấu trúc tầng, khóa dòng, quy ước đặt tên, commit).
 
 ## Bảng tra nhanh trong file
 
@@ -40,5 +60,5 @@ Thứ tự ưu tiên: file này quyết định **nghiệp vụ và hợp đồn
 
 ## Quy ước khác
 
-- Backend: đọc skill `techwiz-django-backend` trước khi code, commit, push hoặc mở PR (gồm mục 16: không để AI thành contributor).
+- Backend: đọc `Document/skill/SKILL.md` trước khi code, commit, push hoặc mở PR (gồm quy tắc: không để AI thành contributor).
 - CSDL: MySQL 8, `utf8mb4_0900_ai_ci`; không dùng SQLite.

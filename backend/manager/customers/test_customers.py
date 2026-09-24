@@ -75,7 +75,7 @@ def test_detail_has_address_and_recent_order_summaries(admin_client, customer, s
         'id', 'status', 'is_overdue', 'version', 'customer', 'farmer', 'market', 'stall_label',
         'pickup_date', 'pickup_start_at', 'pickup_end_at', 'cutoff_at', 'item_count', 'total_amount', 'created_at',
     }
-    assert (summary['item_count'], summary['total_amount'], summary['is_overdue']) == (1, 30000, False)
+    assert (summary['item_count'], summary['total_amount'], summary['is_overdue']) == (1, '30.00', False)
     assert summary['farmer'] == {'id': shop['farmer'].pk, 'stall_name': 'Rau Sạch Đà Lạt', 'phone': '0907654321'}
     assert summary['market']['latitude'] == 10.77245
 

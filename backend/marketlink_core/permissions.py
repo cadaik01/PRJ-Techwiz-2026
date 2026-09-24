@@ -1,28 +1,29 @@
-"""
-Module: marketlink_core.permissions
-Description: View-level permission checks by role only.
-
-Object-level access (ownership, assignment, FSM state) belongs to [app]/policies.py
-together with the queryset scoping in get_queryset(); a role check alone leaves the
-API open to BOLA/IDOR.
-"""
-
 from rest_framework.permissions import BasePermission
 
 from marketlink_core.policies.roles import RoleCode
 
 
-class HasRole(BasePermission):
-    """Allow users whose role code is in `role_codes`. Subclass once per actor."""
+class _RolePermission(BasePermission):
+    """Gate a whole /api/<role>/ branch to one role; a wrong role gets 403 PERMISSION_DENIED."""
 
-    role_codes: tuple[str, ...] = ()
+    role: str = ""
+    message = "You do not have permission to access this resource."
 
-    def has_permission(self, request, view):
+    def has_permission(self, request, view) -> bool:
         user = request.user
-        if not (user and user.is_authenticated):
+        if not user or not user.is_authenticated or not user.is_active:
             return False
-        return user.role.code in self.role_codes
+        role = getattr(user, "role", None)
+        return role is not None and role.code == self.role
 
 
-class IsAdmin(HasRole):
-    role_codes = (RoleCode.ADMIN,)
+class IsCustomer(_RolePermission):
+    role = RoleCode.CUSTOMER
+
+
+class IsFarmer(_RolePermission):
+    role = RoleCode.FARMER
+
+
+class IsAdmin(_RolePermission):
+    role = RoleCode.ADMIN

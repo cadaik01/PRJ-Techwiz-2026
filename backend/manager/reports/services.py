@@ -11,6 +11,7 @@ from datetime import date
 
 from django.db.models import Avg, Count, OuterRef, QuerySet, Subquery, Sum
 
+from manager.common.money import money
 from manager.common.products import rounded_rating
 from manager.dashboard.services import orders_by_status
 from marketlink_core.exceptions import BusinessValidationError
@@ -56,7 +57,7 @@ def build_report(*, date_from: date, date_to: date, market_id: int | None = None
 
     revenue_by_market = [
         {'market_id': row['market_id'], 'market_name': row['market__name'],
-         'completed_orders': row['completed_orders'], 'revenue': int(row['revenue'])}
+         'completed_orders': row['completed_orders'], 'revenue': money(row['revenue'])}
         for row in completed.values('market_id', 'market__name')
         .annotate(completed_orders=Count('id'), revenue=Sum('total_amount'))
         .order_by('-revenue', 'market__name')
@@ -67,7 +68,7 @@ def build_report(*, date_from: date, date_to: date, market_id: int | None = None
         .order_by().values('order__farmer_id').annotate(avg=Avg('rating')).values('avg')
     top_farmers = [
         {'farmer_id': row['farmer_id'], 'stall_name': row['farmer__stall_name'],
-         'completed_orders': row['completed_orders'], 'revenue': int(row['revenue']),
+         'completed_orders': row['completed_orders'], 'revenue': money(row['revenue']),
          'rating_avg': rounded_rating(row['rating_avg'])}
         for row in completed.values('farmer_id', 'farmer__stall_name')
         .annotate(completed_orders=Count('id'), revenue=Sum('total_amount'), rating_avg=Subquery(rating))

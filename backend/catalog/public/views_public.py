@@ -13,8 +13,8 @@ from catalog.models import Category
 from catalog.public.products import IN_STOCK, public_products
 from catalog.public.serializers_public import CategoryReadSerializer, ProductCardSerializer, ProductDetailSerializer
 from marketlink_core.exceptions import BusinessValidationError
-from marketlink_core.pagination import ContractPagination
-from marketlink_core.utils import api_response
+from marketlink_core.pagination import StandardPagination
+from marketlink_core.responses import api_response
 from markets.public.views_public import day_param
 from reviews.models import ProductReview
 from reviews.public.pagination import ReviewPagination
@@ -102,7 +102,7 @@ class ProductPublicListView(APIView):
             queryset = queryset.filter(slot)
         queryset = queryset.distinct().order_by(*PRODUCT_ORDERINGS[ordering])
 
-        paginator = ContractPagination()
+        paginator = StandardPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         return paginator.get_paginated_response(
             ProductCardSerializer(page, many=True, context={'request': request}).data,

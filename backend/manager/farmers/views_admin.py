@@ -20,9 +20,9 @@ from manager.farmers.services import (
     suspension_impact,
 )
 from marketlink_core.exceptions import BusinessValidationError
-from marketlink_core.pagination import ContractPagination
+from marketlink_core.pagination import StandardPagination
 from marketlink_core.permissions import IsAdmin
-from marketlink_core.utils import api_response
+from marketlink_core.responses import api_response
 from markets.models import FarmerClosure, FarmerMarket
 from markets.public.closures import upcoming_closures
 from system.models import AuditAction
@@ -53,7 +53,7 @@ class FarmerAdminListView(APIView):
             queryset = queryset.filter(Q(stall_name__icontains=q) | Q(user__email__icontains=q) | Q(phone__icontains=q))
         if (market_id := params.get('market_id', '').strip()).isdigit():
             queryset = queryset.filter(farmer_markets__market_id=int(market_id))
-        paginator = ContractPagination()
+        paginator = StandardPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         return paginator.get_paginated_response(AdminFarmerRowSerializer(page, many=True).data)
 

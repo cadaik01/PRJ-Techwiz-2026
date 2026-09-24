@@ -12,8 +12,8 @@ from rest_framework.views import APIView
 from accounts.public.farmers import public_farmers
 from accounts.public.serializers_public import FarmerPublicSerializer, FarmerSummarySerializer
 from marketlink_core.exceptions import BusinessValidationError
-from marketlink_core.pagination import ContractPagination
-from marketlink_core.utils import api_response
+from marketlink_core.pagination import StandardPagination
+from marketlink_core.responses import api_response
 from markets.public.geo import distance_km, read_point
 from markets.public.views_public import day_param
 from reviews.models import FarmerReview
@@ -73,7 +73,7 @@ class FarmerPublicListView(APIView):
                                        products__is_hidden_by_admin=False)
         queryset = queryset.distinct().order_by(*ORDERINGS[ordering])
 
-        paginator = ContractPagination()
+        paginator = StandardPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         return paginator.get_paginated_response(
             FarmerSummarySerializer(page, many=True, context={'request': request}).data,

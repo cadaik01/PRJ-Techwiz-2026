@@ -49,7 +49,7 @@ def rounded_rating(value) -> float | None:
 class FarmerProductSerializer(serializers.ModelSerializer):
     """ProductCard & ProductDetail & FarmerProduct fields. Needs admin_products()."""
 
-    price = serializers.IntegerField()
+    price = serializers.DecimalField(max_digits=10, decimal_places=2)
     availability = serializers.SerializerMethodField()
     category = serializers.SerializerMethodField()
     farmer = serializers.SerializerMethodField()

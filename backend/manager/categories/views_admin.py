@@ -16,7 +16,7 @@ from manager.categories.serializers_admin import (
 )
 from manager.categories.services import admin_categories, delete_category
 from marketlink_core.permissions import IsAdmin
-from marketlink_core.utils import api_response
+from marketlink_core.responses import api_response
 
 
 def _category_data(category_id: int) -> dict:

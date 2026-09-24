@@ -14,9 +14,9 @@ from manager.common.serializers import ReasonWriteSerializer
 from manager.moderation.serializers_admin import ReviewAdminSerializer, reviews_with_relations
 from manager.moderation.services import REVIEW_MODELS, review_keys, set_hidden
 from marketlink_core.exceptions import BusinessValidationError
-from marketlink_core.pagination import ContractPagination
+from marketlink_core.pagination import StandardPagination
 from marketlink_core.permissions import IsAdmin
-from marketlink_core.utils import api_response
+from marketlink_core.responses import api_response
 from system.models import AuditAction
 
 BOOLEAN_PARAMS = {'true': True, 'false': False}
@@ -44,7 +44,7 @@ class ProductModerationListView(APIView):
             queryset = queryset.filter(farmer_id=int(farmer_id))
         if (is_hidden := _flag(params, 'is_hidden')) is not None:
             queryset = queryset.filter(is_hidden_by_admin=is_hidden)
-        paginator = ContractPagination()
+        paginator = StandardPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         return paginator.get_paginated_response(
             FarmerProductSerializer(page, many=True, context={'request': request}).data,
@@ -96,7 +96,7 @@ class ReviewModerationListView(APIView):
 
         keys = review_keys(review_type=review_type, rating=int(rating) if rating else None,
                            is_hidden=_flag(params, 'is_hidden'))
-        paginator = ContractPagination()
+        paginator = StandardPagination()
         page = paginator.paginate_queryset(keys, request, view=self)
         loaded = {
             (type_code, review.id): review

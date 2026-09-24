@@ -5,14 +5,32 @@ Description: Audit an admin action outside its business transaction (MarketLink
              rollback never erases it.
 """
 
+import logging
 from collections.abc import Callable
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from rest_framework.exceptions import APIException
 
-from marketlink_core.utils import audit_request
+from system.services import log_request_event
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
+
+
+def audit_request(
+    request: Any,
+    *,
+    action: str,
+    status_code: int,
+    user: Any | None = None,
+    details: dict | None = None,
+) -> None:
+    """Write a security event for this HTTP request; a failed write never becomes a 500."""
+    try:
+        log_request_event(request, action=action, status_code=status_code, user=user, details=details)
+    except Exception:
+        logger.exception('Failed to write %s audit log', action)
 
 
 def audited(request, *, action: str, details: dict, operation: Callable[[], T], result_details=None) -> T:

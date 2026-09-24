@@ -14,8 +14,8 @@ from accounts.public.farmers import is_customer, public_farmers
 from accounts.public.serializers_public import FarmerSummarySerializer
 from favorites.models import FavoriteMarket
 from marketlink_core.exceptions import BusinessValidationError
-from marketlink_core.pagination import ContractPagination
-from marketlink_core.utils import api_response
+from marketlink_core.pagination import StandardPagination
+from marketlink_core.responses import api_response
 from markets.models import Market, MarketClosure, MarketOperatingDay
 from markets.public.closures import upcoming_closures
 from markets.public.geo import distance_km, read_point
@@ -76,7 +76,7 @@ class MarketPublicListView(APIView):
         if (day := day_param(params)) is not None:
             queryset = queryset.filter(operating_days__day_of_week=day)
         queryset = queryset.order_by('distance_km', 'name') if ordering == 'distance' else queryset.order_by('name')
-        paginator = ContractPagination()
+        paginator = StandardPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         return paginator.get_paginated_response(
             MarketSummarySerializer(page, many=True, context={'request': request}).data,
@@ -110,7 +110,7 @@ class MarketPublicFarmersView(APIView):
                 farmer_markets__pickup_slots__is_active=True,
             )
         queryset = queryset.distinct().order_by('stall_name')
-        paginator = ContractPagination()
+        paginator = StandardPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         data = FarmerSummarySerializer(page, many=True, context={'request': request, 'market_id': pk}).data
         return paginator.get_paginated_response(data)

@@ -1,8 +1,14 @@
 import { format } from 'date-fns';
 
-export function formatCurrency(amount, currency = 'VND', locale = 'vi-VN') {
+// D-020: USD, always two decimals, comma thousands separator, e.g. $1,245.50.
+export function formatCurrency(amount, currency = 'USD', locale = 'en-US') {
   if (amount == null || Number.isNaN(Number(amount))) return '';
-  return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
 export function formatDate(value, pattern = 'dd/MM/yyyy') {

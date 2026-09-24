@@ -1,6 +1,7 @@
 """Dashboard (AD-01) and reports (AD-25, AD-26, CT-19)."""
 
 from datetime import timedelta
+from decimal import Decimal
 from io import BytesIO
 
 import pytest
@@ -25,7 +26,8 @@ def sales(db):
     ben_thanh, tan_dinh = make_market(), make_market('Chợ Tân Định')
     rau = make_farmer()
     trai_cay = make_farmer('f2@test.com', stall_name='Trái Cây Miền Tây')
-    cabbage, mango = make_product(rau, price=15000), make_product(trai_cay, name='Xoài', price=50000)
+    cabbage = make_product(rau, price=Decimal('15.00'))
+    mango = make_product(trai_cay, name='Xoài', price=Decimal('50.00'))
     orders = [
         make_order(customer, rau, ben_thanh, [(cabbage, 2)], status=OrderStatus.COMPLETED),       # 30 000
         make_order(customer, rau, ben_thanh, [(cabbage, 1)], status=OrderStatus.COMPLETED),       # 15 000
@@ -74,15 +76,15 @@ def test_summary_counts_only_completed_revenue(admin_client, sales):
     assert {row['status']: row['count'] for row in data['orders_by_status']}['COMPLETED'] == 3
     assert data['revenue_by_market'] == [
         {'market_id': sales['tan_dinh'].pk, 'market_name': 'Chợ Tân Định', 'completed_orders': 1,
-         'revenue': 50000},
+         'revenue': '50.00'},
         {'market_id': sales['ben_thanh'].pk, 'market_name': 'Chợ Bến Thành', 'completed_orders': 2,
-         'revenue': 45000},
+         'revenue': '45.00'},
     ]
     assert data['top_farmers'] == [
-        {'farmer_id': sales['rau'].pk, 'stall_name': 'Rau Sạch Đà Lạt', 'completed_orders': 2, 'revenue': 45000,
+        {'farmer_id': sales['rau'].pk, 'stall_name': 'Rau Sạch Đà Lạt', 'completed_orders': 2, 'revenue': '45.00',
          'rating_avg': 4.5},
         {'farmer_id': sales['trai_cay'].pk, 'stall_name': 'Trái Cây Miền Tây', 'completed_orders': 1,
-         'revenue': 50000, 'rating_avg': None},
+         'revenue': '50.00', 'rating_avg': None},
     ]
 
 
@@ -123,8 +125,8 @@ def test_export_is_an_xlsx_with_three_sheets_and_is_audited(admin_client, admin_
     workbook = load_workbook(BytesIO(response.content))
     assert workbook.sheetnames == ['Orders by status', 'Revenue by market', 'Top farmers']
     revenue = workbook['Revenue by market']
-    assert [cell.value for cell in revenue[4]] == ['Market', 'Completed orders', 'Revenue (VND)']
-    assert [cell.value for cell in revenue[5]] == ['Chợ Tân Định', 1, 50000]
+    assert [cell.value for cell in revenue[4]] == ['Market', 'Completed orders', 'Revenue (USD)']
+    assert [cell.value for cell in revenue[5]] == ['Chợ Tân Định', 1, Decimal('50.00')]
     statuses = {row[0].value: row[1].value for row in workbook['Orders by status'].iter_rows(min_row=5)}
     assert statuses['Completed'] == 3
 

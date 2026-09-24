@@ -24,7 +24,7 @@ class OrderSummarySerializer(serializers.ModelSerializer):
     farmer = serializers.SerializerMethodField()
     market = serializers.SerializerMethodField()
     item_count = serializers.IntegerField()
-    total_amount = serializers.IntegerField()
+    total_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
         model = Order

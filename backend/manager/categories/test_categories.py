@@ -1,5 +1,7 @@
 """Admin category management (FR-56, AD-18, AD-19)."""
 
+from decimal import Decimal
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -35,7 +37,8 @@ def add_product(category):
     farmer = FarmerProfile.objects.create(
         user=user, stall_name='Rau Sạch', contact_person='Bà Tư', phone='0907654321', address='Chợ Bến Thành',
     )
-    return Product.objects.create(farmer=farmer, category=category, name='Cải ngọt', price=15000, unit=Unit.BUNCH)
+    return Product.objects.create(farmer=farmer, category=category, name='Cải ngọt',
+                                  price=Decimal('15.00'), unit=Unit.BUNCH)
 
 
 @pytest.mark.django_db

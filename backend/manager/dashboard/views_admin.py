@@ -10,7 +10,7 @@ from manager.dashboard.services import dashboard_totals, orders_by_day, orders_b
 from manager.farmers.serializers_admin import AdminFarmerRowSerializer
 from manager.farmers.services import admin_farmers
 from marketlink_core.permissions import IsAdmin
-from marketlink_core.utils import api_response
+from marketlink_core.responses import api_response
 from orders.models import Order
 
 PENDING_PREVIEW = 5
