@@ -1,0 +1,129 @@
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
+
+from django.utils import timezone
+
+from markets.models import FarmerClosure, MarketClosure, PickupSlot
+from orders.constants import BOOKING_HORIZON_DAYS
+from orders.exceptions import CutoffPassedError, SlotNotAvailableError
+
+# A-019: a pickup date is valid only if the market is open that weekday, neither the market nor the
+# farmer is on a closure, the slot and market are active, it is inside the booking horizon and before cutoff.
+
+
+@dataclass(frozen=True)
+class PickupWindow:
+    slot: PickupSlot
+    pickup_date: date
+    pickup_start_at: datetime
+    pickup_end_at: datetime
+    cutoff_at: datetime
+
+    @property
+    def market(self):
+        return self.slot.farmer_market.market
+
+    @property
+    def stall_label(self) -> str:
+        return self.slot.farmer_market.stall_label
+
+
+def _window(slot: PickupSlot, farmer, pickup_date: date) -> PickupWindow:
+    start = timezone.make_aware(datetime.combine(pickup_date, slot.start_time))
+    return PickupWindow(
+        slot=slot,
+        pickup_date=pickup_date,
+        pickup_start_at=start,
+        pickup_end_at=timezone.make_aware(datetime.combine(pickup_date, slot.end_time)),
+        cutoff_at=start - timedelta(hours=farmer.order_cutoff_hours),
+    )
+
+
+def _active_slots(farmer):
+    return (
+        PickupSlot.objects.select_related("farmer_market__market")
+        .prefetch_related("farmer_market__market__operating_days")
+        .filter(farmer_market__farmer=farmer, is_active=True, farmer_market__market__is_active=True)
+    )
+
+
+def _closures(farmer, market_ids, first: date, last: date):
+    market_ranges: dict[int, list] = {}
+    for closure in MarketClosure.objects.filter(market_id__in=market_ids, start_date__lte=last, end_date__gte=first):
+        market_ranges.setdefault(closure.market_id, []).append((closure.start_date, closure.end_date))
+    farmer_ranges = [
+        (closure.start_date, closure.end_date)
+        for closure in FarmerClosure.objects.filter(farmer=farmer, start_date__lte=last, end_date__gte=first)
+    ]
+    return market_ranges, farmer_ranges
+
+
+def _covered(ranges, day: date) -> bool:
+    return any(start <= day <= end for start, end in ranges)
+
+
+def _is_open_on(slot: PickupSlot, day: date, market_ranges, farmer_ranges) -> bool:
+    market = slot.farmer_market.market
+    operating_days = {operating.day_of_week for operating in market.operating_days.all()}
+    return (
+        day.isoweekday() == slot.day_of_week
+        and slot.day_of_week in operating_days
+        and not _covered(market_ranges.get(market.id, []), day)
+        and not _covered(farmer_ranges, day)
+    )
+
+
+def resolve_pickup(*, farmer, pickup_slot_id: int, pickup_date: date, now=None) -> PickupWindow:
+    now = now or timezone.now()
+    today = timezone.localdate(now)
+    slot = _active_slots(farmer).filter(pk=pickup_slot_id).first()
+    if slot is None or not today <= pickup_date < today + timedelta(days=BOOKING_HORIZON_DAYS):
+        raise SlotNotAvailableError()
+    market_ranges, farmer_ranges = _closures(farmer, [slot.farmer_market.market_id], pickup_date, pickup_date)
+    if not _is_open_on(slot, pickup_date, market_ranges, farmer_ranges):
+        raise SlotNotAvailableError()
+    window = _window(slot, farmer, pickup_date)
+    if now >= window.cutoff_at:
+        raise CutoffPassedError()
+    return window
+
+
+def list_pickup_options(*, farmer, date_from: date | None = None, days: int = BOOKING_HORIZON_DAYS, now=None) -> list[dict]:
+    now = now or timezone.now()
+    today = timezone.localdate(now)
+    first = max(date_from or today, today)
+    last = min(first + timedelta(days=days - 1), today + timedelta(days=BOOKING_HORIZON_DAYS - 1))
+    slots = list(_active_slots(farmer).order_by("farmer_market__market__name", "start_time"))
+    if first > last or not slots:
+        return []
+    market_ranges, farmer_ranges = _closures(farmer, {slot.farmer_market.market_id for slot in slots}, first, last)
+
+    options: dict[int, dict] = {}
+    day = first
+    while day <= last:
+        for slot in slots:
+            if not _is_open_on(slot, day, market_ranges, farmer_ranges):
+                continue
+            window = _window(slot, farmer, day)
+            # PU-08 v1.1 / A-003: slots whose cutoff has passed are not offered at all.
+            if now >= window.cutoff_at:
+                continue
+            market = slot.farmer_market.market
+            option = options.setdefault(market.id, {
+                "market_id": market.id,
+                "market_name": market.name,
+                "stall_label": slot.farmer_market.stall_label,
+                "latitude": float(market.latitude),
+                "longitude": float(market.longitude),
+                "dates": {},
+            })
+            entry = option["dates"].setdefault(day, {"date": day.isoformat(), "day_of_week": day.isoweekday(), "slots": []})
+            entry["slots"].append({
+                "pickup_slot_id": slot.id,
+                "start_time": slot.start_time.strftime("%H:%M"),
+                "end_time": slot.end_time.strftime("%H:%M"),
+                "cutoff_at": timezone.localtime(window.cutoff_at).isoformat(),
+                "is_bookable": True,
+            })
+        day += timedelta(days=1)
+    return [{**option, "dates": list(option["dates"].values())} for option in options.values()]
