@@ -1,10 +1,13 @@
 import itertools
-from datetime import time
+from datetime import time, timedelta
 from decimal import Decimal
+
+from django.utils import timezone
 
 from accounts.models import CustomerProfile, CustomUser, FarmerProfile, FarmerStatus, Role
 from catalog.models import Category, Product, Unit
 from markets.models import FarmerMarket, Market, MarketOperatingDay, PickupSlot
+from orders.models import Order, OrderItem, OrderStatus
 
 PASSWORD = "Mango2026x"
 _sequence = itertools.count(1)
@@ -82,3 +85,29 @@ def make_product(*, farmer, stock: int = 10, price: int = 25000, **overrides) ->
     }
     fields.update(overrides)
     return Product.objects.create(**fields)
+
+
+def make_order(*, customer, product, quantity: int = 2, status: str = OrderStatus.PLACED, pickup_start_at=None, market=None) -> Order:
+    start = pickup_start_at or timezone.now() + timedelta(days=3)
+    order = Order.objects.create(
+        customer=customer,
+        farmer=product.farmer,
+        market=market or make_market(),
+        stall_label="Row B, stall 12",
+        pickup_date=timezone.localdate(start),
+        pickup_start_at=start,
+        pickup_end_at=start + timedelta(hours=2),
+        cutoff_at=start - timedelta(hours=12),
+        status=status,
+        total_amount=product.price * quantity,
+    )
+    OrderItem.objects.create(
+        order=order,
+        product=product,
+        product_name=product.name,
+        unit=product.unit,
+        unit_price=product.price,
+        quantity=quantity,
+        line_total=product.price * quantity,
+    )
+    return order
