@@ -12,4 +12,5 @@ urlpatterns = [
     path('', include('manager.audit_logs.urls_admin')),
     path('', include('manager.customers.urls_admin')),
     path('', include('manager.farmers.urls_admin')),
+    path('', include('manager.moderation.urls_admin')),
 ]

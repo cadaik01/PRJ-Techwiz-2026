@@ -63,3 +63,9 @@ class ReasonWriteSerializer(serializers.Serializer):
         min_length=5, max_length=500,
         error_messages={key: REASON_MESSAGE for key in ('min_length', 'max_length', 'blank', 'required', 'null')},
     )
+
+
+def short_customer_name(full_name: str) -> str:
+    """"Nguyễn Văn A" -> "Nguyễn V. A." (U-05)."""
+    first, *others = (full_name or '').split() or ['Khách']
+    return ' '.join([first, *(f'{part[0]}.' for part in others)])
