@@ -1,8 +1,3 @@
-"""
-Module: system.apps
-Description: AppConfig for the security audit subsystem.
-"""
-
 from django.apps import AppConfig
 
 

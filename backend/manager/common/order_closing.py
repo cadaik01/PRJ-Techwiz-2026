@@ -14,8 +14,8 @@ from django.db.models import Q, QuerySet
 
 from accounts.models import FarmerStatus
 from catalog.models import Product
-from core.context import get_request_id
 from favorites.models import FavoriteProduct
+from marketlink_core.context import get_request_id
 from notifications.models import NotificationType
 from notifications.services import push_notification
 from orders.models import OPEN_STATUSES, ActorRole, Order, OrderItem, OrderStatusHistory

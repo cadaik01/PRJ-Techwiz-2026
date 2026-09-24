@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import Count, QuerySet
 
 from catalog.models import Category
-from core.exceptions import UnprocessableEntityError
+from marketlink_core.exceptions import UnprocessableEntityError
 
 
 def admin_categories() -> QuerySet[Category]:

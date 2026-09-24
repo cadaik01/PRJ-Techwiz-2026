@@ -8,13 +8,13 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAdmin
-from core.utils import api_response
 from manager.announcements.serializers_admin import (
     AnnouncementAdminReadSerializer,
     AnnouncementAdminWriteSerializer,
 )
-from manager.pagination import ContractPagination
+from marketlink_core.pagination import ContractPagination
+from marketlink_core.permissions import IsAdmin
+from marketlink_core.utils import api_response
 from notifications.models import Announcement
 
 

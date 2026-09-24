@@ -4,7 +4,7 @@ Description: Public review lists: 10 per page (Pass 4B §2.2) with the RatingSum
              to the page (PU-09, PU-12: `{ summary, results … }`).
 """
 
-from manager.pagination import ContractPagination
+from marketlink_core.pagination import ContractPagination
 
 
 class ReviewPagination(ContractPagination):

@@ -8,15 +8,15 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAdmin
 from catalog.models import Category
-from core.utils import api_response
 from manager.categories.serializers_admin import (
     CategoryAdminCreateSerializer,
     CategoryAdminReadSerializer,
     CategoryAdminUpdateSerializer,
 )
 from manager.categories.services import admin_categories, delete_category
+from marketlink_core.permissions import IsAdmin
+from marketlink_core.utils import api_response
 
 
 def _category_data(category_id: int) -> dict:

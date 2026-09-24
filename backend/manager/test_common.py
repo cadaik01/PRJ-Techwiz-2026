@@ -3,8 +3,8 @@
 import pytest
 from django.db import OperationalError
 
-from core.exceptions import ConflictError
 from manager.common.retry import run_with_deadlock_retry
+from marketlink_core.exceptions import ConflictError
 
 
 def flaky(failures):

@@ -8,11 +8,11 @@ from django.db import transaction
 from django.db.models import Count, Q, QuerySet
 
 from accounts.models import FarmerProfile, FarmerStatus
-from core.exceptions import BusinessValidationError
 from manager.common.notify import notify_user
 from manager.common.order_closing import close_open_orders
 from manager.common.retry import run_with_deadlock_retry
 from manager.customers.services import open_order_impact
+from marketlink_core.exceptions import BusinessValidationError
 from notifications.models import NotificationType
 from orders.models import OPEN_STATUSES, ChangeReason, Order, OrderStatus, Transition
 

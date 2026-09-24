@@ -11,7 +11,7 @@ from django.db.models import Count, Q, QuerySet
 from django.utils import timezone
 
 from accounts.models import FarmerProfile, FarmerStatus
-from core.policies.roles import RoleCode
+from marketlink_core.policies.roles import RoleCode
 from markets.models import Market
 from orders.models import Order, OrderStatus
 

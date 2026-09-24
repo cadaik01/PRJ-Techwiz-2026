@@ -29,7 +29,7 @@ def market(name, lat, lng, days=(6, 7), **extra):
 
 def sells_at(farmer, where, day=6, stall_label=None, active=True):
     farmer_market = FarmerMarket.objects.get_or_create(farmer=farmer, market=where,
-                                                       defaults={'stall_label': stall_label})[0]
+                                                       defaults={'stall_label': stall_label or 'Sạp A1'})[0]
     PickupSlot.objects.create(farmer_market=farmer_market, day_of_week=day, start_time=time(6), end_time=time(8),
                               is_active=active)
     return farmer_market
@@ -50,7 +50,8 @@ def names(response):
 
 
 @pytest.mark.django_db
-def test_config(api_client):
+def test_config(api_client, settings):
+    settings.AI_CHAT_ENABLED = False
     data = api_client.get(reverse('public-config')).data['data']
 
     assert data == {'ai_chat_enabled': False, 'booking_horizon_days': 7, 'max_open_orders_total': 5,

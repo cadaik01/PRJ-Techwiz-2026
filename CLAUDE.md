@@ -2,7 +2,7 @@
 
 ## Nguồn sự thật nghiệp vụ (bắt buộc)
 
-`docs/MarketLink_requirement_analysis.md` là tài liệu nghiệp vụ và hợp đồng API đã được Lead Architect chốt.
+`Document/doc/MarketLink_requirement_analysis_ok (4).md` là tài liệu nghiệp vụ và hợp đồng API đã được Lead Architect chốt (bản có Decision Log D-001 → D-026).
 **Mọi lần viết, sửa hoặc review code (backend lẫn frontend) phải đối chiếu với file này trước khi viết và trước khi commit.**
 
 Quy trình mỗi lần code:
@@ -19,7 +19,7 @@ Thứ tự ưu tiên: file này quyết định **nghiệp vụ và hợp đồn
 
 | Cần tra | Mục |
 | :--- | :--- |
-| 21 quyết định kiến trúc D-001 → D-021 | Decision Log (đầu file) |
+| 26 quyết định kiến trúc D-001 → D-026 | Decision Log (đầu file) |
 | Actor, phạm vi, Use Case UC-01 → UC-34 | Pass 1 |
 | Checkout N đơn, giữ hàng, chống đơn ảo | Pass 2 §2 A-001, A-001b |
 | FSM đơn hàng 8 trạng thái, 13 cạnh T1–T13 | Pass 2 §2 A-002 (bản chốt duy nhất) |
@@ -28,7 +28,7 @@ Thứ tự ưu tiên: file này quyết định **nghiệp vụ và hợp đồn
 | Thông báo, AI chat, bản đồ | Pass 2 §2 A-006, A-007, A-008 |
 | FR-01 → FR-59, NFR-01 → NFR-12 | Pass 2 §4, §5 |
 | Màn hình, route, validate, nút theo trạng thái | Pass 3 |
-| 22 bảng, cột, index, enum | Pass 4A §3, §4 |
+| 24 bảng (22 + `market_closures`, `farmer_closures`), cột, index, enum | Pass 4A §3, §4 |
 | Thứ tự khóa, transaction, bất biến | Pass 4A §5, §6 |
 | Header, envelope, phân trang, kiểu dữ liệu, mã lỗi | Pass 4B §1, §2 |
 | Lược đồ JSON (Me, OrderDetail, ...) | Pass 4B §3 |
@@ -36,7 +36,7 @@ Thứ tự ưu tiên: file này quyết định **nghiệp vụ và hợp đồn
 | Checkout, sửa đơn, hành động FSM, đình chỉ / khóa | Pass 4B §5 |
 | Phạm vi quyền cấp đối tượng | Pass 4B §6 |
 | Kịch bản test CT-01 → CT-19 | Pass 4B §7 |
-| 4 lưu ý thi công (audit ngoài atomic, GETDEL, khóa, CORS) | Cuối file |
+| 4 lưu ý thi công (audit ngoài atomic, GETDEL, khóa, CORS) | `Document/doc/MarketLink_Implementation_Notes.md` |
 
 ## Quy ước khác
 

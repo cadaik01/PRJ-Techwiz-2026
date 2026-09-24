@@ -1,8 +1,3 @@
-"""
-Module: markets.apps
-Description: AppConfig for markets, farmer stalls and pickup slots.
-"""
-
 from django.apps import AppConfig
 
 

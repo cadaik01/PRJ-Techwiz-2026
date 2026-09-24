@@ -7,7 +7,7 @@ from django.urls import reverse
 from accounts.models import FarmerProfile, Role
 from catalog.models import Category, Product, Unit
 from conftest import PASSWORD
-from core.policies.roles import RoleCode
+from marketlink_core.policies.roles import RoleCode
 from system.models import AuditAction, AuditLog
 
 User = get_user_model()

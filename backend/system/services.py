@@ -9,7 +9,7 @@ back business operation does not also erase the trace of who attempted it.
 import ipaddress
 from typing import Any
 
-from core.context import get_request_id
+from marketlink_core.context import get_request_id
 from system.models import AuditLog
 
 SENSITIVE_KEY_PARTS = ('password', 'token', 'secret', 'credential', 'authorization')

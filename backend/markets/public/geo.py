@@ -7,7 +7,7 @@ Description: "Near me" support (A-008, D-012): read lat/lng from the query and c
 from django.db.models import F, FloatField, Value
 from django.db.models.functions import ASin, Cast, Cos, Power, Radians, Sin, Sqrt
 
-from core.exceptions import BusinessValidationError
+from marketlink_core.exceptions import BusinessValidationError
 
 EARTH_RADIUS_KM = 6371.0
 COORDINATE_MESSAGE = 'Tọa độ không hợp lệ'

@@ -1,41 +1,36 @@
-"""
-Module: system.models
-Description: Append-only security log for the Super Admin (MarketLink Pass 4A §3.8).
-"""
-
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
+from marketlink_core.models import CreatedAtModel
+
 
 class AuditAction(models.TextChoices):
-    LOGIN = 'LOGIN', 'Đăng nhập'
-    LOGIN_FAILED = 'LOGIN_FAILED', 'Đăng nhập thất bại'
-    LOGOUT = 'LOGOUT', 'Đăng xuất'
-    PASSWORD_CHANGED = 'PASSWORD_CHANGED', 'Đổi mật khẩu'
-    ACCESS_DENIED = 'ACCESS_DENIED', 'Truy cập trái quyền'
-    EXPORT_DATA = 'EXPORT_DATA', 'Xuất dữ liệu'
-    FARMER_APPROVED = 'FARMER_APPROVED', 'Duyệt nông dân'
-    FARMER_REJECTED = 'FARMER_REJECTED', 'Từ chối nông dân'
-    FARMER_SUSPENDED = 'FARMER_SUSPENDED', 'Đình chỉ nông dân'
-    FARMER_REINSTATED = 'FARMER_REINSTATED', 'Khôi phục nông dân'
-    CUSTOMER_DEACTIVATED = 'CUSTOMER_DEACTIVATED', 'Khóa khách hàng'
-    CUSTOMER_ACTIVATED = 'CUSTOMER_ACTIVATED', 'Kích hoạt khách hàng'
-    PRODUCT_HIDDEN = 'PRODUCT_HIDDEN', 'Gỡ sản phẩm'
-    PRODUCT_RESTORED = 'PRODUCT_RESTORED', 'Khôi phục sản phẩm'
-    REVIEW_HIDDEN = 'REVIEW_HIDDEN', 'Ẩn đánh giá'
-    REVIEW_RESTORED = 'REVIEW_RESTORED', 'Hiện lại đánh giá'
+    LOGIN = "LOGIN", "Login"
+    LOGIN_FAILED = "LOGIN_FAILED", "Login Failed"
+    LOGOUT = "LOGOUT", "Logout"
+    PASSWORD_CHANGED = "PASSWORD_CHANGED", "Change Password"
+    ACCESS_DENIED = "ACCESS_DENIED", "Access Denied"
+    EXPORT_DATA = "EXPORT_DATA", "Export Data"
+    FARMER_APPROVED = "FARMER_APPROVED", "Approve Farmer"
+    FARMER_REJECTED = "FARMER_REJECTED", "Reject Farmer"
+    FARMER_SUSPENDED = "FARMER_SUSPENDED", "Suspend Farmer"
+    FARMER_REINSTATED = "FARMER_REINSTATED", "Reinstate Farmer"
+    CUSTOMER_DEACTIVATED = "CUSTOMER_DEACTIVATED", "Deactivate Customer"
+    CUSTOMER_ACTIVATED = "CUSTOMER_ACTIVATED", "Activate Customer"
+    PRODUCT_HIDDEN = "PRODUCT_HIDDEN", "Hide Product"
+    PRODUCT_RESTORED = "PRODUCT_RESTORED", "Restore Product"
+    REVIEW_HIDDEN = "REVIEW_HIDDEN", "Hide Review"
+    REVIEW_RESTORED = "REVIEW_RESTORED", "Restore Review"
 
 
-class AuditLog(models.Model):
-    # SET_NULL keeps the trace after the account is deleted; NULL for failed logins
-    # with an unknown email.
+class AuditLog(CreatedAtModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='audit_logs',
+        related_name="audit_logs",
     )
     action = models.CharField(max_length=40, choices=AuditAction.choices)
     endpoint = models.CharField(max_length=255, null=True, blank=True)
@@ -44,16 +39,16 @@ class AuditLog(models.Model):
     user_agent = models.CharField(max_length=255, null=True, blank=True)
     status_code = models.PositiveSmallIntegerField(null=True, blank=True)
     request_id = models.CharField(max_length=36, null=True, blank=True)
-    details = models.JSONField(default=dict, blank=True, encoder=DjangoJSONEncoder)
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    details = models.JSONField(default=dict, encoder=DjangoJSONEncoder)
 
     class Meta:
-        db_table = 'audit_logs'
-        ordering = ('-created_at',)
+        db_table = "audit_logs"
+        ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=['action', 'created_at'], name='audit_logs_action_idx'),
-            models.Index(fields=['user', 'created_at'], name='audit_logs_user_idx'),
+            models.Index(fields=["action", "created_at"], name="audit_action_created_idx"),
+            models.Index(fields=["user", "created_at"], name="audit_user_created_idx"),
+            models.Index(fields=["created_at"], name="audit_created_idx"),
         ]
 
-    def __str__(self):
-        return f'{self.action} {self.status_code} {self.endpoint}'
+    def __str__(self) -> str:
+        return f"{self.action} ({self.user_id})"

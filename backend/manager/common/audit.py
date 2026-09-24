@@ -10,7 +10,7 @@ from typing import TypeVar
 
 from rest_framework.exceptions import APIException
 
-from core.utils import audit_request
+from marketlink_core.utils import audit_request
 
 T = TypeVar('T')
 

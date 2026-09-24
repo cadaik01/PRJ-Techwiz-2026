@@ -13,7 +13,7 @@ from PIL import Image
 
 from accounts.models import FarmerProfile, FarmerStatus, Role
 from conftest import PASSWORD
-from core.policies.roles import RoleCode
+from marketlink_core.policies.roles import RoleCode
 from markets.models import FarmerMarket, Market, MarketOperatingDay, PickupSlot
 from orders.models import Order, OrderStatus
 
@@ -57,7 +57,9 @@ def make_farmer(email, status=FarmerStatus.APPROVED):
 
 
 def add_slot(market, farmer, day=6, start=time(6), end=time(8)):
-    farmer_market = FarmerMarket.objects.get_or_create(farmer=farmer, market=market)[0]
+    farmer_market = FarmerMarket.objects.get_or_create(
+        farmer=farmer, market=market, defaults={'stall_label': 'Sạp A1'},
+    )[0]
     return PickupSlot.objects.create(farmer_market=farmer_market, day_of_week=day, start_time=start, end_time=end)
 
 
@@ -104,7 +106,8 @@ def test_list_row_matches_market_admin_schema(admin_client, user):
     approved = make_farmer('a@test.com')
     add_slot(market, approved)
     add_slot(market, approved, day=7)                           # same farmer twice: counted once
-    FarmerMarket.objects.create(farmer=make_farmer('p@test.com', FarmerStatus.PENDING), market=market)
+    FarmerMarket.objects.create(farmer=make_farmer('p@test.com', FarmerStatus.PENDING), market=market,
+                                stall_label='Sạp C3')
     add_order(market, approved, user)
     add_order(market, approved, user, status=OrderStatus.ACCEPTED)
     add_order(market, approved, user, status=OrderStatus.COMPLETED)

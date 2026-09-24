@@ -6,11 +6,11 @@ Description: AD-01, the admin home (FR-50, screen A-01).
 from rest_framework.views import APIView
 
 from accounts.models import FarmerStatus
-from accounts.permissions import IsAdmin
-from core.utils import api_response
 from manager.dashboard.services import dashboard_totals, orders_by_day, orders_by_status
 from manager.farmers.serializers_admin import AdminFarmerRowSerializer
 from manager.farmers.services import admin_farmers
+from marketlink_core.permissions import IsAdmin
+from marketlink_core.utils import api_response
 from orders.models import Order
 
 PENDING_PREVIEW = 5

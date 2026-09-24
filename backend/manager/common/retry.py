@@ -9,7 +9,7 @@ from typing import TypeVar
 
 from django.db import OperationalError
 
-from core.exceptions import ConflictError
+from marketlink_core.exceptions import ConflictError
 
 MYSQL_DEADLOCK = 1213
 T = TypeVar('T')

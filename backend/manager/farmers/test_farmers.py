@@ -59,7 +59,7 @@ def test_list_row_and_counts(admin_client, farmer, market):
 def test_list_filters(admin_client, farmer, market):
     pending = make_farmer('cho@test.com', stall_name='Nấm Sạch', status=FarmerStatus.PENDING)
     make_farmer('bi@test.com', stall_name='Trái Cây', status=FarmerStatus.SUSPENDED)
-    FarmerMarket.objects.create(farmer=pending, market=market)
+    FarmerMarket.objects.create(farmer=pending, market=market, stall_label='Sạp C3')
 
     def names(**params):
         return [row['stall_name'] for row in admin_client.get(LIST_URL, params).data['data']['results']]

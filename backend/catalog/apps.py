@@ -1,8 +1,3 @@
-"""
-Module: catalog.apps
-Description: AppConfig for categories and products.
-"""
-
 from django.apps import AppConfig
 
 

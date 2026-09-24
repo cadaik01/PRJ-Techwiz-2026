@@ -1,8 +1,3 @@
-"""
-Module: accounts.apps
-Description: AppConfig for the accounts app.
-"""
-
 from django.apps import AppConfig
 
 

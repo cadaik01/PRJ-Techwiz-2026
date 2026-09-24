@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import Role
 from conftest import PASSWORD
-from core.policies.roles import RoleCode
+from marketlink_core.policies.roles import RoleCode
 from notifications.models import Announcement, AnnouncementAudience
 
 User = get_user_model()

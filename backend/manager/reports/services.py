@@ -11,9 +11,9 @@ from datetime import date
 
 from django.db.models import Avg, Count, OuterRef, QuerySet, Subquery, Sum
 
-from core.exceptions import BusinessValidationError
 from manager.common.products import rounded_rating
 from manager.dashboard.services import orders_by_status
+from marketlink_core.exceptions import BusinessValidationError
 from markets.models import Market
 from orders.models import Order, OrderStatus
 from reviews.models import FarmerReview

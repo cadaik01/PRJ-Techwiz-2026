@@ -1,8 +1,3 @@
-"""
-Module: orders.apps
-Description: AppConfig for pre-orders.
-"""
-
 from django.apps import AppConfig
 
 

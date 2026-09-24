@@ -9,7 +9,7 @@ from django.db import transaction
 from django.db.models import Count, Prefetch, Q, QuerySet
 
 from accounts.models import FarmerStatus
-from core.exceptions import UnprocessableEntityError
+from marketlink_core.exceptions import UnprocessableEntityError
 from markets.models import Market, MarketOperatingDay, PickupSlot
 from orders.models import OPEN_STATUSES
 

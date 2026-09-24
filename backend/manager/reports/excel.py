@@ -12,6 +12,17 @@ from openpyxl.styles import Font
 from orders.models import OrderStatus
 
 VND_FORMAT = '#,##0" ₫"'
+# Badge labels of Pass 3 §1.2; the model's choice labels are English.
+STATUS_LABELS = {
+    OrderStatus.PLACED: 'Chờ duyệt',
+    OrderStatus.ACCEPTED: 'Đã xác nhận',
+    OrderStatus.READY_FOR_PICKUP: 'Sẵn sàng nhận',
+    OrderStatus.COMPLETED: 'Hoàn tất',
+    OrderStatus.CANCELLED: 'Đã hủy',
+    OrderStatus.DECLINED: 'Bị từ chối',
+    OrderStatus.NO_SHOW: 'Khách không đến',
+    OrderStatus.EXPIRED: 'Đã hết hạn',
+}
 BOLD = Font(bold=True)
 
 
@@ -38,12 +49,11 @@ def build_workbook(report: dict, *, date_from: date, date_to: date, market_name:
     period = f'Ngày nhận hàng: {date_from:%d/%m/%Y} – {date_to:%d/%m/%Y}'
     if market_name:
         period += f' · Chợ: {market_name}'
-    labels = dict(OrderStatus.choices)
 
     workbook = Workbook()
     workbook.remove(workbook.active)
     _sheet(workbook, 'Tổng quan đơn', period, ['Trạng thái', 'Số đơn'],
-           [[labels[row['status']], row['count']] for row in report['orders_by_status']])
+           [[STATUS_LABELS[row['status']], row['count']] for row in report['orders_by_status']])
     _sheet(workbook, 'Doanh thu theo chợ', period, ['Chợ', 'Số đơn hoàn tất', 'Doanh thu (VND)'],
            [[row['market_name'], row['completed_orders'], row['revenue']] for row in report['revenue_by_market']],
            money_columns=(3,))

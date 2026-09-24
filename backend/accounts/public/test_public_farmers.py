@@ -17,7 +17,7 @@ LIST_URL = reverse('public-farmer-list')
 
 def slot(farmer, market, day=6, active=True, stall_label=None):
     farmer_market = FarmerMarket.objects.get_or_create(farmer=farmer, market=market,
-                                                       defaults={'stall_label': stall_label})[0]
+                                                       defaults={'stall_label': stall_label or 'Sạp A1'})[0]
     PickupSlot.objects.create(farmer_market=farmer_market, day_of_week=day, start_time=time(6), end_time=time(8),
                               is_active=active)
 

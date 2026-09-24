@@ -10,7 +10,7 @@ from datetime import date, datetime, time, timedelta
 
 from django.utils import timezone
 
-from core.exceptions import BusinessValidationError
+from marketlink_core.exceptions import BusinessValidationError
 
 DATE_MESSAGE = 'Ngày không hợp lệ (định dạng YYYY-MM-DD)'
 

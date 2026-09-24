@@ -8,8 +8,8 @@ from django.utils import timezone
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
-from core.policies.roles import RoleCode
-from core.utils import api_response
+from marketlink_core.policies.roles import RoleCode
+from marketlink_core.utils import api_response
 from notifications.models import Announcement, AnnouncementAudience
 from notifications.public.serializers_public import AnnouncementReadSerializer
 

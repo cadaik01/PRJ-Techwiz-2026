@@ -1,14 +1,12 @@
 """Shared pytest fixtures."""
 
-import fakeredis
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from accounts.models import Role
-from core.policies.roles import RoleCode
-from core.services import ws_ticket
+from marketlink_core.policies.roles import RoleCode
 
 User = get_user_model()
 PASSWORD = 'Test@1234'
@@ -28,16 +26,6 @@ def local_backends(settings):
     cache.clear()
 
 
-@pytest.fixture(autouse=True)
-def fake_ticket_redis(monkeypatch):
-    """In-memory Redis for WebSocket tickets; sync and async clients share one server."""
-    server = fakeredis.FakeServer()
-    monkeypatch.setattr(ws_ticket, '_sync_client',
-                        lambda: fakeredis.FakeRedis(server=server, decode_responses=True))
-    monkeypatch.setattr(ws_ticket, '_async_client',
-                        lambda: fakeredis.FakeAsyncRedis(server=server, decode_responses=True))
-
-
 @pytest.fixture
 def api_client():
     return APIClient()
@@ -45,7 +33,7 @@ def api_client():
 
 @pytest.fixture
 def customer_role(db):
-    # pytest runs with --nomigrations, so the 0002_seed_roles rows are not there.
+    # pytest runs with --nomigrations, so the rows seeded by migration 0002 are not there.
     return Role.objects.get_or_create(code=RoleCode.CUSTOMER, defaults={'name': 'Khách hàng'})[0]
 
 
@@ -56,6 +44,8 @@ def user(customer_role):
 
 @pytest.fixture
 def admin_user(db):
+    # create_superuser needs the ADMIN row that migration 0002 seeds.
+    Role.objects.get_or_create(code=RoleCode.ADMIN, defaults={'name': 'Quản trị viên'})
     return User.objects.create_superuser(email='admin@test.com', password=PASSWORD)
 
 

@@ -9,7 +9,7 @@ from django.utils import timezone
 from accounts.models import CustomerProfile, FarmerProfile, FarmerStatus, Role
 from catalog.models import Category, Product, Unit
 from conftest import PASSWORD
-from core.policies.roles import RoleCode
+from marketlink_core.policies.roles import RoleCode
 from markets.models import Market
 from orders.models import Order, OrderItem, OrderStatus
 

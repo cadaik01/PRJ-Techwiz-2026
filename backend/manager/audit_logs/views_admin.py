@@ -7,12 +7,12 @@ Description: Security log browsing (FR-58, AD-29, AD-30, screen A-11). audit_log
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAdmin
-from core.exceptions import BusinessValidationError
-from core.utils import api_response
 from manager.audit_logs.serializers_admin import AuditLogReadSerializer
 from manager.common.dates import day_range
-from manager.pagination import ContractPagination
+from marketlink_core.exceptions import BusinessValidationError
+from marketlink_core.pagination import ContractPagination
+from marketlink_core.permissions import IsAdmin
+from marketlink_core.utils import api_response
 from system.models import AuditLog
 
 

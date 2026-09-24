@@ -1,8 +1,3 @@
-"""
-Module: notifications.apps
-Description: AppConfig for the notifications app.
-"""
-
 from django.apps import AppConfig
 
 

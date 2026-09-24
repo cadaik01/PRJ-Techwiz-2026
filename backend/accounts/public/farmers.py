@@ -20,8 +20,8 @@ from django.db.models.functions import Coalesce
 
 from accounts.models import FarmerProfile, FarmerStatus
 from catalog.models import Product
-from core.policies.roles import RoleCode
 from favorites.models import FavoriteFarmer
+from marketlink_core.policies.roles import RoleCode
 from markets.models import FarmerMarket, PickupSlot
 from reviews.models import FarmerReview
 

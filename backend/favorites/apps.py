@@ -1,8 +1,3 @@
-"""
-Module: favorites.apps
-Description: AppConfig for customer favorites.
-"""
-
 from django.apps import AppConfig
 
 

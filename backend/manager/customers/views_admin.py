@@ -7,8 +7,6 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAdmin
-from core.utils import api_response
 from manager.common.audit import audited
 from manager.common.serializers import OrderSummarySerializer, ReasonWriteSerializer, order_summaries
 from manager.customers.serializers_admin import CustomerAdminDetailSerializer, CustomerAdminRowSerializer
@@ -18,7 +16,9 @@ from manager.customers.services import (
     deactivate_customer,
     deactivation_impact,
 )
-from manager.pagination import ContractPagination
+from marketlink_core.pagination import ContractPagination
+from marketlink_core.permissions import IsAdmin
+from marketlink_core.utils import api_response
 from orders.models import Order
 from system.models import AuditAction
 

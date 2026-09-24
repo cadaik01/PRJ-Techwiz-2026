@@ -1,8 +1,3 @@
-"""
-Module: reviews.apps
-Description: AppConfig for product and farmer reviews.
-"""
-
 from django.apps import AppConfig
 
 
