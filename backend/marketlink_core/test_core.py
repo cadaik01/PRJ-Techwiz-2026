@@ -4,6 +4,7 @@ import uuid
 from types import SimpleNamespace
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, transaction
 from django.db.utils import DataError, OperationalError
 from django.urls import reverse
@@ -11,9 +12,17 @@ from rest_framework.test import APIRequestFactory
 
 from accounts.models import Role
 from marketlink_core.context import reset_request_id, set_request_id
-from marketlink_core.exceptions import BusinessValidationError
+from marketlink_core.exceptions import (
+    BusinessValidationError,
+    ConflictError,
+    ForbiddenActionError,
+    PreconditionRequiredError,
+    TokenBlacklistedError,
+    UnprocessableEntityError,
+)
+from marketlink_core.permissions import IsAdmin
 from marketlink_core.signals import attach_history_request_id
-from marketlink_core.utils import custom_exception_handler
+from marketlink_core.utils import api_response, custom_exception_handler
 
 
 def _handle(exc):
@@ -90,3 +99,117 @@ def test_history_signal_stamps_request_id():
     finally:
         reset_request_id(token)
     assert history_instance.request_id == 'abc-123'
+
+
+# --- api_response: the envelope every endpoint returns (Pass 4B §2.1) -----------
+
+def test_success_envelope_has_the_five_frozen_keys():
+    response = api_response(message='List retrieved', data={'count': 0})
+
+    assert set(response.data) == {'success', 'message', 'request_id', 'data', 'errors'}
+    assert (response.data['success'], response.data['data'], response.data['errors']) == (
+        True, {'count': 0}, {})
+    assert 'code' not in response.data                  # only failures carry a code
+
+
+def test_missing_data_becomes_an_empty_object():
+    assert api_response(message='OK').data['data'] == {}
+
+
+def test_failure_envelope_adds_a_code_and_flips_success():
+    response = api_response(message='Not found', status_code=404)
+
+    assert (response.status_code, response.data['success'], response.data['code']) == (404, False, 'NOT_FOUND')
+
+
+@pytest.mark.parametrize('status_code, code', [
+    (400, 'VALIDATION_ERROR'),
+    (401, 'AUTHENTICATION_FAILED'),
+    (403, 'ACTION_NOT_PERMITTED_FOR_ROLE'),
+    (409, 'RESOURCE_CONFLICT'),
+    (422, 'FAILED_PRECONDITION'),
+    (428, 'PRECONDITION_REQUIRED'),
+    (429, 'RATE_LIMIT_EXCEEDED'),
+    (418, 'VALIDATION_ERROR'),                          # anything unlisted below 500
+    (503, 'INTERNAL_SERVER_ERROR'),
+])
+def test_the_code_is_inferred_from_the_status(status_code, code):
+    assert api_response(message='x', status_code=status_code).data['code'] == code
+
+
+def test_an_explicit_code_wins_over_the_status():
+    response = api_response(message='Sold out', status_code=400, code='INSUFFICIENT_STOCK')
+
+    assert response.data['code'] == 'INSUFFICIENT_STOCK'
+
+
+def test_the_request_id_comes_from_the_request_then_the_context():
+    from types import SimpleNamespace
+
+    assert api_response(message='x', request=SimpleNamespace(id='from-request')).data['request_id'] == 'from-request'
+
+    token = set_request_id('from-context')
+    try:
+        assert api_response(message='x').data['request_id'] == 'from-context'
+    finally:
+        reset_request_id(token)
+
+
+# --- exception classes (error catalog, Pass 4B §2.5) ----------------------------
+
+@pytest.mark.parametrize('exception, status_code, code', [
+    (BusinessValidationError('bad'), 400, 'VALIDATION_ERROR'),
+    (TokenBlacklistedError(), 401, 'TOKEN_BLACKLISTED'),
+    (ForbiddenActionError('no'), 403, 'ACTION_NOT_PERMITTED_FOR_ROLE'),
+    (ConflictError('clash'), 409, 'RESOURCE_CONFLICT'),
+    (UnprocessableEntityError('too late'), 422, 'FAILED_PRECONDITION'),
+    (PreconditionRequiredError(), 428, 'PRECONDITION_REQUIRED'),
+])
+def test_each_exception_carries_its_status_and_default_code(exception, status_code, code):
+    response = _handle(exception)
+
+    assert (response.status_code, response.data['code']) == (status_code, code)
+    assert response.data['message']                     # never blank, it is shown to the user
+
+
+def test_a_422_can_carry_data_for_the_dialog():
+    # RESOURCE_IN_USE tells the admin which orders block the action.
+    exception = UnprocessableEntityError('Still in use', code='RESOURCE_IN_USE', data={'open_order_ids': [7, 9]})
+
+    response = _handle(exception)
+
+    assert (response.status_code, response.data['code']) == (422, 'RESOURCE_IN_USE')
+    assert response.data['data'] == {'open_order_ids': [7, 9]}
+
+
+def test_drf_validation_details_are_normalised_into_errors():
+    from rest_framework import exceptions as drf
+
+    assert _handle(drf.ValidationError({'email': ['Required.']})).data['errors'] == {'email': ['Required.']}
+    assert _handle(drf.ValidationError(['Bad request.'])).data['errors'] == {'non_field_errors': ['Bad request.']}
+    assert _handle(drf.NotFound()).data['code'] == 'NOT_FOUND'
+    assert _handle(drf.Throttled()).data['code'] == 'RATE_LIMIT_EXCEEDED'
+
+
+def test_a_django_validation_error_keeps_its_field_names():
+    from django.core.exceptions import ValidationError as DjangoValidationError
+
+    response = _handle(DjangoValidationError({'price': ['Too low.']}))
+
+    assert (response.status_code, response.data['errors']) == (400, {'price': ['Too low.']})
+
+
+# --- role permission -----------------------------------------------------------
+
+@pytest.mark.django_db
+def test_is_admin_accepts_only_the_admin_role(user, admin_user):
+    request = APIRequestFactory().get('/api/admin/farmers/')
+
+    request.user = AnonymousUser()
+    assert IsAdmin().has_permission(request, None) is False
+
+    request.user = user                                 # a customer
+    assert IsAdmin().has_permission(request, None) is False
+
+    request.user = admin_user
+    assert IsAdmin().has_permission(request, None) is True

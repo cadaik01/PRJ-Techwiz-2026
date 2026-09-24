@@ -1,0 +1,62 @@
+# Runs the backend test suite on every push and pull request, so nobody has to
+# remember to run it by hand. Mirrors what `pytest` and `ruff check .` do locally.
+name: Backend tests
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: pytest on MySQL 8
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: marketlink
+          MYSQL_DATABASE: marketlink
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pmarketlink"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+
+    env:
+      # pytest creates and drops test_marketlink, so it needs a user that may do so.
+      DB_NAME: marketlink
+      DB_USER: root
+      DB_PASSWORD: marketlink
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      SECRET_KEY: ci-only-not-a-real-secret
+      DEBUG: 'False'
+      EMAIL_ASYNC: 'False'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run tests
+        run: pytest -q --cov=. --cov-report=term-missing
