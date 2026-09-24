@@ -14,7 +14,6 @@ class RoleAdmin(admin.ModelAdmin):
 
 
 class CustomUserCreationForm(BaseUserCreationForm):
-    # Django 5.1+ adds a "usable password" toggle; accounts here always get a real password.
     usable_password = None
 
     class Meta:
@@ -28,8 +27,7 @@ class CustomUserChangeForm(UserChangeForm):
         fields = ("email", "role", "is_active", "is_staff", "is_superuser")
 
 
-# Subclassing UserAdmin keeps Django's password hashing and change-password screen;
-# a plain ModelAdmin would save whatever is typed into the password field as-is.
+# UserAdmin, not ModelAdmin: a plain ModelAdmin would store the password unhashed.
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm

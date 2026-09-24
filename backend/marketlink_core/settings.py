@@ -1,8 +1,3 @@
-"""
-MarketLink Core Django Settings.
-Combines MarketLink Defense-in-Depth Architecture with WorkTracker Production Resilience.
-"""
-
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -31,7 +26,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "drf_spectacular",
     "simple_history",
@@ -156,7 +150,8 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
+    # Refresh tokens are blacklisted in Redis by the auth views (P2), not by a MySQL table.
+    "BLACKLIST_AFTER_ROTATION": False,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
@@ -189,11 +184,6 @@ CORS_EXPOSE_HEADERS = [
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# -----------------------------------------------------------------------------
-# Redis cache & Channels layer
-# -----------------------------------------------------------------------------
-# One REDIS_URL (redis:// locally, rediss:// on Upstash); key prefixes keep the
-# cache, the JWT blacklist and the channel layer apart on a single database.
 REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
 USE_REDIS = os.environ.get("USE_REDIS", "False").lower() in ("true", "1", "t")
 
@@ -231,8 +221,7 @@ if USE_REDIS:
         },
     }
 else:
-    # Single-process development only: throttling, idempotency and ws-tickets are not
-    # shared across workers without Redis.
+    # Not shared between processes: only for single-process local development.
     CACHES = {
         "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
         "blacklist": {
@@ -288,14 +277,16 @@ AI_CHAT_ENABLED = os.environ.get("AI_CHAT_ENABLED", "True").lower() in (
     "t",
 )
 
-# -----------------------------------------------------------------------------
-# History, email & logging
-# -----------------------------------------------------------------------------
-# TEXT instead of VARCHAR(100): suspension reasons can reach 500 characters.
+# TEXT, not VARCHAR(100): farmer suspension reasons can be up to 500 characters.
 SIMPLE_HISTORY_HISTORY_CHANGE_REASON_USE_TEXT_FIELD = True
 
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "10"))
 EMAIL_ASYNC = os.environ.get("EMAIL_ASYNC", "True").lower() in ("true", "1", "t")
+
+# D-005 / D-028: order and account abuse thresholds.
+MAX_PLACED_ORDERS_PER_CUSTOMER = int(os.environ.get("MAX_PLACED_ORDERS_PER_CUSTOMER", "10"))
+AT_RISK_THRESHOLD = int(os.environ.get("AT_RISK_THRESHOLD", "3"))
+AT_RISK_WINDOW_DAYS = int(os.environ.get("AT_RISK_WINDOW_DAYS", "30"))
 
 LOGGING = {
     "version": 1,

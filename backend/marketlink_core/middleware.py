@@ -8,12 +8,6 @@ from marketlink_core.http import normalize_request_id
 
 
 class RequestIDMiddleware:
-    """Attach a UUID request_id to request.id, the context var and the X-Request-ID header.
-
-    A client-supplied X-Request-ID is reused only when it is a valid UUID; anything else
-    would overflow the CHAR(36) request_id columns and turn a log write into a 500.
-    """
-
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
 

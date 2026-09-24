@@ -4,8 +4,6 @@ from marketlink_core.policies.roles import RoleCode
 
 
 class _RolePermission(BasePermission):
-    """Gate a whole /api/<role>/ branch to one role; a wrong role gets 403 PERMISSION_DENIED."""
-
     role: str = ""
     message = "You do not have permission to access this resource."
 

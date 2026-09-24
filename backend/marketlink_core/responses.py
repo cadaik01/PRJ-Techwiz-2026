@@ -54,7 +54,6 @@ def api_response(
     errors: dict[str, list[str]] | None = None,
     headers: dict[str, str] | None = None,
 ) -> Response:
-    """Wrap a payload in the standard envelope (Pass 4B §2.1)."""
     payload: dict[str, Any] = {
         "success": status_code < 400,
         "message": message,
@@ -63,15 +62,13 @@ def api_response(
         "errors": errors or {},
     }
     if status_code >= 400:
-        # Unknown 4xx statuses (405, 406, 415) are not in the frozen catalog; they are
-        # client mistakes, so they fall back to VALIDATION_ERROR rather than a 500 code.
+        # 4xx codes outside the catalog (405, 415...) are client mistakes, not server faults.
         fallback = ErrorCode.VALIDATION_ERROR if status_code < 500 else ErrorCode.INTERNAL_SERVER_ERROR
         payload["code"] = code or DEFAULT_ERROR_CODES.get(status_code, fallback)
     return Response(payload, status=status_code, headers=headers)
 
 
 def flatten_errors(detail: Any, prefix: str = "") -> dict[str, list[str]]:
-    """Turn nested DRF error detail into {"groups.0.items.1.quantity": ["..."]}."""
     flat: dict[str, list[str]] = {}
     if isinstance(detail, dict):
         for key, value in detail.items():
@@ -94,7 +91,7 @@ def _mysql_errno(exc: Exception) -> int | None:
 
 
 def _log_access_denied(request: Any) -> None:
-    # Imported lazily: system.services pulls in models, which must not load at settings import.
+    # Lazy import: this module is loaded from settings, before the app registry is ready.
     from system.models import AuditAction
     from system.services import log_request_event
 
@@ -105,7 +102,6 @@ def _log_access_denied(request: Any) -> None:
 
 
 def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Response:
-    """Translate framework, ORM and domain errors into the standard envelope (skill §4.2)."""
     request = context.get("request")
 
     def reply(message: str, status_code: int, code: str, errors: dict | None = None) -> Response:

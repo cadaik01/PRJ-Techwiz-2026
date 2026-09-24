@@ -3,36 +3,29 @@ from typing import Any
 from rest_framework.exceptions import APIException
 
 
+# Frozen Error Catalog (Pass 4B §2.5): add a code to the spec before adding it here.
 class ErrorCode:
-    """Error Catalog frozen in Pass 4B §2.5; do not add codes here without updating the spec."""
-
-    # 400
     VALIDATION_ERROR = "VALIDATION_ERROR"
     EMAIL_EXISTS = "EMAIL_EXISTS"
     INSUFFICIENT_STOCK = "INSUFFICIENT_STOCK"
     INVALID_STATUS_TRANSITION = "INVALID_STATUS_TRANSITION"
 
-    # 401
     NOT_AUTHENTICATED = "NOT_AUTHENTICATED"
     INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
     TOKEN_INVALID = "TOKEN_INVALID"
 
-    # 403
     ACCOUNT_LOCKED = "ACCOUNT_LOCKED"
     PERMISSION_DENIED = "PERMISSION_DENIED"
     ACTION_NOT_PERMITTED_FOR_ROLE = "ACTION_NOT_PERMITTED_FOR_ROLE"
     FARMER_NOT_APPROVED = "FARMER_NOT_APPROVED"
     FARMER_SUSPENDED = "FARMER_SUSPENDED"
 
-    # 404
     NOT_FOUND = "NOT_FOUND"
 
-    # 409
     RESOURCE_MODIFIED = "RESOURCE_MODIFIED"
     IDEMPOTENCY_IN_PROGRESS = "IDEMPOTENCY_IN_PROGRESS"
     CONFLICT_RETRY = "CONFLICT_RETRY"
 
-    # 422
     OPEN_ORDER_LIMIT_EXCEEDED = "OPEN_ORDER_LIMIT_EXCEEDED"
     CUTOFF_PASSED = "CUTOFF_PASSED"
     CUTOFF_NOT_REACHED = "CUTOFF_NOT_REACHED"
@@ -46,20 +39,15 @@ class ErrorCode:
     IDEMPOTENCY_KEY_REUSED = "IDEMPOTENCY_KEY_REUSED"
     FAILED_PRECONDITION = "FAILED_PRECONDITION"
 
-    # 428
     PRECONDITION_REQUIRED = "PRECONDITION_REQUIRED"
 
-    # 429
     THROTTLED = "THROTTLED"
 
-    # 500 / 503
     INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
     AI_UNAVAILABLE = "AI_UNAVAILABLE"
 
 
 class DomainError(APIException):
-    """Base for every business error; carries an Error Catalog code and field errors."""
-
     status_code = 400
     default_code = ErrorCode.VALIDATION_ERROR
     default_detail = "Invalid request."
