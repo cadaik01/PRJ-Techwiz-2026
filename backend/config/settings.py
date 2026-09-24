@@ -186,7 +186,8 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'idempotency-key',
     'x-request-id',
 ]
-CORS_EXPOSE_HEADERS = ['x-request-id']
+# content-disposition lets the browser read the Excel file name (Pass 4B §1.2, AD-26).
+CORS_EXPOSE_HEADERS = ['x-request-id', 'content-disposition']
 
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
 USE_REDIS = os.environ.get('USE_REDIS', 'False').lower() in ('true', '1', 't')

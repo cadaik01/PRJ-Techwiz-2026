@@ -13,4 +13,6 @@ urlpatterns = [
     path('', include('manager.customers.urls_admin')),
     path('', include('manager.farmers.urls_admin')),
     path('', include('manager.moderation.urls_admin')),
+    path('', include('manager.dashboard.urls_admin')),
+    path('', include('manager.reports.urls_admin')),
 ]
