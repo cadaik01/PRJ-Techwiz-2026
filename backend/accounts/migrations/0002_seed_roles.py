@@ -1,9 +1,11 @@
-"""Seed the roles table. Add the SRS actors (e.g. CUSTOMER) to ROLES once they are known."""
+"""Seed the three MarketLink roles (§1.4 actors, Pass 4A §3 `roles`)."""
 
 from django.db import migrations
 
 ROLES = [
-    ('ADMIN', 'Administrator'),
+    ('ADMIN', 'Quản trị viên'),
+    ('CUSTOMER', 'Khách hàng'),
+    ('FARMER', 'Nông dân'),
 ]
 
 

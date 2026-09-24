@@ -4,7 +4,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from accounts.models import Profile
+from accounts.models import CustomerProfile, FarmerProfile, FarmerStatus, Role
 from conftest import PASSWORD, login
 from core.policies.roles import RoleCode
 from core.services.ws_ticket import verify_and_consume_ws_ticket
@@ -23,8 +23,34 @@ def test_login_returns_token_pair_and_profile(api_client, user):
     assert body['request_id']
     assert {'access', 'refresh'} <= body['data'].keys()
     assert body['data']['user']['email'] == user.email
-    assert body['data']['user']['role'] == 'MEMBER'
+    assert body['data']['user']['role'] == RoleCode.CUSTOMER
     assert 'password' not in body['data']['user']
+
+
+@pytest.mark.django_db
+def test_me_matches_pass_4b_schema(auth_client, user):
+    CustomerProfile.objects.create(user=user, full_name='Nguyễn Văn A', phone='0901234567', address='Q1')
+
+    me = auth_client.get(reverse('auth-me')).data['data']
+
+    assert set(me) == {'id', 'email', 'role', 'must_change_password', 'display_name', 'farmer_status'}
+    assert (me['display_name'], me['farmer_status']) == ('Nguyễn Văn A', None)
+
+
+@pytest.mark.django_db
+def test_me_shows_stall_name_and_status_for_farmer(api_client):
+    role = Role.objects.get_or_create(code=RoleCode.FARMER, defaults={'name': 'Nông dân'})[0]
+    farmer = User.objects.create_user(email='farmer@test.com', password=PASSWORD, role=role)
+    FarmerProfile.objects.create(
+        user=farmer, stall_name='Rau Sạch Đà Lạt', contact_person='Bà Tư', phone='0907654321', address='Chợ Bến Thành',
+    )
+    api_client.force_authenticate(user=farmer)
+
+    me = api_client.get(reverse('auth-me')).data['data']
+
+    assert (me['role'], me['display_name'], me['farmer_status']) == (
+        RoleCode.FARMER, 'Rau Sạch Đà Lạt', FarmerStatus.PENDING,
+    )
 
 
 @pytest.mark.django_db
@@ -39,10 +65,11 @@ def test_failed_login_is_401_and_audited(api_client, user):
     assert response.status_code == 401
     assert response.data['success'] is False
     assert response.data['code'] == 'AUTHENTICATION_FAILED'
-    entry = AuditLog.objects.get(action=AuditAction.LOGIN)
+    entry = AuditLog.objects.get(action=AuditAction.LOGIN_FAILED)
     assert entry.status_code == 401
     assert entry.user is None
     assert entry.details == {'email': user.email}
+    assert (entry.method, entry.endpoint) == ('POST', '/api/auth/login/')
     assert entry.request_id == response.data['request_id']
 
 
@@ -87,7 +114,7 @@ def test_ws_ticket_is_single_use_and_carries_role(auth_client, user):
     data = auth_client.post(reverse('auth-ws-ticket')).data['data']
 
     assert data['expires_in'] == 30
-    assert verify_and_consume_ws_ticket(data['ticket']) == {'user_id': user.pk, 'role': 'MEMBER'}
+    assert verify_and_consume_ws_ticket(data['ticket']) == {'user_id': user.pk, 'role': RoleCode.CUSTOMER}
     # Redeeming burns the ticket, so replaying the same handshake URL fails.
     assert verify_and_consume_ws_ticket(data['ticket']) is None
 
@@ -153,17 +180,17 @@ def test_change_password_succeeds_and_is_audited(api_client, user):
     user.refresh_from_db()
     assert user.check_password('N3w-Str0ng-Passw0rd!')
     assert user.must_change_password is False
-    assert AuditLog.objects.filter(action=AuditAction.CHANGE_PASSWORD, user=user).exists()
+    assert AuditLog.objects.filter(action=AuditAction.PASSWORD_CHANGED, user=user).exists()
     assert api_client.get(reverse('auth-me')).data['code'] == 'TOKEN_BLACKLISTED'
 
 
 @pytest.mark.django_db
-def test_create_superuser_gets_admin_role_and_profile():
+def test_create_superuser_gets_admin_role():
     admin = User.objects.create_superuser(email=' Boss@Example.COM ', password=PASSWORD)
 
     assert admin.email == 'boss@example.com'
     assert admin.role.code == RoleCode.ADMIN
-    assert Profile.objects.filter(user=admin).exists()
+    assert admin.is_staff and admin.is_superuser
 
 
 @pytest.mark.django_db

@@ -13,7 +13,8 @@ from core.context import get_request_id
 from system.models import AuditLog
 
 SENSITIVE_KEY_PARTS = ('password', 'token', 'secret', 'credential', 'authorization')
-USER_AGENT_MAX_LENGTH = 512
+ENDPOINT_MAX_LENGTH = 255
+USER_AGENT_MAX_LENGTH = 255
 
 
 def _sanitize(value: Any) -> Any:
@@ -43,19 +44,21 @@ def log_security_event(
     *,
     user: Any | None,
     action: str,
-    endpoint: str,
+    endpoint: str | None,
+    method: str | None,
     ip_address: str | None,
-    user_agent: str,
-    status_code: int,
+    user_agent: str | None,
+    status_code: int | None,
     request_id: str | None,
     details: dict | None = None,
 ) -> AuditLog:
     return AuditLog.objects.create(
         user=user,
         action=action,
-        endpoint=endpoint[:255],
+        endpoint=endpoint[:ENDPOINT_MAX_LENGTH] if endpoint else None,
+        method=method,
         ip_address=valid_ip(ip_address),
-        user_agent=(user_agent or '')[:USER_AGENT_MAX_LENGTH],
+        user_agent=user_agent[:USER_AGENT_MAX_LENGTH] if user_agent else None,
         status_code=status_code,
         request_id=request_id or get_request_id(),
         details=_sanitize(details or {}),

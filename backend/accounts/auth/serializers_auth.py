@@ -9,25 +9,36 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from accounts.models import normalize_email_address
+from core.policies.roles import RoleCode
 
 User = get_user_model()
 
 
 class UserReadSerializer(serializers.ModelSerializer):
-    """Profile returned after login and from /me/."""
+    """`Me` schema returned after login and from /me/ (MarketLink Pass 4B §3.1)."""
+
+    ADMIN_DISPLAY_NAME = 'Quản trị viên'
 
     role = serializers.SlugRelatedField(slug_field='code', read_only=True)
-    full_name = serializers.CharField(source='profile.full_name', read_only=True, default='')
-    phone = serializers.CharField(source='profile.phone', read_only=True, default='')
-    avatar = serializers.ImageField(source='profile.avatar', read_only=True, default=None)
+    display_name = serializers.SerializerMethodField()
+    farmer_status = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = [
-            'id', 'email', 'role', 'full_name', 'phone', 'avatar',
-            'must_change_password', 'is_active', 'created_at',
-        ]
+        fields = ['id', 'email', 'role', 'must_change_password', 'display_name', 'farmer_status']
         read_only_fields = fields
+
+    def get_display_name(self, user):
+        if user.role.code == RoleCode.CUSTOMER and hasattr(user, 'customer_profile'):
+            return user.customer_profile.full_name
+        if user.role.code == RoleCode.FARMER and hasattr(user, 'farmer_profile'):
+            return user.farmer_profile.stall_name
+        return self.ADMIN_DISPLAY_NAME if user.role.code == RoleCode.ADMIN else user.email
+
+    def get_farmer_status(self, user):
+        if user.role.code == RoleCode.FARMER and hasattr(user, 'farmer_profile'):
+            return user.farmer_profile.status
+        return None
 
 
 class LoginWriteSerializer(serializers.Serializer):

@@ -1,13 +1,18 @@
 """
 Module: accounts.models
-Description: The three IAM tables - roles, users (sign-in by email) and profiles.
+Description: IAM tables - roles, users, customer_profiles, farmer_profiles
+             (MarketLink Pass 4A §3.1).
 """
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.db import models, transaction
+from django.db import models
+from django.db.models import Q
+from simple_history.models import HistoricalRecords
 
-from core.models import BaseModel
+from core.models import BaseModel, HistoryRequestMeta
 from core.policies.roles import RoleCode
+
+CASE_AND_ACCENT_SENSITIVE = 'utf8mb4_0900_as_ci'
 
 
 def normalize_email_address(email: str) -> str:
@@ -17,7 +22,7 @@ def normalize_email_address(email: str) -> str:
 class Role(BaseModel):
     """A new actor is a new row here, not a code change or a migration."""
 
-    code = models.CharField(max_length=50, unique=True)
+    code = models.CharField(max_length=50, unique=True, db_collation=CASE_AND_ACCENT_SENSITIVE)
     name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
 
@@ -39,15 +44,13 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('A role is required.')
         if isinstance(role, str):
             role = Role.objects.get(code=role)
-
-        with transaction.atomic():
-            user = self.model(email=normalize_email_address(email), role=role, **extra_fields)
-            user.set_password(password)
-            user.save(using=self._db)
-            Profile.objects.create(user=user)
+        user = self.model(email=normalize_email_address(email), role=role, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
         return user
 
     def create_user(self, email, password=None, role=None, **extra_fields):
+        """Profile rows are created by the registration services, not here."""
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
         return self._create_user(email, password, role, **extra_fields)
@@ -60,22 +63,22 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
         role, _ = Role.objects.get_or_create(
-            code=RoleCode.ADMIN, defaults={'name': 'Administrator'},
+            code=RoleCode.ADMIN, defaults={'name': 'Quản trị viên'},
         )
         return self._create_user(email, password, role, **extra_fields)
 
 
-class CustomUser(AbstractUser, BaseModel):
-    """Signs in by email. Personal details live on Profile to keep this row small."""
+class CustomUser(AbstractUser):
+    """Signs in by email. date_joined is the registration date (no created_at column)."""
 
     username = None
     first_name = None
     last_name = None
-    email = models.EmailField(unique=True)
+    email = models.EmailField(max_length=100, unique=True)
     role = models.ForeignKey(Role, on_delete=models.RESTRICT, related_name='users')
-    # False by default so self-registered users are not forced to change it; set
     # True only for accounts an admin creates by hand.
     must_change_password = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -85,24 +88,79 @@ class CustomUser(AbstractUser, BaseModel):
     class Meta:
         db_table = 'users'
         ordering = ('email',)
+        indexes = [
+            models.Index(fields=['role', 'is_active'], name='users_role_active_idx'),
+        ]
 
     def __str__(self):
         return self.email
 
 
-class Profile(BaseModel):
+class CustomerProfile(BaseModel):
     user = models.OneToOneField(
         CustomUser,
         on_delete=models.CASCADE,
         primary_key=True,
-        related_name='profile',
+        related_name='customer_profile',
     )
-    full_name = models.CharField(max_length=150, blank=True, default='')
-    phone = models.CharField(max_length=20, blank=True, default='')
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    full_name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=15)
+    address = models.CharField(max_length=255)
 
     class Meta:
-        db_table = 'profiles'
+        db_table = 'customer_profiles'
 
     def __str__(self):
-        return self.full_name or self.user.email
+        return self.full_name
+
+
+class FarmerStatus(models.TextChoices):
+    PENDING = 'PENDING', 'Chờ duyệt'
+    APPROVED = 'APPROVED', 'Đã duyệt'
+    SUSPENDED = 'SUSPENDED', 'Đình chỉ'
+    REJECTED = 'REJECTED', 'Từ chối'
+
+
+class FarmerProfile(BaseModel):
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name='farmer_profile',
+    )
+    stall_name = models.CharField(max_length=100)
+    contact_person = models.CharField(max_length=100)
+    phone = models.CharField(max_length=15)
+    address = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    image = models.ImageField(upload_to='farmers/', max_length=255, null=True, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=FarmerStatus.choices, default=FarmerStatus.PENDING)
+    status_reason = models.CharField(max_length=500, null=True, blank=True)
+    order_cutoff_hours = models.PositiveSmallIntegerField(default=12)
+
+    # Approval history shown to the admin (A-03).
+    history = HistoricalRecords(table_name='farmer_profile_histories', bases=[HistoryRequestMeta])
+
+    class Meta:
+        db_table = 'farmer_profiles'
+        indexes = [
+            models.Index(fields=['status'], name='farmer_profiles_status_idx'),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(latitude__isnull=True, longitude__isnull=True)
+                    | Q(latitude__isnull=False, longitude__isnull=False)
+                ),
+                name='farmer_profiles_coordinates_paired',
+            ),
+            models.CheckConstraint(
+                condition=Q(order_cutoff_hours__lte=72),
+                name='farmer_profiles_cutoff_hours_range',
+            ),
+        ]
+
+    def __str__(self):
+        return self.stall_name

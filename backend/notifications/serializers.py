@@ -1,6 +1,6 @@
 """
 Module: notifications.serializers
-Description: Serializers for the notifications app.
+Description: Serializers for the notifications app (MarketLink Pass 4B §3.6).
 """
 
 from rest_framework import serializers
@@ -13,5 +13,5 @@ class NotificationReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Notification
-        fields = ['id', 'title', 'message', 'level', 'target_url', 'is_read', 'created_at']
+        fields = ['id', 'type', 'title', 'message', 'target_url', 'is_read', 'read_at', 'created_at']
         read_only_fields = fields

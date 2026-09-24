@@ -1,10 +1,10 @@
 """
 Module: core.policies.roles
-Description: Role codes stored in the `roles` table.
+Description: Role codes stored in the `roles` table (MarketLink D-002, Pass 4A §4).
 """
 
 
 class RoleCode:
     ADMIN = 'ADMIN'
-    # Add the actors named by the SRS here (e.g. CUSTOMER, FARMER), seed them in an
-    # accounts data migration, and mirror them in frontend/src/config/constants.js.
+    CUSTOMER = 'CUSTOMER'
+    FARMER = 'FARMER'

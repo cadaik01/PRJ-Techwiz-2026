@@ -148,6 +148,7 @@ def audit_request(
             user=user,
             action=action,
             endpoint=request.path,
+            method=request.method,
             ip_address=forwarded.split(',')[0] if forwarded else request.META.get('REMOTE_ADDR'),
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
             status_code=status_code,
@@ -164,7 +165,7 @@ def _log_forbidden(request: Any, code: str) -> None:
     user = getattr(request, 'user', None)
     audit_request(
         request,
-        action='UNAUTHORIZED_ACCESS',
+        action='ACCESS_DENIED',
         status_code=403,
         user=user if getattr(user, 'is_authenticated', False) else None,
         details={'method': request.method, 'code': code},

@@ -6,8 +6,9 @@ Description: Create, broadcast and mark notifications read.
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.db import transaction
+from django.utils import timezone
 
-from notifications.models import Notification, NotificationLevel
+from notifications.models import Notification
 from notifications.serializers import NotificationReadSerializer
 
 USER_GROUP = 'user_{user_id}'
@@ -31,10 +32,10 @@ def _broadcast(group: str, notification: Notification) -> None:
 def push_notification(
     *,
     user_id: int,
+    type: str,
     title: str,
-    message: str = '',
-    level: str = NotificationLevel.INFO,
-    target_url: str = '',
+    message: str,
+    target_url: str | None = None,
 ) -> Notification:
     """Persist a notification, then broadcast it once the transaction commits.
 
@@ -43,9 +44,9 @@ def push_notification(
     """
     notification = Notification.objects.create(
         recipient_id=user_id,
+        type=type,
         title=title,
         message=message,
-        level=level,
         target_url=target_url,
     )
     transaction.on_commit(lambda: _broadcast(USER_GROUP.format(user_id=user_id), notification))
@@ -53,8 +54,10 @@ def push_notification(
 
 
 def mark_notification_read(*, notification_id: int) -> None:
-    Notification.objects.filter(id=notification_id).update(is_read=True)
+    Notification.objects.filter(id=notification_id, is_read=False).update(is_read=True, read_at=timezone.now())
 
 
 def mark_all_notifications_read(*, recipient_id: int) -> int:
-    return Notification.objects.filter(recipient_id=recipient_id, is_read=False).update(is_read=True)
+    return Notification.objects.filter(recipient_id=recipient_id, is_read=False).update(
+        is_read=True, read_at=timezone.now(),
+    )

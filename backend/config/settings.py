@@ -41,7 +41,11 @@ INSTALLED_APPS = [
     'system',
     'accounts',
     'notifications',
-    # Add the apps required by the SRS here, for example: 'orders',
+    'markets',
+    'catalog',
+    'orders',
+    'reviews',
+    'favorites',
 ]
 
 MIDDLEWARE = [

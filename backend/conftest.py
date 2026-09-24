@@ -7,6 +7,7 @@ from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from accounts.models import Role
+from core.policies.roles import RoleCode
 from core.services import ws_ticket
 
 User = get_user_model()
@@ -43,14 +44,14 @@ def api_client():
 
 
 @pytest.fixture
-def member_role(db):
-    # Stand-in for an SRS actor; the real codes come from the exam brief.
-    return Role.objects.create(code='MEMBER', name='Member')
+def customer_role(db):
+    # pytest runs with --nomigrations, so the 0002_seed_roles rows are not there.
+    return Role.objects.get_or_create(code=RoleCode.CUSTOMER, defaults={'name': 'Khách hàng'})[0]
 
 
 @pytest.fixture
-def user(member_role):
-    return User.objects.create_user(email='user@test.com', password=PASSWORD, role=member_role)
+def user(customer_role):
+    return User.objects.create_user(email='user@test.com', password=PASSWORD, role=customer_role)
 
 
 @pytest.fixture

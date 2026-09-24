@@ -42,7 +42,7 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         user = authenticate_user(**serializer.validated_data)
         if user is None:
-            audit_request(request, action=AuditAction.LOGIN, status_code=401,
+            audit_request(request, action=AuditAction.LOGIN_FAILED, status_code=401,
                           details={'email': serializer.validated_data['email']})
             return api_response(message='Email hoặc mật khẩu không đúng', status_code=401,
                                 request=request, code='AUTHENTICATION_FAILED')
@@ -103,7 +103,7 @@ class ChangePasswordView(APIView):
         change_password(user=request.user, new_password=serializer.validated_data['new_password'])
         if request.auth is not None:
             revoke_token(token=request.auth)
-        audit_request(request, action=AuditAction.CHANGE_PASSWORD, status_code=200, user=request.user)
+        audit_request(request, action=AuditAction.PASSWORD_CHANGED, status_code=200, user=request.user)
         return api_response(message='Đổi mật khẩu thành công. Vui lòng đăng nhập lại.', request=request)
 
 
