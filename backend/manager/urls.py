@@ -10,4 +10,5 @@ urlpatterns = [
     path('', include('manager.markets.urls_admin')),
     path('', include('manager.announcements.urls_admin')),
     path('', include('manager.audit_logs.urls_admin')),
+    path('', include('manager.customers.urls_admin')),
 ]

@@ -1,0 +1,7 @@
+Xin chào {{ stall_name }},
+
+Đơn #{{ order_id }} của khách {{ customer_name }} (nhận ngày {{ pickup_date|date:"d/m/Y" }} tại {{ market_name }}) đã bị hủy vì tài khoản khách bị quản trị viên khóa.
+
+Hàng của đơn đã được cộng trả vào tồn kho. Bạn có thể bán lẻ phần hàng đã chuẩn bị ngay tại sạp.
+
+MarketLink
