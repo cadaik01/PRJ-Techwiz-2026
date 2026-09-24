@@ -58,7 +58,7 @@ class TestLogin:
 
         assert response.status_code == 403
         assert response.json()["code"] == "ACCOUNT_LOCKED"
-        assert response.json()["errors"] == {"deactivation_reason": ["Repeated no-shows"]}
+        assert response.json()["errors"] == {"reason": ["Repeated no-shows"]}
 
     def test_locked_account_with_wrong_password_does_not_reveal_lock(self, api, customer):
         customer.is_active = False

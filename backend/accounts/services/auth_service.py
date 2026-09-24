@@ -19,7 +19,7 @@ from accounts.models import CustomUser
 def _account_locked_error(user: CustomUser) -> AccountLockedError:
     profile = getattr(user, "customer_profile", None)
     reason = profile.deactivation_reason if profile else None
-    return AccountLockedError(errors={"deactivation_reason": [reason]} if reason else None)
+    return AccountLockedError(errors={"reason": [reason]} if reason else None)
 
 
 def _lock_user(user_id) -> CustomUser | None:
