@@ -49,6 +49,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "marketlink_core.middleware.RequestIDMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -114,7 +115,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LANGUAGE_CODE = "vi"
+LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
 USE_TZ = True
@@ -133,8 +134,8 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 20,
+    "DEFAULT_PAGINATION_CLASS": "marketlink_core.pagination.StandardPagination",
+    "EXCEPTION_HANDLER": "marketlink_core.exceptions.envelope_exception_handler",
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -180,13 +181,14 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 CORS_EXPOSE_HEADERS = [
     "x-request-id",
     "content-disposition",
+    "idempotent-replayed",
 ]
 
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # -----------------------------------------------------------------------------
-# 10. REDIS CACHE & RESILIENT CHANNELS LAYER (Học từ WorkTracker)
+# 10. REDIS CACHE & RESILIENT CHANNELS LAYER (adapted from WorkTracker)
 # -----------------------------------------------------------------------------
 REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
@@ -254,7 +256,7 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "MarketLink RESTful API",
-    "DESCRIPTION": "Hệ sinh thái kết nối Nông sản & Chợ truyền thống (eGreen Basket) — TechWiz 7",
+    "DESCRIPTION": "Connecting local farmers and traditional markets (eGreen Basket) — TechWiz 7",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SECURITY": [{"bearerAuth": []}],
