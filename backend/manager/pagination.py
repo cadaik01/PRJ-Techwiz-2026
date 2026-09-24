@@ -3,8 +3,9 @@ Module: manager.pagination
 Description: Pagination shape of the frozen API contract (MarketLink Pass 4B §2.2):
              page numbers instead of links, plus page, page_size and total_pages.
 
-core.pagination still returns next/previous as URLs; admin lists use this class so
-they match the contract without changing the shared layer other members depend on.
+core.pagination still returns next/previous as URLs; admin and public lists use this
+class so they match the contract without changing the shared layer other members
+depend on.
 """
 
 from rest_framework.pagination import PageNumberPagination
@@ -12,7 +13,7 @@ from rest_framework.pagination import PageNumberPagination
 from core.utils import api_response
 
 
-class AdminPagination(PageNumberPagination):
+class ContractPagination(PageNumberPagination):
     page_size = 20
     message = 'Lấy danh sách thành công'
 

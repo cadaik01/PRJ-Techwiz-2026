@@ -22,7 +22,7 @@ from manager.farmers.services import (
     suspend_farmer,
     suspension_impact,
 )
-from manager.pagination import AdminPagination
+from manager.pagination import ContractPagination
 from markets.models import FarmerMarket
 from system.models import AuditAction
 
@@ -52,7 +52,7 @@ class FarmerAdminListView(APIView):
             queryset = queryset.filter(Q(stall_name__icontains=q) | Q(user__email__icontains=q) | Q(phone__icontains=q))
         if (market_id := params.get('market_id', '').strip()).isdigit():
             queryset = queryset.filter(farmer_markets__market_id=int(market_id))
-        paginator = AdminPagination()
+        paginator = ContractPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         return paginator.get_paginated_response(AdminFarmerRowSerializer(page, many=True).data)
 

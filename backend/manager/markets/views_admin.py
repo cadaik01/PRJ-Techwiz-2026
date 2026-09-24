@@ -14,7 +14,7 @@ from accounts.permissions import IsAdmin
 from core.utils import api_response
 from manager.markets.serializers_admin import MarketAdminReadSerializer, MarketAdminWriteSerializer
 from manager.markets.services import admin_markets, create_market, set_market_active, update_market
-from manager.pagination import AdminPagination
+from manager.pagination import ContractPagination
 from markets.models import Market
 
 BOOLEAN_PARAMS = {'true': True, 'false': False}
@@ -40,7 +40,7 @@ class MarketAdminListView(APIView):
             )
         if (is_active := BOOLEAN_PARAMS.get(request.query_params.get('is_active', ''))) is not None:
             queryset = queryset.filter(is_active=is_active)
-        paginator = AdminPagination()
+        paginator = ContractPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         data = MarketAdminReadSerializer(page, many=True, context={'request': request}).data
         return paginator.get_paginated_response(data)

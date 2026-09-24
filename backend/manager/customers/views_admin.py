@@ -18,7 +18,7 @@ from manager.customers.services import (
     deactivate_customer,
     deactivation_impact,
 )
-from manager.pagination import AdminPagination
+from manager.pagination import ContractPagination
 from orders.models import Order
 from system.models import AuditAction
 
@@ -44,7 +44,7 @@ class CustomerAdminListView(APIView):
             )
         if (is_active := BOOLEAN_PARAMS.get(request.query_params.get('is_active', ''))) is not None:
             queryset = queryset.filter(is_active=is_active)
-        paginator = AdminPagination()
+        paginator = ContractPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         return paginator.get_paginated_response(CustomerAdminRowSerializer(page, many=True).data)
 

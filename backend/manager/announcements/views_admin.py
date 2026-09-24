@@ -14,7 +14,7 @@ from manager.announcements.serializers_admin import (
     AnnouncementAdminReadSerializer,
     AnnouncementAdminWriteSerializer,
 )
-from manager.pagination import AdminPagination
+from manager.pagination import ContractPagination
 from notifications.models import Announcement
 
 
@@ -28,7 +28,7 @@ class AnnouncementAdminListView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        paginator = AdminPagination()
+        paginator = ContractPagination()
         page = paginator.paginate_queryset(_announcements(), request, view=self)
         return paginator.get_paginated_response(AnnouncementAdminReadSerializer(page, many=True).data)
 

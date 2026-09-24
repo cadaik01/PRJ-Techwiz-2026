@@ -1,14 +1,14 @@
-"""AdminPagination follows the frozen shape of Pass 4B §2.2."""
+"""ContractPagination follows the frozen shape of Pass 4B §2.2."""
 
 from django.test import RequestFactory
 from rest_framework.request import Request
 
-from manager.pagination import AdminPagination
+from manager.pagination import ContractPagination
 
 
 def paginate(page):
     request = Request(RequestFactory().get('/api/admin/x/', {'page': page}))
-    paginator = AdminPagination()
+    paginator = ContractPagination()
     rows = paginator.paginate_queryset(list(range(45)), request)
     return paginator.get_paginated_response(rows).data['data']
 

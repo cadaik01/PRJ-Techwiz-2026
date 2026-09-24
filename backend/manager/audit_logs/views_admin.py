@@ -12,7 +12,7 @@ from core.exceptions import BusinessValidationError
 from core.utils import api_response
 from manager.audit_logs.serializers_admin import AuditLogReadSerializer
 from manager.common.dates import day_range
-from manager.pagination import AdminPagination
+from manager.pagination import ContractPagination
 from system.models import AuditLog
 
 
@@ -38,7 +38,7 @@ class AuditLogAdminListView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        paginator = AdminPagination()
+        paginator = ContractPagination()
         page = paginator.paginate_queryset(_filtered_logs(request.query_params), request, view=self)
         return paginator.get_paginated_response(AuditLogReadSerializer(page, many=True).data)
 
