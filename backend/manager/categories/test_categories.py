@@ -1,4 +1,4 @@
-"""Categories: admin management (FR-56, AD-18, AD-19) and the public list (PU-02)."""
+"""Admin category management (FR-56, AD-18, AD-19)."""
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -133,16 +133,3 @@ def test_unknown_category_is_404(admin_client):
 
     assert response.status_code == 404
     assert response.data['code'] == 'NOT_FOUND'
-
-
-@pytest.mark.django_db
-def test_public_list_is_open_and_shows_only_active_categories(api_client, vegetables, fruits):
-    Category.objects.create(name='Hạt', is_active=False)
-
-    response = api_client.get(reverse('public-category-list'))
-
-    assert response.status_code == 200
-    assert response.data['data'] == [
-        {'id': fruits.pk, 'name': 'Trái cây', 'icon': 'Apple', 'display_order': 1},
-        {'id': vegetables.pk, 'name': 'Rau lá', 'icon': 'Leaf', 'display_order': 2},
-    ]

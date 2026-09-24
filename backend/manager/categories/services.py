@@ -1,5 +1,5 @@
 """
-Module: catalog.services.categories
+Module: manager.categories.services
 Description: Category rules that need a lock (A-07, AD-19).
 """
 

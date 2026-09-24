@@ -1,5 +1,5 @@
 """
-Module: catalog.admin_api.views_admin
+Module: manager.categories.views_admin
 Description: Admin category management (FR-56, AD-18, AD-19, screen A-07).
 """
 
@@ -9,14 +9,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import IsAdmin
-from catalog.admin_api.serializers_admin import (
+from catalog.models import Category
+from core.utils import api_response
+from manager.categories.serializers_admin import (
     CategoryAdminCreateSerializer,
     CategoryAdminReadSerializer,
     CategoryAdminUpdateSerializer,
 )
-from catalog.models import Category
-from catalog.services.categories import admin_categories, delete_category
-from core.utils import api_response
+from manager.categories.services import admin_categories, delete_category
 
 
 def _category_data(category_id: int) -> dict:

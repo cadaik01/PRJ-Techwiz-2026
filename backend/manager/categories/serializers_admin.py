@@ -1,5 +1,5 @@
 """
-Module: catalog.admin_api.serializers_admin
+Module: manager.categories.serializers_admin
 Description: Admin category shapes (Pass 4B §3.3 `CategoryAdmin`, AD-18, AD-19).
 """
 
