@@ -14,6 +14,7 @@ class CustomerAdminRowSerializer(serializers.ModelSerializer):
 
     full_name = serializers.CharField(source='customer_profile.full_name', default='')
     phone = serializers.CharField(source='customer_profile.phone', default='')
+    deactivation_reason = serializers.CharField(source='customer_profile.deactivation_reason', default=None)
     total_orders = serializers.IntegerField()
     open_orders = serializers.IntegerField()
     no_show_count = serializers.IntegerField()
@@ -21,7 +22,7 @@ class CustomerAdminRowSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'full_name', 'email', 'phone', 'date_joined', 'is_active',
+            'id', 'full_name', 'email', 'phone', 'date_joined', 'is_active', 'deactivation_reason',
             'total_orders', 'open_orders', 'no_show_count',
         ]
         read_only_fields = fields

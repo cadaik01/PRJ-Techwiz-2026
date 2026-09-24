@@ -203,10 +203,12 @@ def custom_exception_handler(exc: Exception, context: dict) -> Response:
             code='INTERNAL_SERVER_ERROR',
         )
 
+    data = None
     if isinstance(exc, BUSINESS_EXCEPTIONS):
         code = getattr(exc, 'code', exc.default_code)
         message = str(exc.detail)
         errors = exc.errors
+        data = getattr(exc, 'data', None)
     else:
         if isinstance(exc, (drf_exceptions.NotAuthenticated, drf_exceptions.AuthenticationFailed)):
             code = 'AUTHENTICATION_FAILED'
@@ -230,6 +232,7 @@ def custom_exception_handler(exc: Exception, context: dict) -> Response:
 
     wrapped = api_response(
         message=message,
+        data=data,
         status_code=response.status_code,
         request=request,
         code=code,

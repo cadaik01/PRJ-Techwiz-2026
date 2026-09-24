@@ -68,7 +68,8 @@ def test_list_is_public_paginated_and_hides_inactive_markets(api_client, city):
     assert names(response) == ['Chợ Bến Thành', 'Chợ Bình Tây', 'Chợ Tân Định']
     row = response.json()['data']['results'][0]
     assert set(row) == {'id', 'name', 'address', 'image', 'latitude', 'longitude', 'operating_days',
-                        'open_time', 'close_time', 'farmer_count', 'distance_km', 'is_favorite'}
+                        'open_time', 'close_time', 'upcoming_closures', 'farmer_count', 'distance_km',
+                        'is_favorite'}
     assert (row['operating_days'], row['open_time'], row['distance_km'], row['is_favorite']) == (
         [6, 7], '05:00', None, None)
 
@@ -159,7 +160,8 @@ def test_market_farmers_are_farmer_summaries_with_stall_label(api_client, city):
     assert len(rows) == 1
     row = rows[0]
     assert set(row) == {'id', 'stall_name', 'image', 'rating_avg', 'rating_count', 'markets', 'operating_days',
-                        'in_stock_product_count', 'distance_km', 'is_favorite', 'stall_label'}
+                        'in_stock_product_count', 'upcoming_closures', 'distance_km', 'is_favorite',
+                        'stall_label'}
     assert (row['id'], row['stall_label'], row['rating_avg'], row['rating_count']) == (rau.pk, 'Sạp B12', 4.0, 1)
     assert (row['operating_days'], row['in_stock_product_count'], row['is_favorite']) == ([1, 6], 1, None)
     assert [m['market_name'] for m in row['markets']] == ['Chợ Bến Thành', 'Chợ Tân Định']

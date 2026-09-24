@@ -22,7 +22,8 @@ from accounts.models import FarmerProfile, FarmerStatus
 from catalog.models import Product
 from favorites.models import FavoriteFarmer
 from marketlink_core.policies.roles import RoleCode
-from markets.models import FarmerMarket, PickupSlot
+from markets.models import FarmerClosure, FarmerMarket, PickupSlot
+from markets.public.closures import upcoming_closures
 from reviews.models import FarmerReview
 
 PUBLIC_FARMER = Q(status=FarmerStatus.APPROVED, user__is_active=True)
@@ -54,12 +55,15 @@ def public_farmers(user=None) -> QuerySet[FarmerProfile]:
             rating_count=Coalesce(_per_farmer(reviews, 'order__farmer', Count('id'), IntegerField()), 0),
             in_stock_product_count=Coalesce(_per_farmer(in_stock, 'farmer', Count('id'), IntegerField()), 0),
         )
-        .prefetch_related(Prefetch(
-            'farmer_markets',
-            queryset=FarmerMarket.objects.filter(market__is_active=True).select_related('market').prefetch_related(
-                Prefetch('pickup_slots', queryset=PickupSlot.objects.filter(is_active=True)),
-            ).order_by('market__name'),
-        ))
+        .prefetch_related(
+            Prefetch(
+                'farmer_markets',
+                queryset=FarmerMarket.objects.filter(market__is_active=True).select_related('market')
+                .prefetch_related(Prefetch('pickup_slots', queryset=PickupSlot.objects.filter(is_active=True)))
+                .order_by('market__name'),
+            ),
+            upcoming_closures('closures', FarmerClosure),
+        )
     )
     if is_customer(user):
         favorite = FavoriteFarmer.objects.filter(customer=user, farmer=OuterRef('pk'))

@@ -1,14 +1,15 @@
 """Public farmer directory, profile and reviews (FR-12, FR-27, PU-06, PU-07, PU-09, U-05)."""
 
-from datetime import time
+from datetime import time, timedelta
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import FarmerStatus
 from catalog.models import Category
 from manager.conftest import make_customer, make_farmer, make_market, make_order, make_product
-from markets.models import FarmerMarket, PickupSlot
+from markets.models import FarmerClosure, FarmerMarket, PickupSlot
 from orders.models import OrderStatus
 from reviews.models import FarmerReview
 
@@ -128,3 +129,22 @@ def test_reviews_rating_filter_keeps_full_summary(api_client, directory):
     data = api_client.get(reverse('public-farmer-reviews', args=[directory['xoai'].pk]), {'rating': 1}).data['data']
 
     assert (data['count'], data['summary']['rating_count']) == (0, 1)       # the 1-star review is hidden
+
+
+@pytest.mark.django_db
+def test_upcoming_closures_cover_only_the_booking_horizon(api_client, directory):
+    today = timezone.localdate()
+    FarmerClosure.objects.create(farmer=directory['rau'], start_date=today + timedelta(days=2),
+                                 end_date=today + timedelta(days=8), reason='Harvest week')
+    FarmerClosure.objects.create(farmer=directory['rau'], start_date=today + timedelta(days=30),
+                                 end_date=today + timedelta(days=31))
+    FarmerClosure.objects.create(farmer=directory['rau'], start_date=today - timedelta(days=9),
+                                 end_date=today - timedelta(days=2))
+
+    profile = api_client.get(reverse('public-farmer-detail', args=[directory['rau'].pk])).json()['data']
+
+    assert profile['upcoming_closures'] == [{
+        'id': FarmerClosure.objects.get(reason='Harvest week').pk,
+        'start_date': str(today + timedelta(days=2)), 'end_date': str(today + timedelta(days=8)),
+        'reason': 'Harvest week',
+    }]

@@ -6,6 +6,7 @@ Description: `MarketSummary` and `Market` (Pass 4B §3.2). Needs public_markets(
 from rest_framework import serializers
 
 from markets.models import Market
+from markets.public.closures import closure_list
 from markets.public.geo import rounded_km
 
 TIME_FORMAT = '%H:%M'
@@ -17,6 +18,7 @@ class MarketSummarySerializer(serializers.ModelSerializer):
     operating_days = serializers.SerializerMethodField()
     open_time = serializers.TimeField(format=TIME_FORMAT)
     close_time = serializers.TimeField(format=TIME_FORMAT)
+    upcoming_closures = serializers.SerializerMethodField()
     farmer_count = serializers.IntegerField()
     distance_km = serializers.SerializerMethodField()
     is_favorite = serializers.SerializerMethodField()
@@ -25,12 +27,15 @@ class MarketSummarySerializer(serializers.ModelSerializer):
         model = Market
         fields = [
             'id', 'name', 'address', 'image', 'latitude', 'longitude', 'operating_days',
-            'open_time', 'close_time', 'farmer_count', 'distance_km', 'is_favorite',
+            'open_time', 'close_time', 'upcoming_closures', 'farmer_count', 'distance_km', 'is_favorite',
         ]
         read_only_fields = fields
 
     def get_operating_days(self, market) -> list[int]:
         return [day.day_of_week for day in market.operating_days.all()]
+
+    def get_upcoming_closures(self, market) -> list[dict]:
+        return closure_list(market)
 
     def get_distance_km(self, market):
         return rounded_km(getattr(market, 'distance_km', None))

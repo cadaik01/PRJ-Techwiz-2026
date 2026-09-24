@@ -6,6 +6,7 @@ Description: `FarmerSummary` (Pass 4B §3.2). Needs accounts.public.farmers.publ
 from rest_framework import serializers
 
 from accounts.models import FarmerProfile
+from markets.public.closures import closure_list
 
 
 class FarmerSummarySerializer(serializers.ModelSerializer):
@@ -17,6 +18,7 @@ class FarmerSummarySerializer(serializers.ModelSerializer):
     markets = serializers.SerializerMethodField()
     operating_days = serializers.SerializerMethodField()
     in_stock_product_count = serializers.IntegerField()
+    upcoming_closures = serializers.SerializerMethodField()
     distance_km = serializers.SerializerMethodField()
     is_favorite = serializers.SerializerMethodField()
 
@@ -24,7 +26,7 @@ class FarmerSummarySerializer(serializers.ModelSerializer):
         model = FarmerProfile
         fields = [
             'id', 'stall_name', 'image', 'rating_avg', 'rating_count', 'markets', 'operating_days',
-            'in_stock_product_count', 'distance_km', 'is_favorite',
+            'in_stock_product_count', 'upcoming_closures', 'distance_km', 'is_favorite',
         ]
         read_only_fields = fields
 
@@ -46,6 +48,9 @@ class FarmerSummarySerializer(serializers.ModelSerializer):
     def get_operating_days(self, farmer) -> list[int]:
         # Derived from active slots at active markets (Pass 4A §3.1: no stored column).
         return sorted({slot.day_of_week for fm in farmer.farmer_markets.all() for slot in fm.pickup_slots.all()})
+
+    def get_upcoming_closures(self, farmer) -> list[dict]:
+        return closure_list(farmer)
 
     def get_distance_km(self, farmer):
         value = getattr(farmer, 'distance_km', None)

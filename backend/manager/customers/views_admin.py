@@ -85,7 +85,7 @@ class CustomerDeactivateView(APIView):
         reason = serializer.validated_data['reason']
         affected = audited(
             request, action=AuditAction.CUSTOMER_DEACTIVATED, details={'customer_id': pk, 'reason': reason},
-            operation=lambda: deactivate_customer(customer_id=pk, actor=request.user),
+            operation=lambda: deactivate_customer(customer_id=pk, actor=request.user, reason=reason),
             result_details=lambda count: {'affected_orders': count},
         )
         return api_response(

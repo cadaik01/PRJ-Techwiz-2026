@@ -10,33 +10,11 @@ exists; merge into it then.
 
 from collections import Counter
 
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 
-from accounts.models import FarmerStatus
 from catalog.models import Product
-from favorites.models import FavoriteProduct
 from marketlink_core.context import get_request_id
-from notifications.models import NotificationType
-from notifications.services import push_notification
 from orders.models import OPEN_STATUSES, ActorRole, Order, OrderItem, OrderStatusHistory
-
-# Visible to the public (Pass 4B §6.2): only then is a restock worth announcing.
-PUBLIC_PRODUCT = Q(
-    is_archived=False, is_hidden_by_admin=False, is_available=True,
-    farmer__status=FarmerStatus.APPROVED, farmer__user__is_active=True,
-)
-
-
-def _restock_alerts(product_ids: list[int]) -> None:
-    """RESTOCK in-app to customers who favorited a product that went from 0 to > 0 (§5.5)."""
-    for product in Product.objects.filter(PUBLIC_PRODUCT, id__in=product_ids):
-        for customer_id in FavoriteProduct.objects.filter(product=product).values_list('customer_id', flat=True):
-            push_notification(
-                user_id=customer_id, type=NotificationType.RESTOCK,
-                title='A favorite product is back in stock',
-                message=f'{product.name} is back in stock',
-                target_url=f'/products/{product.id}',
-            )
 
 
 def close_open_orders(
@@ -64,10 +42,8 @@ def close_open_orders(
     quantities = Counter()
     for product_id, quantity in OrderItem.objects.filter(order__in=locked).values_list('product_id', 'quantity'):
         quantities[product_id] += quantity
-    back_in_stock = []
+    # No RESTOCK alert here: only a farmer adding stock sends one (D-025).
     for product in Product.objects.filter(id__in=quantities).order_by('id').select_for_update(of=('self',)):
-        if product.stock_quantity == 0:
-            back_in_stock.append(product.id)
         product.stock_quantity += quantities[product.id]
         product.save(update_fields=['stock_quantity', 'updated_at'])
 
@@ -83,6 +59,4 @@ def close_open_orders(
         order.version += 1
         order.save(update_fields=['status', 'version', 'updated_at'])
     OrderStatusHistory.objects.bulk_create(history)
-
-    _restock_alerts(back_in_stock)
     return locked

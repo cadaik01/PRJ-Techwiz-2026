@@ -9,6 +9,7 @@ from rest_framework import serializers
 
 from accounts.models import FarmerProfile
 from manager.common.products import FarmerProductSerializer, admin_products, rounded_rating
+from markets.public.closures import closure_list
 from orders.models import Order, OrderStatus
 from reviews.models import FarmerReview
 
@@ -49,6 +50,7 @@ class FarmerAdminDetailSerializer(serializers.ModelSerializer):
     markets = serializers.SerializerMethodField()
     operating_days = serializers.SerializerMethodField()
     in_stock_product_count = serializers.SerializerMethodField()
+    upcoming_closures = serializers.SerializerMethodField()
     distance_km = serializers.SerializerMethodField()
     is_favorite = serializers.SerializerMethodField()
     latitude = serializers.SerializerMethodField()
@@ -64,7 +66,7 @@ class FarmerAdminDetailSerializer(serializers.ModelSerializer):
         fields = [
             # FarmerSummary
             'id', 'stall_name', 'image', 'rating_avg', 'rating_count', 'markets', 'operating_days',
-            'in_stock_product_count', 'distance_km', 'is_favorite',
+            'in_stock_product_count', 'upcoming_closures', 'distance_km', 'is_favorite',
             # FarmerPublic
             'contact_person', 'phone', 'address', 'description', 'latitude', 'longitude',
             'order_cutoff_hours', 'pickup_windows',
@@ -98,6 +100,9 @@ class FarmerAdminDetailSerializer(serializers.ModelSerializer):
         return farmer.products.filter(
             is_archived=False, is_hidden_by_admin=False, is_available=True, stock_quantity__gt=0,
         ).count()
+
+    def get_upcoming_closures(self, farmer) -> list[dict]:
+        return closure_list(farmer)
 
     def get_distance_km(self, farmer):
         return None

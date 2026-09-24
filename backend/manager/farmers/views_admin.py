@@ -23,7 +23,8 @@ from marketlink_core.exceptions import BusinessValidationError
 from marketlink_core.pagination import ContractPagination
 from marketlink_core.permissions import IsAdmin
 from marketlink_core.utils import api_response
-from markets.models import FarmerMarket
+from markets.models import FarmerClosure, FarmerMarket
+from markets.public.closures import upcoming_closures
 from system.models import AuditAction
 
 
@@ -64,11 +65,14 @@ class FarmerAdminDetailView(APIView):
 
     def get(self, request, pk):
         farmer = get_object_or_404(
-            FarmerProfile.objects.select_related('user').prefetch_related(Prefetch(
-                'farmer_markets',
-                queryset=FarmerMarket.objects.select_related('market').prefetch_related('pickup_slots')
-                .order_by('market__name'),
-            )),
+            FarmerProfile.objects.select_related('user').prefetch_related(
+                Prefetch(
+                    'farmer_markets',
+                    queryset=FarmerMarket.objects.select_related('market').prefetch_related('pickup_slots')
+                    .order_by('market__name'),
+                ),
+                upcoming_closures('closures', FarmerClosure),
+            ),
             pk=pk,
         )
         data = FarmerAdminDetailSerializer(farmer, context={'request': request}).data

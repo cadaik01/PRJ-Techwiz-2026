@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, Q, QuerySet
 
+from accounts.models import CustomerProfile
 from manager.common.notify import notify_user
 from manager.common.order_closing import close_open_orders
 from manager.common.retry import run_with_deadlock_retry
@@ -70,8 +71,10 @@ def _notify_farmer(order: Order) -> None:
     )
 
 
-def deactivate_customer(*, customer_id: int, actor) -> int:
-    """Lock the account and cancel its open orders (T5, T6, T13). Returns how many were cancelled.
+def deactivate_customer(*, customer_id: int, actor, reason: str) -> int:
+    """Lock the account, keep the reason (D-024) and cancel its open orders (T5, T6, T13).
+
+    Returns how many orders were cancelled.
 
     Lock order: users, then orders by id, then products by id (Pass 4A §5.2).
     """
@@ -82,6 +85,7 @@ def deactivate_customer(*, customer_id: int, actor) -> int:
                 raise BusinessValidationError('The account is already locked', code='INVALID_STATUS_TRANSITION')
             customer.is_active = False
             customer.save(update_fields=['is_active', 'updated_at'])
+            CustomerProfile.objects.filter(user_id=customer_id).update(deactivation_reason=reason)
             closed = close_open_orders(
                 orders=Order.objects.filter(customer_id=customer_id), to_status=OrderStatus.CANCELLED,
                 transitions=LOCK_TRANSITIONS, reason=ChangeReason.CUSTOMER_LOCKED_BY_ADMIN, actor=actor,
@@ -100,3 +104,4 @@ def activate_customer(*, customer_id: int) -> None:
             raise BusinessValidationError('The account is already active', code='INVALID_STATUS_TRANSITION')
         customer.is_active = True
         customer.save(update_fields=['is_active', 'updated_at'])
+        CustomerProfile.objects.filter(user_id=customer_id).update(deactivation_reason=None)

@@ -3,11 +3,13 @@ Module: manager.markets.serializers_admin
 Description: Admin market shapes (Pass 4B §3.2 `MarketAdmin`, AD-14 -> AD-17; A-06 rules).
 """
 
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from manager.common.images import validate_image_upload
 from markets.models import Market
+from markets.public.closures import closure_list
 
 TIME_FORMAT = '%H:%M'
 COORDINATE_MESSAGE = 'Invalid coordinates'
@@ -21,6 +23,7 @@ class MarketAdminReadSerializer(serializers.ModelSerializer):
     operating_days = serializers.SerializerMethodField()
     open_time = serializers.TimeField(format=TIME_FORMAT)
     close_time = serializers.TimeField(format=TIME_FORMAT)
+    upcoming_closures = serializers.SerializerMethodField()
     farmer_count = serializers.IntegerField()
     open_order_count = serializers.IntegerField()
     # Part of MarketSummary; always null here since an admin is neither locating
@@ -32,13 +35,16 @@ class MarketAdminReadSerializer(serializers.ModelSerializer):
         model = Market
         fields = [
             'id', 'name', 'address', 'image', 'latitude', 'longitude', 'operating_days',
-            'open_time', 'close_time', 'farmer_count', 'distance_km', 'is_favorite',
+            'open_time', 'close_time', 'upcoming_closures', 'farmer_count', 'distance_km', 'is_favorite',
             'description', 'map_provider', 'is_active', 'open_order_count', 'created_at', 'updated_at',
         ]
         read_only_fields = fields
 
     def get_operating_days(self, market) -> list[int]:
         return [day.day_of_week for day in market.operating_days.all()]
+
+    def get_upcoming_closures(self, market) -> list[dict]:
+        return closure_list(market)
 
     def get_distance_km(self, market):
         return None
@@ -99,4 +105,28 @@ class MarketAdminWriteSerializer(serializers.Serializer):
         close_time = attrs.get('close_time', getattr(self.instance, 'close_time', None))
         if open_time and close_time and close_time <= open_time:
             raise serializers.ValidationError({'close_time': ['The closing time must be after the opening time']})
+        return attrs
+
+
+class MarketClosureWriteSerializer(serializers.Serializer):
+    """AD-32 body: dates from today on, end on or after start, optional public reason (D-023)."""
+
+    start_date = serializers.DateField(error_messages={'required': 'Please choose a start date',
+                                                       'invalid': 'Invalid date (use YYYY-MM-DD)'})
+    end_date = serializers.DateField(error_messages={'required': 'Please choose an end date',
+                                                     'invalid': 'Invalid date (use YYYY-MM-DD)'})
+    reason = serializers.CharField(max_length=200, required=False, allow_null=True, allow_blank=True,
+                                   error_messages={'max_length': 'The reason can be at most 200 characters'})
+
+    def validate_start_date(self, value):
+        if value < timezone.localdate():
+            raise serializers.ValidationError('The closure cannot start in the past')
+        return value
+
+    def validate_reason(self, value):
+        return value or None
+
+    def validate(self, attrs):
+        if attrs['end_date'] < attrs['start_date']:
+            raise serializers.ValidationError({'end_date': ['The end date must be on or after the start date']})
         return attrs

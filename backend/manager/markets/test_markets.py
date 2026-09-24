@@ -2,7 +2,7 @@
 
 import io
 import os
-from datetime import datetime, time, timedelta
+from datetime import time, timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -14,7 +14,8 @@ from PIL import Image
 from accounts.models import FarmerProfile, FarmerStatus, Role
 from conftest import PASSWORD
 from marketlink_core.policies.roles import RoleCode
-from markets.models import FarmerMarket, Market, MarketOperatingDay, PickupSlot
+from markets.models import FarmerMarket, Market, MarketClosure, MarketOperatingDay, PickupSlot
+from notifications.models import Notification, NotificationType
 from orders.models import Order, OrderStatus
 
 User = get_user_model()
@@ -64,7 +65,7 @@ def add_slot(market, farmer, day=6, start=time(6), end=time(8)):
 
 
 def add_order(market, farmer, customer, status=OrderStatus.PLACED):
-    start = timezone.make_aware(datetime(2026, 10, 3, 6))
+    start = timezone.localtime().replace(hour=6, minute=0, second=0, microsecond=0) + timedelta(days=9)
     return Order.objects.create(
         customer=customer, farmer=farmer, market=market, pickup_date=start.date(), status=status,
         pickup_start_at=start, pickup_end_at=start + timedelta(hours=2),
@@ -116,8 +117,8 @@ def test_list_row_matches_market_admin_schema(admin_client, user):
 
     assert set(row) == {
         'id', 'name', 'address', 'image', 'latitude', 'longitude', 'operating_days', 'open_time',
-        'close_time', 'farmer_count', 'distance_km', 'is_favorite', 'description', 'map_provider',
-        'is_active', 'open_order_count', 'created_at', 'updated_at',
+        'close_time', 'upcoming_closures', 'farmer_count', 'distance_km', 'is_favorite', 'description',
+        'map_provider', 'is_active', 'open_order_count', 'created_at', 'updated_at',
     }
     assert row['operating_days'] == [2, 7]
     assert (row['open_time'], row['close_time']) == ('05:00', '11:00')
@@ -250,24 +251,43 @@ def test_patch_keeps_own_name(admin_client):
     {'open_time': '06:30'},                   # the slot starts at 06:00
     {'close_time': '07:30'},                  # the slot ends at 08:00
 ])
-def test_schedule_change_that_strands_a_slot_is_refused(admin_client, change):
+def test_schedule_change_switches_off_slots_outside_and_notifies_farmers(admin_client, change, user):
     market = make_market()
-    slot = add_slot(market, make_farmer('a@test.com'))
-    slot.is_active = False                    # an inactive slot still counts: it can be switched back on
-    slot.save()
+    farmer = make_farmer('a@test.com')
+    stranded = add_slot(market, farmer)
+    inside = add_slot(market, make_farmer('b@test.com'), day=7, start=time(6, 30), end=time(7, 30))
+    order = add_order(market, farmer, user)
 
     response = admin_client.patch(detail_url(market), change, format='json')
 
-    assert response.status_code == 422
-    assert response.data['code'] == 'RESOURCE_IN_USE'
-    assert response.data['message'].startswith('1 farmer pickup slots')
-    market.refresh_from_db()
-    assert (market.open_time, market.close_time) == (time(5), time(11))
-    assert sorted(market.operating_days.values_list('day_of_week', flat=True)) == [6, 7]
+    # D-022: the change goes through and switches off the slots it leaves outside.
+    assert response.status_code == 200
+    assert response.data['data']['deactivated_slot_count'] == 1
+    stranded.refresh_from_db()
+    inside.refresh_from_db()
+    assert (stranded.is_active, inside.is_active) == (False, True)
+    notice = Notification.objects.get(recipient=farmer.user)
+    assert (notice.type, notice.target_url) == (NotificationType.MARKET_SCHEDULE_CHANGED, '/farmer/pickup-settings')
+    assert not Notification.objects.exclude(recipient=farmer.user).exists()
+    order.refresh_from_db()
+    assert order.status == OrderStatus.PLACED                     # orders keep their snapshot (D-007)
 
 
 @pytest.mark.django_db
-def test_schedule_change_that_keeps_slots_inside_is_allowed(admin_client):
+def test_already_inactive_slots_are_not_counted(admin_client):
+    market = make_market()
+    slot = add_slot(market, make_farmer('a@test.com'))
+    slot.is_active = False
+    slot.save()
+
+    response = admin_client.patch(detail_url(market), {'operating_days': [7]}, format='json')
+
+    assert response.data['data']['deactivated_slot_count'] == 0
+    assert not Notification.objects.exists()
+
+
+@pytest.mark.django_db
+def test_schedule_change_that_keeps_slots_inside_switches_nothing_off(admin_client):
     market = make_market()
     add_slot(market, make_farmer('a@test.com'))
 
@@ -276,7 +296,7 @@ def test_schedule_change_that_keeps_slots_inside_is_allowed(admin_client):
     )
 
     assert response.status_code == 200
-    assert response.data['data']['operating_days'] == [1, 6]
+    assert (response.data['data']['operating_days'], response.data['data']['deactivated_slot_count']) == ([1, 6], 0)
 
 
 @pytest.mark.django_db
@@ -295,15 +315,80 @@ def test_replacing_the_image_deletes_the_old_file(admin_client, django_capture_o
 
 
 @pytest.mark.django_db
-def test_deactivate_and_activate(admin_client, user):
+def test_deactivate_is_refused_while_orders_are_open(admin_client, user):
     market = make_market()
-    add_order(market, make_farmer('a@test.com'), user)
+    order = add_order(market, make_farmer('a@test.com'), user)
 
+    refused = admin_client.post(detail_url(market, 'deactivate'))
+
+    assert (refused.status_code, refused.data['code'], refused.data['data']) == (
+        422, 'RESOURCE_IN_USE', {'open_orders': 1})
+    market.refresh_from_db()
+    assert market.is_active is True
+
+    Order.objects.filter(pk=order.pk).update(status=OrderStatus.COMPLETED)
     off = admin_client.post(detail_url(market, 'deactivate'))
-    assert off.status_code == 200
-    assert (off.data['data']['is_active'], off.data['data']['open_order_count']) == (False, 1)
-    # Deactivating only hides the market; its open orders are untouched (D-017).
-    assert Order.objects.get(market=market).status == OrderStatus.PLACED
-
+    assert (off.status_code, off.data['data']['is_active']) == (200, False)
     on = admin_client.post(detail_url(market, 'activate'))
     assert on.data['data']['is_active'] is True
+
+
+def closures_url(market):
+    return reverse('admin-market-closures', args=[market.pk])
+
+
+def days_from_today(days):
+    return timezone.localdate() + timedelta(days=days)
+
+
+@pytest.mark.django_db
+def test_add_list_and_delete_closures(admin_client):
+    market = make_market()
+    MarketClosure.objects.create(market=market, start_date=days_from_today(-10), end_date=days_from_today(-8))
+
+    created = admin_client.post(closures_url(market), {
+        'start_date': str(days_from_today(2)), 'end_date': str(days_from_today(4)), 'reason': 'Lunar New Year',
+    }, format='json')
+
+    assert created.status_code == 201
+    assert set(created.data['data']) == {'id', 'start_date', 'end_date', 'reason'}
+    assert len(admin_client.get(closures_url(market)).data['data']) == 1                    # past one hidden
+    assert len(admin_client.get(closures_url(market), {'include_past': 'true'}).data['data']) == 2
+    row = admin_client.get(LIST_URL).json()['data']['results'][0]
+    assert [c['reason'] for c in row['upcoming_closures']] == ['Lunar New Year']
+
+    deleted = admin_client.delete(reverse('admin-market-closure-detail', args=[created.data['data']['id']]))
+    assert deleted.status_code == 204
+    assert admin_client.get(closures_url(market)).data['data'] == []
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('start, end, field', [
+    (-1, 2, 'start_date'),                     # starts in the past
+    (3, 2, 'end_date'),                        # ends before it starts
+    (5, 7, 'start_date'),                      # overlaps the closure on days 6-9
+])
+def test_closure_validation(admin_client, start, end, field):
+    market = make_market()
+    MarketClosure.objects.create(market=market, start_date=days_from_today(6), end_date=days_from_today(9))
+
+    response = admin_client.post(closures_url(market), {
+        'start_date': str(days_from_today(start)), 'end_date': str(days_from_today(end)),
+    }, format='json')
+
+    assert (response.status_code, response.data['code']) == (400, 'VALIDATION_ERROR')
+    assert field in response.data['errors']
+
+
+@pytest.mark.django_db
+def test_closure_over_open_orders_is_refused_with_their_ids(admin_client, user):
+    market = make_market()
+    order = add_order(market, make_farmer('a@test.com'), user)          # picked up 9 days from now
+
+    response = admin_client.post(closures_url(market), {
+        'start_date': str(order.pickup_date), 'end_date': str(order.pickup_date),
+    }, format='json')
+
+    assert (response.status_code, response.data['code']) == (422, 'RESOURCE_IN_USE')
+    assert response.data['data'] == {'open_order_ids': [order.pk]}
+    assert not MarketClosure.objects.exists()

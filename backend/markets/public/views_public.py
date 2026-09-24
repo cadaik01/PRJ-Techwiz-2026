@@ -16,7 +16,8 @@ from favorites.models import FavoriteMarket
 from marketlink_core.exceptions import BusinessValidationError
 from marketlink_core.pagination import ContractPagination
 from marketlink_core.utils import api_response
-from markets.models import Market, MarketOperatingDay
+from markets.models import Market, MarketClosure, MarketOperatingDay
+from markets.public.closures import upcoming_closures
 from markets.public.geo import distance_km, read_point
 from markets.public.serializers_public import MarketDetailSerializer, MarketSummarySerializer
 
@@ -40,7 +41,10 @@ def public_markets(request, point=None):
     queryset = (
         Market.objects.filter(is_active=True)
         .annotate(farmer_count=Count('farmer_markets', filter=SELLING_FARMER, distinct=True))
-        .prefetch_related(Prefetch('operating_days', queryset=MarketOperatingDay.objects.order_by('day_of_week')))
+        .prefetch_related(
+            Prefetch('operating_days', queryset=MarketOperatingDay.objects.order_by('day_of_week')),
+            upcoming_closures('closures', MarketClosure),
+        )
     )
     if point:
         queryset = queryset.annotate(distance_km=distance_km(point))

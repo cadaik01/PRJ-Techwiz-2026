@@ -53,13 +53,18 @@ class ConflictError(APIException):
 
 
 class UnprocessableEntityError(APIException):
+    """`data` goes into the envelope's `data`, e.g. the open orders behind a RESOURCE_IN_USE."""
+
     status_code = 422
     default_code = 'FAILED_PRECONDITION'
 
-    def __init__(self, message: str, code: str = 'FAILED_PRECONDITION', errors: dict | None = None):
+    def __init__(
+        self, message: str, code: str = 'FAILED_PRECONDITION', errors: dict | None = None, data: dict | None = None,
+    ):
         super().__init__(message)
         self.code = code
         self.errors = errors or {}
+        self.data = data
 
 
 class PreconditionRequiredError(APIException):

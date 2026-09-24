@@ -43,7 +43,7 @@ def test_list_rows_and_counts(admin_client, customer, shop):
 
     assert data['count'] == 1                                      # farmer and admin accounts are not listed
     row = data['results'][0]
-    assert set(row) == {'id', 'full_name', 'email', 'phone', 'date_joined', 'is_active',
+    assert set(row) == {'id', 'full_name', 'email', 'phone', 'date_joined', 'is_active', 'deactivation_reason',
                         'total_orders', 'open_orders', 'no_show_count'}
     assert (row['full_name'], row['phone'], row['is_active']) == ('Nguyễn Văn A', '0901234567', True)
     assert (row['total_orders'], row['open_orders'], row['no_show_count']) == (3, 1, 1)
@@ -147,7 +147,8 @@ def test_deactivate_cancels_open_orders_restocks_and_notifies(admin_client, admi
 
 
 @pytest.mark.django_db(transaction=True)
-def test_restock_alert_when_stock_comes_back_from_zero(admin_client, customer, shop):
+def test_no_restock_alert_when_stock_comes_back_from_cancelled_orders(admin_client, customer, shop):
+    # D-025: only a farmer adding stock sends RESTOCK.
     cabbage = shop['cabbage']
     cabbage.stock_quantity = 0
     cabbage.save()
@@ -157,8 +158,20 @@ def test_restock_alert_when_stock_comes_back_from_zero(admin_client, customer, s
 
     admin_client.post(url('deactivate', customer), {'reason': 'Repeated no-shows'}, format='json')
 
-    alert = Notification.objects.get(recipient=fan)
-    assert (alert.type, alert.target_url) == (NotificationType.RESTOCK, f'/products/{cabbage.pk}')
+    cabbage.refresh_from_db()
+    assert cabbage.stock_quantity == 2
+    assert not Notification.objects.filter(recipient=fan).exists()
+
+
+@pytest.mark.django_db
+def test_lock_reason_is_kept_and_cleared_on_activation(admin_client, customer):
+    locked = admin_client.post(url('deactivate', customer), {'reason': 'Repeated no-shows'}, format='json')
+    assert locked.data['data']['deactivation_reason'] == 'Repeated no-shows'
+    customer.customer_profile.refresh_from_db()
+    assert customer.customer_profile.deactivation_reason == 'Repeated no-shows'
+
+    activated = admin_client.post(url('activate', customer))
+    assert activated.data['data']['deactivation_reason'] is None
 
 
 @pytest.mark.django_db
