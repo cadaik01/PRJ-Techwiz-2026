@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { QUERY_KEYS } from '../../config/constants';
+import { homeFor, QUERY_KEYS } from '../../config/constants';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { authApi } from './authApi';
 
@@ -43,7 +43,7 @@ export function useAuth() {
       setTokens({ access: data.access, refresh: data.refresh });
       // Seed the cache so no extra /me/ round-trip happens right after login.
       queryClient.setQueryData(QUERY_KEYS.ME, data.user);
-      navigate(data.user?.must_change_password ? '/change-password' : '/', { replace: true });
+      navigate(data.user?.must_change_password ? '/change-password' : homeFor(data.user), { replace: true });
     },
     onError: (error) => toast.error(error.apiMessage || 'Invalid email or password.'),
   });

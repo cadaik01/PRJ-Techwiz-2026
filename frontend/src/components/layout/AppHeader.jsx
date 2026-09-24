@@ -4,7 +4,8 @@ import { useUIStore } from '../../stores/useUIStore';
 import { NotificationBell } from '../../features/notifications/NotificationBell';
 import { UserMenu } from '../../features/auth/UserMenu';
 
-export function AppHeader({ title }) {
+// Admin receives no personal notifications (Pass 4B §4.6), so AdminLayout hides the bell.
+export function AppHeader({ title, showNotifications = true }) {
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
 
   return (
@@ -22,7 +23,7 @@ export function AppHeader({ title }) {
       </div>
 
       <div className="flex items-center gap-2">
-        <NotificationBell />
+        {showNotifications && <NotificationBell />}
         <UserMenu />
       </div>
     </header>

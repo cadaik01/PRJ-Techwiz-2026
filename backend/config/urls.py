@@ -14,13 +14,13 @@ from drf_spectacular.views import (
 )
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # Kept off /admin/ so it never shadows the /api/admin/ branch (Pass 4B §1.1, API-07).
+    path('django-admin/', admin.site.urls),
 
     path('api/auth/', include('accounts.urls')),
     path('api/notifications/', include('notifications.urls')),
     path('api/', include('system.urls')),
-    # Mount the SRS apps here, for example:
-    # path('api/', include('orders.urls')),
+    path('api/', include('catalog.urls')),
 
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
