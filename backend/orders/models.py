@@ -53,7 +53,7 @@ class ChangeReason:
     CUSTOMER_LOCKED_BY_ADMIN = "CUSTOMER_LOCKED_BY_ADMIN"
 
 
-MONEY_FIELD_KWARGS = {"max_digits": 12, "decimal_places": 0}
+MONEY_FIELD_KWARGS = {"max_digits": 10, "decimal_places": 2}
 
 
 class Order(BaseModel):

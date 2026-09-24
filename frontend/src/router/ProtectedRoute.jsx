@@ -3,9 +3,9 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { PageSkeleton } from '../components/feedback/PageSkeleton';
 import { useAuth } from '../features/auth/useAuth';
 
-// Blocks anonymous visitors and forces a first-login password change.
+// Blocks anonymous visitors. The admin area has its own sign-in page (D-027).
 export function ProtectedRoute() {
-  const { isAuthenticated, isReady, user } = useAuth();
+  const { isAuthenticated, isReady } = useAuth();
   const location = useLocation();
 
   // Wait for the profile fetch before deciding, otherwise a page refresh bounces
@@ -13,11 +13,8 @@ export function ProtectedRoute() {
   if (!isReady) return <PageSkeleton />;
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  if (user?.must_change_password && location.pathname !== '/change-password') {
-    return <Navigate to="/change-password" replace />;
+    const loginPath = location.pathname.startsWith('/admin') ? '/admin/login' : '/login';
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
   return <Outlet />;

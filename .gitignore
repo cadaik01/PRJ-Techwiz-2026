@@ -23,3 +23,6 @@ frontend/.env
 .DS_Store
 .vscode/
 .idea/
+
+# AI assistant tooling (local only)
+.claude/

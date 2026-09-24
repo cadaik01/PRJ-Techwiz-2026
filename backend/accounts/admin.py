@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import BaseUserCreationForm, UserChangeForm
 from simple_history.admin import SimpleHistoryAdmin
 
 from accounts.models import CustomerProfile, CustomUser, FarmerProfile, Role
@@ -11,36 +13,41 @@ class RoleAdmin(admin.ModelAdmin):
     search_fields = ("code", "name")
 
 
+class CustomUserCreationForm(BaseUserCreationForm):
+    # Django 5.1+ adds a "usable password" toggle; accounts here always get a real password.
+    usable_password = None
+
+    class Meta:
+        model = CustomUser
+        fields = ("email", "role")
+
+
+class CustomUserChangeForm(UserChangeForm):
+    class Meta:
+        model = CustomUser
+        fields = ("email", "role", "is_active", "is_staff", "is_superuser")
+
+
+# Subclassing UserAdmin keeps Django's password hashing and change-password screen;
+# a plain ModelAdmin would save whatever is typed into the password field as-is.
 @admin.register(CustomUser)
-class CustomUserAdmin(admin.ModelAdmin):
-    list_display = (
-        "email",
-        "role",
-        "is_active",
-        "is_staff",
-        "must_change_password",
-        "date_joined",
-    )
+class CustomUserAdmin(UserAdmin):
+    form = CustomUserChangeForm
+    add_form = CustomUserCreationForm
+    list_display = ("email", "role", "is_active", "is_staff", "date_joined")
     list_filter = ("role", "is_active", "is_staff")
     search_fields = ("email",)
     ordering = ("email",)
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        (
-            "Permissions & Roles",
-            {
-                "fields": (
-                    "role",
-                    "is_active",
-                    "is_staff",
-                    "is_superuser",
-                    "must_change_password",
-                )
-            },
-        ),
+        ("Permissions & Roles", {"fields": ("role", "is_active", "is_staff", "is_superuser")}),
         ("Timestamps", {"fields": ("date_joined", "last_login", "updated_at")}),
     )
+    add_fieldsets = (
+        (None, {"classes": ("wide",), "fields": ("email", "role", "password1", "password2")}),
+    )
     readonly_fields = ("date_joined", "last_login", "updated_at")
+    filter_horizontal = ()
 
 
 @admin.register(CustomerProfile)

@@ -52,6 +52,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "marketlink_core.middleware.RequestIDMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -114,7 +115,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LANGUAGE_CODE = "vi"
+LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
 USE_TZ = True
@@ -133,7 +134,8 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_PAGINATION_CLASS": "marketlink_core.pagination.StandardPagination",
+    "EXCEPTION_HANDLER": "marketlink_core.responses.custom_exception_handler",
     "PAGE_SIZE": 20,
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
@@ -143,6 +145,7 @@ REST_FRAMEWORK = {
         "anon": "120/min",
         "user": "300/min",
         "login": "5/min",
+        "admin_login": "5/min",
         "register": "10/hour",
         "orders": "10/hour",
         "chat": "20/min",
@@ -180,28 +183,32 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 CORS_EXPOSE_HEADERS = [
     "x-request-id",
     "content-disposition",
+    "idempotent-replayed",
 ]
 
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # -----------------------------------------------------------------------------
-# 10. REDIS CACHE & RESILIENT CHANNELS LAYER (Học từ WorkTracker)
+# Redis cache & Channels layer
 # -----------------------------------------------------------------------------
-REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
-REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
+# One REDIS_URL (redis:// locally, rediss:// on Upstash); key prefixes keep the
+# cache, the JWT blacklist and the channel layer apart on a single database.
+REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
 USE_REDIS = os.environ.get("USE_REDIS", "False").lower() in ("true", "1", "t")
 
 if USE_REDIS:
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/2",
+            "LOCATION": REDIS_URL,
+            "KEY_PREFIX": "cache",
             "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
         },
         "blacklist": {
             "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/1",
+            "LOCATION": REDIS_URL,
+            "KEY_PREFIX": "blacklist",
             "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
         },
     }
@@ -211,8 +218,7 @@ if USE_REDIS:
             "CONFIG": {
                 "hosts": [
                     {
-                        "address": f"redis://{REDIS_HOST}:{REDIS_PORT}/4",
-                        "socket_timeout": None,
+                        "address": REDIS_URL,
                         "socket_connect_timeout": 5,
                         "socket_keepalive": True,
                         "health_check_interval": 30,
@@ -225,8 +231,14 @@ if USE_REDIS:
         },
     }
 else:
+    # Single-process development only: throttling, idempotency and ws-tickets are not
+    # shared across workers without Redis.
     CACHES = {
         "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+        "blacklist": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "blacklist",
+        },
     }
     CHANNEL_LAYERS = {
         "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
@@ -254,7 +266,7 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "MarketLink RESTful API",
-    "DESCRIPTION": "Hệ sinh thái kết nối Nông sản & Chợ truyền thống (eGreen Basket) — TechWiz 7",
+    "DESCRIPTION": "Connecting local farmers with traditional market shoppers (eGreen Basket) - TechWiz 7",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SECURITY": [{"bearerAuth": []}],
@@ -275,3 +287,21 @@ AI_CHAT_ENABLED = os.environ.get("AI_CHAT_ENABLED", "True").lower() in (
     "1",
     "t",
 )
+
+# -----------------------------------------------------------------------------
+# History, email & logging
+# -----------------------------------------------------------------------------
+# TEXT instead of VARCHAR(100): suspension reasons can reach 500 characters.
+SIMPLE_HISTORY_HISTORY_CHANGE_REASON_USE_TEXT_FIELD = True
+
+EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "10"))
+EMAIL_ASYNC = os.environ.get("EMAIL_ASYNC", "True").lower() in ("true", "1", "t")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "marketlink": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}
