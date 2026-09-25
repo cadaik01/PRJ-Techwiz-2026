@@ -12,7 +12,14 @@ from accounts.auth.serializers_common import (
     build_auth_payload,
 )
 from accounts.auth.tokens import SESSION_CLAIM
-from accounts.services.auth_service import authenticate_user, change_password, logout, rotate_refresh_token
+from accounts.services.auth_service import (
+    ADMIN_PORTAL_ROLES,
+    MARKET_PORTAL_ROLES,
+    authenticate_user,
+    change_password,
+    logout,
+    rotate_refresh_token,
+)
 from marketlink_core.exceptions import DomainError
 from marketlink_core.responses import api_response
 from system.models import AuditAction
@@ -20,23 +27,36 @@ from system.services import log_request_event
 
 
 class LoginView(APIView):
+    """AU-03: Customer and Farmer portal (D-027)."""
+
     permission_classes = [AllowAny]
     authentication_classes = []
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
+    portal_roles = MARKET_PORTAL_ROLES
+    audit_details: dict = {}
 
     def post(self, request):
         serializer = LoginWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
         try:
-            user = authenticate_user(**serializer.validated_data)
+            user = authenticate_user(**serializer.validated_data, roles=self.portal_roles)
         except DomainError as exc:
             log_request_event(request, action=AuditAction.LOGIN_FAILED, status_code=exc.status_code,
-                               details={"email": email, "error": exc.code})
+                               details={"email": email, "error": exc.code, **self.audit_details})
             raise
-        log_request_event(request, action=AuditAction.LOGIN, status_code=200, user=user)
+        log_request_event(request, action=AuditAction.LOGIN, status_code=200, user=user,
+                           details=self.audit_details or None)
         return api_response(message="Login successful", data=build_auth_payload(user), request=request)
+
+
+class AdminLoginView(LoginView):
+    """AU-09: separate Admin portal with its own throttle bucket (D-027)."""
+
+    throttle_scope = "admin_login"
+    portal_roles = ADMIN_PORTAL_ROLES
+    audit_details = {"portal": "ADMIN"}
 
 
 class RefreshView(APIView):

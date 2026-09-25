@@ -34,10 +34,11 @@ class TestLogin:
         assert user["display_name"] == "Green Stall"
         assert user["farmer_status"] == "PENDING"
 
-    def test_admin_display_name(self, api, admin_user):
-        user = _login(api, "admin@example.com").json()["data"]["user"]
+    def test_admin_is_rejected_even_with_the_right_password(self, api, admin_user):
+        # D-027: admins sign in at /api/auth/admin/login/; this portal must not reveal the account exists.
+        response = _login(api, "admin@example.com")
 
-        assert (user["role"], user["display_name"]) == ("ADMIN", "Administrator")
+        assert (response.status_code, response.json()["code"]) == (401, "INVALID_CREDENTIALS")
 
     def test_wrong_password_and_unknown_email_look_identical(self, api, customer):
         wrong_password = _login(api, "alice@example.com", "Wrong2026x")

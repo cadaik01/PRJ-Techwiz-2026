@@ -16,6 +16,10 @@ from accounts.auth.sessions import (
 from accounts.auth.tokens import PASSWORD_VERSION_CLAIM, SESSION_CLAIM, issue_tokens, password_version
 from accounts.exceptions import AccountLockedError, InvalidCredentialsError, TokenInvalidError
 from accounts.models import CustomUser
+from marketlink_core.policies.roles import RoleCode
+
+MARKET_PORTAL_ROLES = frozenset({RoleCode.CUSTOMER, RoleCode.FARMER})
+ADMIN_PORTAL_ROLES = frozenset({RoleCode.ADMIN})
 
 # Revocation state lives in Redis (accounts.auth.sessions). The one rule that must survive a Redis wipe,
 # "a password change logs out every other device", is enforced by the pwv claim against the users table.
@@ -36,13 +40,16 @@ def _lock_user(user_id) -> CustomUser | None:
     )
 
 
-def authenticate_user(*, email: str, password: str) -> CustomUser:
+def authenticate_user(*, email: str, password: str, roles: frozenset[str]) -> CustomUser:
     user = CustomUser.objects.select_related("role").filter(email=email).first()
     if user is None:
         # Hash anyway so unknown emails take as long as wrong passwords (no user enumeration by timing).
         CustomUser().set_password(password)
         raise InvalidCredentialsError()
     if not user.check_password(password):
+        raise InvalidCredentialsError()
+    # D-027: a wrong portal looks like a wrong password, and is checked before the lock so it never leaks the reason.
+    if user.role.code not in roles:
         raise InvalidCredentialsError()
     if not user.is_active:
         raise account_locked_error(user)
