@@ -248,6 +248,7 @@ class OrderFSMTestCase(TestCase):
             actor_role=ActorRole.FARMER,
             expected_version=order.version,
             reason="Heavy rain damaged harvest.",
+            sold_out_product_ids=[],
         )
         self.assertEqual(order.status, OrderStatus.DECLINED)
         self.assertEqual(Product.objects.get(id=self.product.id).stock_quantity, initial_stock)

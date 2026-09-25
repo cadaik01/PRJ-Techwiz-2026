@@ -203,6 +203,25 @@ def parse_if_match(request) -> int:
 
 ---
 
+## 5. Chạy quét lười định kỳ khi deploy (`expire_orders`)
+
+### Quy tắc
+- D-009 không dùng Celery Beat; quét lười chỉ chạy khi có sự kiện (checkout, áp dụng mẫu tuần, Farmer mở danh sách đơn / dashboard). Nếu Farmer không mở app, đơn `PLACED` quá giờ nhận không chuyển `EXPIRED` và khách không nhận thông báo hết hạn.
+- Khi deploy **bắt buộc** cài lịch chạy lệnh có sẵn `python manage.py expire_orders` mỗi **10 phút** bằng cron hoặc scheduler của nơi host (không thêm thư viện mới).
+- Lỗi của một đơn trong lượt quét chỉ được ghi log (`logger "marketlink"`), các đơn khác vẫn được xử lý, request kích hoạt quét (danh sách đơn, checkout…) không bị lỗi theo. Ngoại lệ: khi quét chạy bên trong transaction của bên gọi thì lỗi vẫn được ném ra, vì transaction đã hỏng.
+
+### Ví dụ
+```text
+# crontab (Linux) — chạy mỗi 10 phút, ghi log ra file
+*/10 * * * * cd /srv/marketlink/backend && /srv/marketlink/venv/bin/python manage.py expire_orders >> /var/log/marketlink/expire_orders.log 2>&1
+```
+Nền tảng host có "Scheduled job / Cron job" thì khai báo cùng lệnh `python manage.py expire_orders`, chu kỳ 10 phút.
+
+### Kiểm chứng
+- Tạo đơn `PLACED` có `pickup_start_at` đã qua, không mở app Farmer; sau tối đa 10 phút đơn thành `EXPIRED` và khách nhận `ORDER_EXPIRED` (CT-23).
+
+---
+
 ## Bảng tổng hợp
 | # | Lưu ý | Sai lầm thường gặp | Test chứng minh |
 | :---: | :--- | :--- | :--- |
@@ -210,3 +229,4 @@ def parse_if_match(request) -> int:
 | 2 | `GETDEL` nguyên tử; `accept()` rồi `close(4401)` | `get()` + `delete()` riêng; `close()` trước `accept()` | CT-16 |
 | 3 | Khóa theo `id`, `of=("self",)`, thứ tự bảng cố định, retry 1213 | Tin rằng sắp xếp ID là hết deadlock | CT-07 |
 | 4 | Allow + Expose đủ header | Quên `CORS_EXPOSE_HEADERS` | Preflight trong DevTools, CT-06 |
+| 5 | Lịch chạy `expire_orders` mỗi 10 phút; lỗi từng đơn chỉ ghi log | Chỉ dựa vào quét lười khi có người mở app | CT-23 |

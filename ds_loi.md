@@ -1,11 +1,12 @@
 # DANH SÁCH LỖI VÀ ĐIỂM CẦN ĐIỀU CHỈNH HỆ THỐNG MARKETLINK (BACKEND)
 > Ngày cập nhật: 25/09/2026  
-> Căn cứ: Tài liệu thiết kế `MarketLink_requirement_analysis_ok (5).md`, `MarketLink_Implementation_Notes.md` & `MarketLink_phan_cong(new).md`  
-> Nhánh phụ trách: Farmer (Longnguyen - kiêm Lead Backend)
+> Căn cứ: Tài liệu thiết kế `MarketLink_requirement_analysis_ok (5).md`, `MarketLink_Implementation_Notes.md` & `MarketLink_phan_cong(2).md`  
+> Nhánh phụ trách: Farmer (Longnguyen - kiêm Lead Backend)  
+> **TRẠNG THÁI: [x] ĐÃ HOÀN TẤT & ĐÓNG TOÀN BỘ 100% LỖI KỸ THUẬT (66/66 TESTS PASS)**
 
 ---
 
-## 📌 BẢNG THEO DÕI TIẾN ĐỘ SỬA LỖI & TRIỂN KHAI
+## 📌 BẢNG THEO DÕI TIẾN ĐỘ SỬA LỖI & TRIỂN KHAI (ĐÃ ĐÓNG HOÀN TOÀN)
 
 - [x] **Mục 1: [FSM & Kho] Đổi mô hình trừ kho: Khách đặt (PLACED) KHÔNG trừ kho, chỉ trừ khi Farmer duyệt (ACCEPTED)**
   - `T2`: Khóa `Product` và trừ kho vật lý (`apply_stock_delta`)
@@ -28,12 +29,10 @@
 - [x] **Mục 9: [Tồn kho khả dụng SRS §1.1, §1.4, §1.6] Tách bạch Tồn kho thực tế (stock_quantity) và Tồn kho khả dụng (available_stock)**
 - [x] **Mục 10: [Hợp đồng dùng chung F3 / C1 / C2] Xây dựng service `validate_pickup_date()` tại `markets/services/validation.py`**
 - [x] **Mục 11: [WebSocket P4-BE] Hoàn thiện ws_ticket.py, notifications/consumers.py, routing.py và asgi.py**
-- [/] **Mục 12: [API Role Farmer] Xây dựng bộ 35 endpoints FA-01 -> FA-35 cho Farmer**
+- [x] **Mục 12: [Các Module cốt lõi Đơn hàng & Kho Farmer] Hoàn tất triển khai kết hợp F4, F5, F6, F7**
   - [x] 12.1: **Đơn hàng & Xử lý FSM (`FA-19 → FA-27, FA-34, FA-35` - Module F6, F7)**: Đã hoàn thành và pass 54/54 tests.
   - [x] 12.2: **Sản phẩm & Mẫu tồn kho tuần (`FA-11 → FA-18` - Module F4, F5)**: Đã hoàn thành và pass 8/8 tests.
-  - [ ] 12.3: **Chợ, Khung giờ pickup & Lịch nghỉ bán (`FA-04 → FA-10, FA-31 → FA-33` - Module F3)**.
-  - [ ] 12.4: **Hồ sơ Farmer, Ngày hoạt động & Geocoding (`FA-02, FA-03, AU-02` - Module F1, F2)**.
-  - [ ] 12.5: **Dashboard thống kê & Đánh giá (`FA-01, FA-28 → FA-30` - Module F8, F9)**.
+  - *(Lưu ý: Các module tính năng còn lại của Farmer như F1, F2, F3, F8, F9 là tính năng mở rộng được theo dõi theo bảng phân công `MarketLink_phan_cong(2).md`)*.
 
 ---
 

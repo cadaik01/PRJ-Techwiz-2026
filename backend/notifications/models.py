@@ -13,6 +13,7 @@ class NotificationType(models.TextChoices):
     ORDER_EXPIRED = "ORDER_EXPIRED", "Order Expired"
     ORDER_CHANGE_APPROVED = "ORDER_CHANGE_APPROVED", "Order Change Request Approved"
     ORDER_CHANGE_REJECTED = "ORDER_CHANGE_REJECTED", "Order Change Request Rejected"
+    ORDER_ITEM_SOLD_OUT = "ORDER_ITEM_SOLD_OUT", "Order Item Sold Out"
     RESTOCK = "RESTOCK", "Favorite Product Restocked"
     # Farmer notifications
     ORDER_PLACED = "ORDER_PLACED", "New Order Placed"

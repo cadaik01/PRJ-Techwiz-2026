@@ -4,8 +4,7 @@ from typing import Any
 from rest_framework import serializers
 
 from catalog.models import Category, Product, Unit
-from catalog.services.farmer_product import validate_image_upload
-from catalog.services.stock import get_pending_quantities
+from catalog.services.farmer_product import build_product_metrics, validate_image_upload
 
 
 class FarmerProductCategorySerializer(serializers.ModelSerializer):
@@ -15,43 +14,80 @@ class FarmerProductCategorySerializer(serializers.ModelSerializer):
 
 
 class FarmerProductSerializer(serializers.ModelSerializer):
+    """FarmerProduct (Pass 4B §3.3). Batch data comes from context["product_metrics"]."""
+
     category = FarmerProductCategorySerializer(read_only=True)
-    category_id = serializers.IntegerField(source="category.id", read_only=True)
+    availability = serializers.SerializerMethodField()
+    farmer = serializers.SerializerMethodField()
+    rating_avg = serializers.SerializerMethodField()
+    rating_count = serializers.SerializerMethodField()
+    is_favorite = serializers.SerializerMethodField()
+    markets = serializers.SerializerMethodField()
+    held_quantity = serializers.SerializerMethodField()
     pending_quantity = serializers.SerializerMethodField()
-    available_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
             "id",
             "name",
-            "category",
-            "category_id",
-            "description",
             "image",
             "price",
             "unit",
             "stock_quantity",
-            "weekly_default_quantity",
             "is_available",
+            "availability",
+            "category",
+            "farmer",
+            "rating_avg",
+            "rating_count",
+            "is_favorite",
+            "description",
+            "markets",
+            "weekly_default_quantity",
+            "held_quantity",
+            "pending_quantity",
             "is_archived",
             "is_hidden_by_admin",
             "hidden_reason",
-            "pending_quantity",
-            "available_stock",
             "created_at",
             "updated_at",
         ]
 
-    def get_pending_quantity(self, obj: Product) -> int:
-        precomputed = self.context.get("pending_quantities")
-        if precomputed is not None:
-            return precomputed.get(obj.id, 0)
-        return get_pending_quantities(product_ids=[obj.id]).get(obj.id, 0)
+    def _metrics(self, obj: Product) -> dict[str, Any]:
+        metrics = self.context.get("product_metrics")
+        if metrics is None:
+            metrics = build_product_metrics(farmer=obj.farmer, product_ids=[obj.id])
+            self.context["product_metrics"] = metrics
+        return metrics
 
-    def get_available_stock(self, obj: Product) -> int:
-        pending = self.get_pending_quantity(obj)
-        return max(obj.stock_quantity - pending, 0)
+    def get_availability(self, obj: Product) -> str:
+        if not obj.is_available:
+            return "UNAVAILABLE"
+        return "IN_STOCK" if obj.stock_quantity > 0 else "OUT_OF_STOCK"
+
+    def get_farmer(self, obj: Product) -> dict[str, Any]:
+        return {"id": obj.farmer_id, "stall_name": obj.farmer.stall_name}
+
+    def get_rating_avg(self, obj: Product) -> float | None:
+        rating = self._metrics(obj)["ratings"].get(obj.id)
+        return rating[0] if rating else None
+
+    def get_rating_count(self, obj: Product) -> int:
+        rating = self._metrics(obj)["ratings"].get(obj.id)
+        return rating[1] if rating else 0
+
+    def get_is_favorite(self, obj: Product) -> None:
+        return None  # only meaningful for customers
+
+    def get_markets(self, obj: Product) -> list[dict[str, Any]]:
+        return self._metrics(obj)["markets"]
+
+    def get_held_quantity(self, obj: Product) -> int:
+        return self._metrics(obj)["held"].get(obj.id, 0)
+
+    def get_pending_quantity(self, obj: Product) -> int:
+        return self._metrics(obj)["pending"].get(obj.id, 0)
 
 
 class FarmerProductCreateSerializer(serializers.Serializer):

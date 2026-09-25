@@ -1,12 +1,15 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from unittest import mock
+
 from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 
 from accounts.models import CustomUser, CustomerProfile, FarmerProfile, Role, RoleCode
 from catalog.models import Category, Product, Unit
+from catalog.services.farmer_product import apply_weekly_template
 from catalog.services.stock import (
     get_held_quantities,
     get_pending_quantities,
@@ -15,6 +18,7 @@ from catalog.services.stock import (
 from markets.models import FarmerMarket, Market, PickupSlot
 from notifications.models import Notification, NotificationType
 from orders.models import ActorRole, Order, OrderItem, OrderStatus, Transition
+from orders.services import expiry as expiry_service
 from orders.services.expiry import expire_overdue_orders
 from orders.services.fsm import record_order_placed, transition_order
 
@@ -244,7 +248,7 @@ class OrderExpiryTestCase(TestCase):
         self._create_order(
             farmer=self.farmer, is_overdue=False, status=OrderStatus.READY_FOR_PICKUP, qty=2
         )
-        # 4. Overdue ACCEPTED order (qty=5) -> should be excluded because pickup has started
+        # 4. ACCEPTED order whose pickup window has ended (qty=5) -> excluded (previous cycle, A-004)
         self._create_order(farmer=self.farmer, is_overdue=True, status=OrderStatus.ACCEPTED, qty=5)
 
         held = get_weekly_pattern_held_quantities(product_ids=[self.product.id])
@@ -267,3 +271,57 @@ class OrderExpiryTestCase(TestCase):
             farmer=self.farmer, status=OrderStatus.PLACED, pickup_start_at__lte=timezone.now()
         ).count()
         self.assertEqual(overdue_remaining, 0)
+
+    # ---- Tính năng 3 review ----
+
+    def test_apply_weekly_template_runs_lazy_sweep_first(self):
+        # 3.1: FA-18 must sweep before locking products (A-005, Pass 4A lock order).
+        order = self._create_order(farmer=self.farmer, is_overdue=True)
+        apply_weekly_template(farmer=self.farmer)
+        order.refresh_from_db()
+        self.assertEqual(order.status, OrderStatus.EXPIRED)
+
+    def test_one_failing_order_does_not_stop_the_sweep(self):
+        # W3.2: at top level a broken order is logged and the others still expire.
+        broken = self._create_order(farmer=self.farmer, is_overdue=True)
+        healthy = self._create_order(farmer=self.farmer, is_overdue=True)
+        real_transition = expiry_service.transition_order
+
+        def flaky_transition(*, order_id, **kwargs):
+            if order_id == broken.id:
+                raise RuntimeError("simulated failure")
+            return real_transition(order_id=order_id, **kwargs)
+
+        with mock.patch.object(expiry_service, "_in_caller_transaction", return_value=False), \
+                mock.patch.object(expiry_service, "transition_order", side_effect=flaky_transition), \
+                self.assertLogs("marketlink", level="ERROR"):
+            count = expire_overdue_orders(farmer_id=self.farmer.pk)
+
+        self.assertEqual(count, 1)
+        broken.refresh_from_db()
+        healthy.refresh_from_db()
+        self.assertEqual(broken.status, OrderStatus.PLACED)
+        self.assertEqual(healthy.status, OrderStatus.EXPIRED)
+
+    def test_failure_inside_caller_transaction_is_raised(self):
+        # W3.2: inside the caller's transaction the error must not be swallowed.
+        self._create_order(farmer=self.farmer, is_overdue=True)
+        with mock.patch.object(
+            expiry_service, "transition_order", side_effect=RuntimeError("simulated failure")
+        ):
+            with self.assertRaises(RuntimeError):
+                expire_overdue_orders(farmer_id=self.farmer.pk)
+
+    # ---- Tính năng 6 review ----
+
+    def test_weekly_held_counts_orders_inside_pickup_window(self):
+        # 6.1: pickup started but not ended -> goods are still held (A-004: pickup_end_at > now).
+        order = self._create_order(farmer=self.farmer, status=OrderStatus.ACCEPTED, qty=4)
+        now = timezone.now()
+        order.cutoff_at = now - timedelta(hours=3)
+        order.pickup_start_at = now - timedelta(minutes=30)
+        order.pickup_end_at = now + timedelta(minutes=90)
+        order.save(update_fields=["cutoff_at", "pickup_start_at", "pickup_end_at"])
+
+        held = get_weekly_pattern_held_quantities(product_ids=[self.product.id])
+        self.assertEqual(held.get(self.product.id), 4)

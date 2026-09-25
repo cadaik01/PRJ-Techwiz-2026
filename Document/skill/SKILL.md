@@ -480,7 +480,7 @@ with transaction.atomic():
 ```
 
 - `order_by("id")` + `of=("self",)` + `list(...)` bên trong khối atomic.
-- **Khi nào khóa `products` (D-029)**: chỉ khi trừ / cộng kho — Farmer duyệt đơn (T2), Farmer chấp nhận yêu cầu thay đổi, và các cạnh cộng trả kho (T4, T6, T11, T12, T13, T14). Tạo đơn (T1), sửa đơn `PLACED` và gửi yêu cầu thay đổi **chỉ đọc** tồn kho để kiểm tra, không khóa, không trừ.
+- **Khi nào khóa `products` (D-029)**: chỉ khi trừ / cộng kho — Farmer duyệt đơn (T2), Farmer chấp nhận yêu cầu thay đổi, các cạnh cộng trả kho (T4, T6, T11, T12, T13, T14), và khi Farmer đánh dấu món hết hàng (FA-24 kèm khai báo, FA-36 — D-036). Tạo đơn (T1), sửa đơn `PLACED` và gửi yêu cầu thay đổi **chỉ đọc** tồn kho để kiểm tra, không khóa, không trừ.
 - Quét lười (`expire_overdue_orders`) chạy trong transaction riêng và commit **trước** transaction checkout / mẫu tuần, để không giữ khóa sản phẩm lẫn lộn.
 - **Thứ tự khóa giữa các bảng (bắt buộc)**: `users` / `customer_profiles` / `farmer_profiles` → `orders` (theo id) → `products` (theo id). Không service nào khóa `products` trước `orders`.
 - Cập nhật tồn kho: đọc dưới khóa rồi gán và `save(update_fields=[...])`, hoặc `F()` có điều kiện (`filter(id=..., stock_quantity__gte=n).update(...)`) — `products` không có history nên `F()` được phép.
@@ -566,13 +566,16 @@ Lý do Admin tự nhập khi đình chỉ / khóa **không** ghi vào `change_re
 | T4, T6, T11, T12, T13, T14 (đơn đã bị trừ kho) | + trả lại |
 | T1, T3, T5, T8, T9, T10, sửa đơn `PLACED`, gửi / từ chối / tự hủy yêu cầu thay đổi | không đổi |
 
-- `EXPIRED` (T8): không đổi kho, không tính lỗi khách. `NO_SHOW` (T11, T14): cộng trả kho, tính vào cờ At risk (chỉ đếm `NO_SHOW` — D-028).
+- `EXPIRED` (T8): không đổi kho, không tính lỗi khách. `NO_SHOW` (T11, T14): cộng trả kho; cờ At risk / `no_show_count` **chỉ đếm `NO_SHOW` qua T11** — T14 không tính lỗi khách (D-028, D-036).
+- Từ chối đơn `ACCEPTED` (T4) do Farmer: bắt buộc khai báo món hết hàng (`mark_sold_out` hoặc `mark_sold_out_product_ids`, `false` / `[]` = trả tất cả về kho); món khai báo hết có tồn kho cuối = 0. Việc cộng trả và đặt 0 chạy trong cùng transaction của `transition_order` (D-036).
+- FA-36 (đơn `PLACED`): bỏ 1 món hết hàng khỏi đơn, tồn kho món = 0, tính lại `total_amount`, ghi lịch sử `transition = NULL`, báo khách `ORDER_ITEM_SOLD_OUT`; đơn phải còn ≥ 1 món (D-036).
 - Restock alert chỉ gửi khi Farmer chủ động nạp hàng (FA-14, FA-18), không gửi khi kho tăng do các cạnh trên (D-025).
 
 ### 7.6 Yêu cầu thay đổi đơn (D-030)
 
 - Đơn `PLACED`: khách sửa trực tiếp (không đổi trạng thái, không trừ kho).
 - Đơn `ACCEPTED`: khách gửi yêu cầu → lưu `orders.pending_change`, đơn giữ nguyên nội dung và số hàng đã trừ; yêu cầu mới ghi đè yêu cầu cũ.
+- Định dạng `pending_change` (v1.8): `{ items: [{product_id, quantity, unit_price}] | null, pickup_date, pickup_slot_id, note, requested_at }`. `unit_price` là giá khách thấy lúc gửi (món giữ nguyên = giá trong đơn, món mới = giá sản phẩm lúc gửi); FA-34 dùng đúng giá này. Đọc / kiểm tra / hiển thị qua `orders/services/pending_change.py` (`parse_pending_change`, `present_pending_change`); sai định dạng → 422 `FAILED_PRECONDITION`, không 500.
 - Farmer: chấp nhận (FA-34, khóa sản phẩm cũ ∪ mới theo `id`, trừ / trả chênh lệch, áp dụng nội dung mới), từ chối (FA-35, giữ đơn cũ), hoặc hủy cả đơn (T4).
 - Quy tắc thời gian: gửi trước `cutoff_at`; ngày nhận mới từ hôm nay đến `BOOKING_HORIZON_DAYS`; Farmer xử lý trước `pickup_start_at`, quá hạn thì quét lười tự hủy và báo khách `ORDER_CHANGE_REJECTED`.
 - Còn yêu cầu đang chờ thì T9 bị chặn (`FAILED_PRECONDITION`).
@@ -681,7 +684,7 @@ def notify(*, recipient: CustomUser, event_type: str, context: dict[str, Any]) -
 3. `transaction.on_commit(...)` → nếu sự kiện có email: render template rồi đẩy vào `ThreadPoolExecutor(max_workers=2)` khai báo cấp module.
 
 - Không nơi nào khác được tự tạo `Notification`, tự gửi WebSocket hay tự gửi mail.
-- `NotificationType`: `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`, `RESTOCK`, `ORDER_PLACED`, `ORDER_MODIFIED`, `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`, `ACCOUNT_STATUS_CHANGED`, `MARKET_SCHEDULE_CHANGED`, và từ v1.7 `ORDER_CHANGE_APPROVED`, `ORDER_CHANGE_REJECTED` (gửi khách, chỉ in-app — D-030).
+- `NotificationType`: `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`, `RESTOCK`, `ORDER_PLACED`, `ORDER_MODIFIED`, `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`, `ACCOUNT_STATUS_CHANGED`, `MARKET_SCHEDULE_CHANGED`, và từ v1.7 `ORDER_CHANGE_APPROVED`, `ORDER_CHANGE_REJECTED` (gửi khách, chỉ in-app — D-030), từ v1.8 `ORDER_ITEM_SOLD_OUT` (gửi khách, chỉ in-app — D-036).
 - `ORDER_CANCELLED_CUSTOMER_LOCKED` báo Farmer rằng hàng của đơn đã duyệt / sẵn sàng đã được trả về kho online (không còn câu "bán tại sạp" — D-033).
 - Sự kiện có email (6): Customer `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`; Farmer `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`. `RESTOCK` chỉ in-app và chỉ khi Farmer chủ động nạp hàng làm tồn kho từ 0 lên > 0 (D-025).
 - Template email tiếng Anh, mỗi sự kiện một cặp HTML + TXT: `order_accepted`, `order_ready`, `order_declined`, `order_expired`, `order_cancelled_by_customer`, `order_cancelled_customer_locked`.
@@ -842,7 +845,7 @@ EMAIL_ASYNC = True          # False in pytest so emails are sent synchronously
 
 MAX_PLACED_ORDERS_PER_CUSTOMER = 10   # D-005: unconfirmed (PLACED) orders per customer, no per-farmer limit
 BOOKING_HORIZON_DAYS = 7              # U-01 / D-030: latest pickup date a customer can choose or move to
-AT_RISK_THRESHOLD = 3                 # D-028: NO_SHOW/EXPIRED orders that flag a customer "At risk"
+AT_RISK_THRESHOLD = 3                 # D-028/D-036: NO_SHOW orders via T11 that flag a customer "At risk"
 AT_RISK_WINDOW_DAYS = 30
 
 LOGGING = {...}             # logger "marketlink" -> console; use logging.getLogger("marketlink")

@@ -44,7 +44,7 @@ NOTIFICATION_SPECS: dict[str, NotificationSpec] = {
         title="Order #{order_id} expired",
         message=(
             "{farmer_name} did not confirm your order before the pickup time, so it has "
-            "expired and the reserved items were released."
+            "expired. Please place a new order if you still need these items."
         ),
         target_url="/customer/orders/{order_id}",
         required=("order_id", "farmer_name"),
@@ -61,6 +61,15 @@ NOTIFICATION_SPECS: dict[str, NotificationSpec] = {
         message="{farmer_name} rejected your change request for order #{order_id}. Reason: {reason}",
         target_url="/customer/orders/{order_id}",
         required=("order_id", "farmer_name", "reason"),
+    ),
+    NotificationType.ORDER_ITEM_SOLD_OUT: NotificationSpec(
+        title="An item in order #{order_id} is sold out",
+        message=(
+            "{farmer_name} has run out of {product_name}, so it was removed from your order "
+            "#{order_id}. The farmer will contact you about the rest of the order."
+        ),
+        target_url="/customer/orders/{order_id}",
+        required=("order_id", "farmer_name", "product_name"),
     ),
     NotificationType.RESTOCK: NotificationSpec(
         title="{product_name} is back in stock",

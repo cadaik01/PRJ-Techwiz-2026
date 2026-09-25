@@ -53,12 +53,15 @@ def get_available_stock(*, product: Product) -> int:
 
 
 def get_weekly_pattern_held_quantities(*, product_ids: Iterable[int]) -> dict[int, int]:
+    """Weekly template "held" (A-004, D-029): ACCEPTED / READY orders whose pickup window has not
+    ended yet — orders being picked up right now still hold their goods. Orders past pickup_end_at
+    belong to the previous cycle and are listed separately as overdue."""
     now = timezone.now()
     rows = (
         OrderItem.objects.filter(
             product_id__in=set(product_ids),
             order__status__in=[OrderStatus.ACCEPTED, OrderStatus.READY_FOR_PICKUP],
-            order__pickup_start_at__gt=now,
+            order__pickup_end_at__gt=now,
         )
         .values("product_id")
         .annotate(held=Sum("quantity"))

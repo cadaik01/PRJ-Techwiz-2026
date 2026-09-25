@@ -19,9 +19,10 @@ from marketlink_core.exceptions import (
     ErrorCode,
     ForbiddenActionError,
     PreconditionRequiredError,
+    ResourceNotFoundError,
     UnprocessableEntityError,
 )
-from markets.models import FarmerMarket, Market, PickupSlot
+from markets.models import FarmerMarket, Market, MarketOperatingDay, PickupSlot
 from notifications.models import Notification, NotificationType
 from orders.models import ActorRole, Order, OrderItem, OrderStatus
 from orders.services.farmer_change_request import approve_change_request, reject_change_request
@@ -374,8 +375,8 @@ class FarmerChangeRequestTestCase(TestCase):
     def test_forbidden_for_other_or_suspended_farmer(self):
         order = self._create_accepted_order_with_change_request()
 
-        # Other farmer
-        with self.assertRaises(ForbiddenActionError):
+        # Other farmer -> 404 NOT_FOUND (CT-03: out of scope is not found)
+        with self.assertRaises(ResourceNotFoundError):
             approve_change_request(
                 order_id=order.id,
                 farmer_id=self.other_farmer.pk,
@@ -409,3 +410,99 @@ class FarmerChangeRequestTestCase(TestCase):
                 actor=self.farmer_user,
             )
         self.assertEqual(ctx.exception.code, ErrorCode.FAILED_PRECONDITION)
+
+    # ---- Review round Tính năng 2 ----
+
+    def test_not_found_for_missing_or_foreign_order(self):
+        order = self._create_accepted_order_with_change_request()
+        with self.assertRaises(ResourceNotFoundError):
+            reject_change_request(
+                order_id=order.id,
+                farmer_id=self.other_farmer.pk,
+                expected_version=order.version + 99,  # wrong version must not leak a 409
+                actor=self.other_farmer_user,
+            )
+        with self.assertRaises(ResourceNotFoundError):
+            approve_change_request(
+                order_id=999999,
+                farmer_id=self.farmer.pk,
+                expected_version=1,
+                actor=self.farmer_user,
+            )
+
+    def test_approve_change_request_with_reschedule(self):
+        # 2.1: approving a new pickup date/slot used to crash with a 500.
+        for day in range(1, 8):
+            MarketOperatingDay.objects.create(market=self.market, day_of_week=day)
+        new_date = (timezone.localtime(timezone.now()) + timedelta(days=3)).date()
+        new_slot = PickupSlot.objects.create(
+            farmer_market=self.farmer_market,
+            day_of_week=new_date.isoweekday(),
+            start_time="09:00:00",
+            end_time="11:00:00",
+            is_active=True,
+        )
+        order = self._create_accepted_order_with_change_request()
+        order.pending_change = {
+            "items": None,
+            "pickup_date": new_date.isoformat(),
+            "pickup_slot_id": new_slot.id,
+            "note": None,
+            "requested_at": timezone.now().isoformat(),
+        }
+        order.save(update_fields=["pending_change"])
+
+        updated = approve_change_request(
+            order_id=order.id,
+            farmer_id=self.farmer.pk,
+            expected_version=order.version,
+            actor=self.farmer_user,
+        )
+        updated.refresh_from_db()
+        self.assertIsNone(updated.pending_change)
+        self.assertEqual(updated.pickup_date, new_date)
+        self.assertEqual(updated.pickup_slot_id, new_slot.id)
+        self.assertEqual(timezone.localtime(updated.pickup_start_at).hour, 9)
+        self.assertEqual(timezone.localtime(updated.pickup_end_at).hour, 11)
+        self.assertEqual(updated.cutoff_at, updated.pickup_start_at - timedelta(hours=12))
+        self.assertEqual(updated.stall_label, "Stall S1")
+        self.assertEqual(updated.items.count(), 2)  # items unchanged
+
+    def test_malformed_pending_change_returns_422_not_500(self):
+        # 2.2: a pending_change without unit_price must not crash the approve endpoint.
+        order = self._create_accepted_order_with_change_request(
+            new_items=[{"product_id": self.product1.id, "quantity": 3}]
+        )
+        with self.assertRaises(UnprocessableEntityError) as ctx:
+            approve_change_request(
+                order_id=order.id,
+                farmer_id=self.farmer.pk,
+                expected_version=order.version,
+                actor=self.farmer_user,
+            )
+        self.assertEqual(ctx.exception.code, ErrorCode.FAILED_PRECONDITION)
+        order.refresh_from_db()
+        self.assertIsNotNone(order.pending_change)
+        self.product1.refresh_from_db()
+        self.assertEqual(self.product1.stock_quantity, 48)
+
+    def test_new_item_keeps_price_seen_by_customer(self):
+        # Decision A (v1.8): prices come from the request, not from the price at approval.
+        order = self._create_accepted_order_with_change_request(
+            new_items=[
+                {"product_id": self.product1.id, "quantity": 2, "unit_price": "10.00"},
+                {"product_id": self.product2.id, "quantity": 2, "unit_price": "5.00"},
+            ]
+        )
+        self.product2.price = Decimal("9.00")
+        self.product2.save(update_fields=["price"])
+
+        updated = approve_change_request(
+            order_id=order.id,
+            farmer_id=self.farmer.pk,
+            expected_version=order.version,
+            actor=self.farmer_user,
+        )
+        mint = updated.items.get(product=self.product2)
+        self.assertEqual(mint.unit_price, Decimal("5.00"))
+        self.assertEqual(updated.total_amount, Decimal("30.00"))
