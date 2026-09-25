@@ -19,6 +19,7 @@ urlpatterns = [
     ),
     path("api/auth/", include("accounts.auth.urls")),
     path("api/public/", include("orders.public.urls_public")),
+    path("api/customer/", include("accounts.customer.urls_customer")),
     path("api/customer/", include("orders.customer.urls_customer")),
 ]
 
