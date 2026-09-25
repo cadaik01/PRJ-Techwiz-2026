@@ -50,6 +50,18 @@ NOTIFICATION_SPECS: dict[str, NotificationSpec] = {
         required=("order_id", "farmer_name"),
         email_template="order_expired",
     ),
+    NotificationType.ORDER_CHANGE_APPROVED: NotificationSpec(
+        title="Change request approved for order #{order_id}",
+        message="{farmer_name} approved your change request for order #{order_id}.",
+        target_url="/customer/orders/{order_id}",
+        required=("order_id", "farmer_name"),
+    ),
+    NotificationType.ORDER_CHANGE_REJECTED: NotificationSpec(
+        title="Change request rejected for order #{order_id}",
+        message="{farmer_name} rejected your change request for order #{order_id}. Reason: {reason}",
+        target_url="/customer/orders/{order_id}",
+        required=("order_id", "farmer_name", "reason"),
+    ),
     NotificationType.RESTOCK: NotificationSpec(
         title="{product_name} is back in stock",
         message="{farmer_name} restocked {product_name}, one of your favorites.",
@@ -79,7 +91,7 @@ NOTIFICATION_SPECS: dict[str, NotificationSpec] = {
         title="Order #{order_id} was cancelled",
         message=(
             "The customer's account was locked by an administrator, so this order was "
-            "cancelled. You can sell the reserved items at your stall."
+            "cancelled and the items have been returned to your online stock."
         ),
         target_url="/farmer/orders/{order_id}",
         required=("order_id",),

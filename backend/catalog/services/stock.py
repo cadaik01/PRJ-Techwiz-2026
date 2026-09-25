@@ -1,13 +1,13 @@
 from collections.abc import Iterable
 
 from django.db.models import Sum
+from django.utils import timezone
 
 from catalog.models import Product
 from marketlink_core.exceptions import BusinessValidationError, ErrorCode
-from orders.models import OPEN_STATUSES, OrderItem
+from orders.models import OrderItem, OrderStatus
 
 
-# Callers must already hold their order locks: tables are always locked orders -> products (Pass 4A §5.2).
 def lock_products(*, product_ids: Iterable[int]) -> dict[int, Product]:
     ids = sorted(set(product_ids))
     products = list(Product.objects.filter(id__in=ids).order_by("id").select_for_update(of=("self",)))
@@ -33,9 +33,49 @@ def apply_stock_delta(*, products: dict[int, Product], deltas: dict[int, int]) -
 
 
 def get_held_quantities(*, product_ids: Iterable[int]) -> dict[int, int]:
+    # Physical stock is deducted upon ACCEPTED; only active PLACED orders hold stock reservation.
+    now = timezone.now()
     rows = (
-        OrderItem.objects.filter(product_id__in=set(product_ids), order__status__in=OPEN_STATUSES)
+        OrderItem.objects.filter(
+            product_id__in=set(product_ids),
+            order__status=OrderStatus.PLACED,
+            order__pickup_start_at__gt=now,
+        )
         .values("product_id")
         .annotate(held=Sum("quantity"))
     )
     return {row["product_id"]: row["held"] for row in rows}
+
+
+def get_available_stock(*, product: Product) -> int:
+    held = get_held_quantities(product_ids=[product.id]).get(product.id, 0)
+    return max(product.stock_quantity - held, 0)
+
+
+def get_weekly_pattern_held_quantities(*, product_ids: Iterable[int]) -> dict[int, int]:
+    now = timezone.now()
+    rows = (
+        OrderItem.objects.filter(
+            product_id__in=set(product_ids),
+            order__status__in=[OrderStatus.ACCEPTED, OrderStatus.READY_FOR_PICKUP],
+            order__pickup_start_at__gt=now,
+        )
+        .values("product_id")
+        .annotate(held=Sum("quantity"))
+    )
+    return {row["product_id"]: row["held"] for row in rows}
+
+
+def get_pending_quantities(*, product_ids: Iterable[int]) -> dict[int, int]:
+    now = timezone.now()
+    rows = (
+        OrderItem.objects.filter(
+            product_id__in=set(product_ids),
+            order__status=OrderStatus.PLACED,
+            order__pickup_start_at__gt=now,
+        )
+        .values("product_id")
+        .annotate(pending=Sum("quantity"))
+    )
+    return {row["product_id"]: row["pending"] for row in rows}
+

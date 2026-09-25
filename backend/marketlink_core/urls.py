@@ -5,12 +5,13 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.permissions import AllowAny
 
-from marketlink_core.views import HealthCheckView
+from marketlink_core.views import HealthCheckView, WebSocketTicketView
 
 # Django Admin lives at /django-admin/ so it never collides with the /api/admin/ branch.
 urlpatterns = [
     path("django-admin/", admin.site.urls),
     path("api/health/", HealthCheckView.as_view(), name="health"),
+    path("api/auth/ws-ticket/", WebSocketTicketView.as_view(), name="ws-ticket"),
     path("api/schema/", SpectacularAPIView.as_view(permission_classes=[AllowAny]), name="api-schema"),
     path(
         "api/docs/",
@@ -23,6 +24,8 @@ urlpatterns = [
     path("api/customer/", include("orders.customer.urls_customer")),
     path("api/customer/", include("reviews.customer.urls_customer")),
     path("api/customer/", include("favorites.customer.urls_customer")),
+    path("api/farmer/orders/", include("orders.farmer.urls_farmer")),
+    path("api/farmer/products/", include("catalog.farmer.urls_farmer")),
 ]
 
 if settings.DEBUG:

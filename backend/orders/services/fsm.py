@@ -41,20 +41,22 @@ class TransitionRule:
 _S = OrderStatus
 _R = ActorRole
 
+# Placed orders hold virtual reservation; physical stock is deducted upon ACCEPTED (T2).
+# Therefore, cancellations from PLACED (T3, T5, T8) do not restore physical stock.
 TRANSITIONS: dict[tuple[str | None, str], TransitionRule] = {
     (None, _S.PLACED): TransitionRule(Transition.T1, frozenset({_R.CUSTOMER})),
     (_S.PLACED, _S.ACCEPTED): TransitionRule(Transition.T2, frozenset({_R.FARMER})),
-    (_S.PLACED, _S.DECLINED): TransitionRule(Transition.T3, frozenset({_R.FARMER, _R.ADMIN}), True),
+    (_S.PLACED, _S.DECLINED): TransitionRule(Transition.T3, frozenset({_R.FARMER, _R.ADMIN}), False),
     (_S.ACCEPTED, _S.DECLINED): TransitionRule(Transition.T4, frozenset({_R.FARMER, _R.ADMIN}), True),
-    (_S.PLACED, _S.CANCELLED): TransitionRule(Transition.T5, frozenset({_R.CUSTOMER, _R.ADMIN}), True),
+    (_S.PLACED, _S.CANCELLED): TransitionRule(Transition.T5, frozenset({_R.CUSTOMER, _R.ADMIN}), False),
     (_S.ACCEPTED, _S.CANCELLED): TransitionRule(Transition.T6, frozenset({_R.CUSTOMER, _R.ADMIN}), True),
-    (_S.ACCEPTED, _S.PLACED): TransitionRule(Transition.T7, frozenset({_R.SYSTEM})),
-    (_S.PLACED, _S.EXPIRED): TransitionRule(Transition.T8, frozenset({_R.SYSTEM}), True),
+    (_S.PLACED, _S.EXPIRED): TransitionRule(Transition.T8, frozenset({_R.SYSTEM}), False),
     (_S.ACCEPTED, _S.READY_FOR_PICKUP): TransitionRule(Transition.T9, frozenset({_R.FARMER})),
     (_S.READY_FOR_PICKUP, _S.COMPLETED): TransitionRule(Transition.T10, frozenset({_R.FARMER})),
-    (_S.READY_FOR_PICKUP, _S.NO_SHOW): TransitionRule(Transition.T11, frozenset({_R.FARMER})),
+    (_S.READY_FOR_PICKUP, _S.NO_SHOW): TransitionRule(Transition.T11, frozenset({_R.FARMER}), True),
     (_S.READY_FOR_PICKUP, _S.DECLINED): TransitionRule(Transition.T12, frozenset({_R.ADMIN}), True),
     (_S.READY_FOR_PICKUP, _S.CANCELLED): TransitionRule(Transition.T13, frozenset({_R.ADMIN}), True),
+    (_S.ACCEPTED, _S.NO_SHOW): TransitionRule(Transition.T14, frozenset({_R.FARMER}), True),
 }
 
 
@@ -84,7 +86,10 @@ def transition_order(
         _check_actor(order, rule, actor, actor_role)
         change_reason = _check_preconditions(order, rule, actor_role, reason)
 
-        if rule.restores_stock:
+        # Locking order: orders (already locked above) -> products (sorted by id)
+        if rule.code == Transition.T2:
+            _deduct_stock(order)
+        elif rule.restores_stock:
             _restore_stock(order)
 
         from_status = order.status
@@ -123,7 +128,6 @@ def record_order_placed(*, order: Order, actor: Any) -> None:
 
 
 def _check_version(order: Order, actor_role: str, expected_version: int | None) -> None:
-    # Admin bulk actions and the lazy expiry run under the row lock without If-Match (A-002 §4).
     if expected_version is None:
         if actor_role in (_R.CUSTOMER, _R.FARMER):
             raise PreconditionRequiredError("The If-Match header is required.")
@@ -161,23 +165,22 @@ def _check_preconditions(
     code = rule.code
 
     if actor_role == _R.FARMER:
-        # Farmers may accept or decline a PLACED order after cutoff, but not once pickup has begun.
-        if code in (Transition.T2, Transition.T3) and now >= order.pickup_start_at:
+        if code in (Transition.T2, Transition.T3, Transition.T4) and now >= order.pickup_start_at:
             raise UnprocessableEntityError(
                 "The pickup time has already started.", code=ErrorCode.PICKUP_ALREADY_STARTED
             )
-        if code == Transition.T4 and now >= order.cutoff_at:
-            raise UnprocessableEntityError(
-                "An accepted order can only be declined before the cutoff time.",
-                code=ErrorCode.CUTOFF_PASSED,
-            )
-        # Packing starts only after cutoff, when the customer can no longer edit the order.
-        if code == Transition.T9 and now < order.cutoff_at:
-            raise UnprocessableEntityError(
-                "The order can be marked ready only after the cutoff time.",
-                code=ErrorCode.CUTOFF_NOT_REACHED,
-            )
-        if code == Transition.T11 and now < order.pickup_end_at:
+        if code == Transition.T9:
+            if order.pending_change:
+                raise UnprocessableEntityError(
+                    "Cannot mark ready while a change request is pending.",
+                    code=ErrorCode.FAILED_PRECONDITION,
+                )
+            if now < order.cutoff_at:
+                raise UnprocessableEntityError(
+                    "The order can be marked ready only after the cutoff time.",
+                    code=ErrorCode.CUTOFF_NOT_REACHED,
+                )
+        if code in (Transition.T11, Transition.T14) and now < order.pickup_end_at:
             raise UnprocessableEntityError(
                 "A no-show can be recorded only after the pickup window ends.",
                 code=ErrorCode.PICKUP_NOT_ENDED,
@@ -197,8 +200,7 @@ def _check_preconditions(
         return reason
 
     if actor_role == _R.ADMIN:
-        if reason:
-            return reason
+        # Fixed system reason prevents leaking internal administrative notes into end-user emails.
         if code in (Transition.T3, Transition.T4, Transition.T12):
             return ChangeReason.FARMER_SUSPENDED_BY_ADMIN
         return ChangeReason.CUSTOMER_LOCKED_BY_ADMIN
@@ -207,9 +209,15 @@ def _check_preconditions(
         if now < order.pickup_start_at:
             raise UnprocessableEntityError(code=ErrorCode.FAILED_PRECONDITION)
         return ChangeReason.SYSTEM_EXPIRED
-    if code == Transition.T7 and not reason:
-        raise BusinessValidationError(errors={"reason": ["A change summary is required."]})
     return reason
+
+
+def _deduct_stock(order: Order) -> None:
+    deltas: dict[int, int] = {}
+    for item in order.items.all():
+        deltas[item.product_id] = deltas.get(item.product_id, 0) - item.quantity
+    if deltas:
+        apply_stock_delta(products=lock_products(product_ids=deltas.keys()), deltas=deltas)
 
 
 def _restore_stock(order: Order) -> None:
@@ -249,12 +257,6 @@ def _send_notifications(
                 event_type=NotificationType.ORDER_CANCELLED,
                 context={**context, "reason": readable_reason},
             )
-    elif code == Transition.T7:
-        notify(
-            recipient=farmer_user,
-            event_type=NotificationType.ORDER_MODIFIED,
-            context={**context, "change_summary": change_reason},
-        )
     elif code == Transition.T8:
         notify(recipient=customer, event_type=NotificationType.ORDER_EXPIRED, context=context)
     elif code == Transition.T9:

@@ -10,9 +10,9 @@ description: Quy chuẩn Backend Django REST Framework + MySQL 8 cho dự án Ma
 Khi các tài liệu mâu thuẫn, áp dụng theo thứ tự sau (cao → thấp):
 
 1. `CLAUDE.md` / `GEMINI.md` ở thư mục gốc — luật cứng cho AI (không tự ý sửa file, không commit).
-2. `Document/doc/MarketLink_requirement_analysis_ok (4).md` — nguồn sự thật về nghiệp vụ, CSDL (Pass 4A), hợp đồng API (Pass 4B) và **danh mục mã lỗi (Pass 4B §2.5)**.
+2. `Document/doc/MarketLink_requirement_analysis_ok (5).md` (bản v1.7, D-001 → D-035) — nguồn sự thật về nghiệp vụ, CSDL (Pass 4A), hợp đồng API (Pass 4B) và **danh mục mã lỗi (Pass 4B §2.5)**.
 3. `Document/doc/MarketLink_Implementation_Notes.md` — 4 lưu ý kỹ thuật bắt buộc khi thi công.
-4. File skill này (`Document/skill/django-backend_skill.md`) — phương pháp lập trình và chữ ký hàm khung. Đây là **file skill chuẩn duy nhất** của dự án; mọi bản skill khác (nếu còn) đều cũ, không dùng.
+4. File skill này (`Document/skill/SKILL.md`) — phương pháp lập trình và chữ ký hàm khung. Đây là **file skill chuẩn duy nhất** của dự án (cập nhật theo tài liệu v1.7); mọi bản skill khác (kể cả `django-backend_skill.md` nếu chưa được đồng bộ) đều cũ, không dùng.
 
 Skill này **không** định nghĩa lại nghiệp vụ. Mọi tên trường, endpoint, trạng thái, mã lỗi phải lấy đúng từ tài liệu phân tích; tuyệt đối không suy đoán.
 
@@ -31,7 +31,7 @@ Toàn bộ những gì nằm trong repo và những gì hệ thống trả ra ch
 | `code` (mã lỗi), enum, `AuditAction` | English `UPPER_SNAKE_CASE` |
 | Tiêu đề / nội dung thông báo in-app (`notifications.title`, `notifications.message`) | English |
 | Email (subject, template HTML/TXT) | English |
-| `change_reason` do hệ thống sinh (ví dụ tóm tắt sửa đơn T7) | English — ví dụ `"Customer modified: Tomato 5→8 KG"` |
+| `change_reason` do hệ thống sinh (ví dụ tóm tắt sửa đơn, sự kiện yêu cầu thay đổi) | English — ví dụ `"Customer modified: Tomato 5→8 KG"` |
 | Nhãn `TextChoices`, `verbose_name`, `help_text`, Django Admin `fieldsets` | English |
 | Dữ liệu hệ thống seed bằng migration (tên role…) | English |
 | Commit message, tên branch, tiêu đề/mô tả Pull Request | English |
@@ -79,6 +79,7 @@ backend/
 ├── system/                     # AuditLog + log_security_event() (system/services.py);
 │                               # management/commands/seed_minimal.py (P6 minimal seed)
 ├── accounts/                   # CustomUser, roles, profiles; auth endpoints in accounts/auth/ (not built yet — P2, Customer)
+│                               # geocoding.py (not built yet — F1/F2, Farmer): tra tọa độ từ địa chỉ qua Nominatim (D-032)
 ├── markets/  catalog/  orders/  reviews/  favorites/  notifications/  chat_bot/
 ```
 
@@ -99,7 +100,13 @@ Mỗi app nghiệp vụ:
   - **Tầng HTTP đặt theo role**: file trong `[role]/` bắt buộc có hậu tố `_[role]`, tên số nhiều — `views_farmer.py`, `serializers_admin.py`, `urls_customer.py`. Class cũng mang role: `OrderFarmerReadSerializer`, `DeclineOrderFarmerWriteSerializer`.
   - **Tầng service đặt theo miền nghiệp vụ**, không gắn role, vì nhiều role cùng gọi (ví dụ FSM được Farmer, Customer, Admin và System gọi).
 - **`services.py` hay `services/`**: app chỉ có một nhóm service dùng file `services.py` (`notifications`, `system`); app có nhiều nhóm dùng thư mục `services/`, mỗi file là danh từ `snake_case` theo miền (`stock.py`, `fsm.py`, `expiry.py`), không thêm hậu tố `_service`, không trùng tên một app (tránh `orders/services/notifications.py`).
-- **Service dùng chung đã có** (import đúng đường dẫn này, không viết lại): `catalog/services/stock.py` (`lock_products`, `apply_stock_delta`, `get_held_quantities`), `orders/services/fsm.py` (`TRANSITIONS`, `transition_order`, `record_order_placed`), `orders/services/expiry.py` (`expire_overdue_orders`), `orders/services/notification_context.py` (`build_order_context`), `notifications/services.py` (`notify`), `system/services.py` (`log_security_event`, `log_request_event`), `accounts/phone.py` (`normalize_phone` — mọi nơi nhận số điện thoại phải chuẩn hóa bằng hàm này trước khi kiểm tra trùng, D-028).
+- **Service dùng chung đã có** (import đúng đường dẫn này, không viết lại; phần logic phải theo v1.7 — xem §6, §7): `catalog/services/stock.py` (`lock_products`, `apply_stock_delta`, `get_held_quantities`), `orders/services/fsm.py` (`TRANSITIONS`, `transition_order`, `record_order_placed`), `orders/services/expiry.py` (`expire_overdue_orders`), `orders/services/notification_context.py` (`build_order_context`), `notifications/services.py` (`notify`), `system/services.py` (`log_security_event`, `log_request_event`), `accounts/phone.py` (`normalize_phone` — mọi nơi nhận số điện thoại phải chuẩn hóa bằng hàm này trước khi kiểm tra trùng, D-028).
+- **Service dùng chung chưa có (v1.7)** — nhánh phụ trách tạo đúng đường dẫn, chữ ký hàm chốt khi hiện thực rồi ghi bổ sung vào đây:
+  - Hàm **kiểm tra tồn kho khả dụng** (chỉ đọc, không khóa, không trừ) trong `catalog/services/stock.py` — Farmer; dùng ở CU-04, CU-07 (D-029).
+  - `validate_pickup_date()` trong `markets/services/` — Farmer; điều kiện ngày hợp lệ theo A-019 (gồm ngày hoạt động của Farmer, không phải ngày quá khứ).
+  - `orders/services/change_request.py` — Farmer: chấp nhận / từ chối / tự hủy yêu cầu thay đổi (FA-34, FA-35, quét lười — D-030).
+  - `orders/services/modify.py` — Customer: sửa đơn `PLACED` và **gửi** yêu cầu thay đổi (CU-07). File hiện có đang theo logic cũ (T7, trừ kho khi sửa) và phải viết lại theo D-030.
+- **Chia service theo role thực hiện**: thao tác do role nào làm thì nhánh của role đó viết (ví dụ khách gửi yêu cầu thay đổi → Customer; Farmer xử lý → Farmer). Hai bên dùng chung dữ liệu thì phải theo đúng định dạng đã chốt ở Pass 4A (ví dụ `orders.pending_change`).
 - **Lệnh quản trị** (`management/commands/`): động từ + danh từ `snake_case` — `seed_minimal`, `expire_orders`.
 - Mục đánh dấu **(not built yet)** là thiết kế đã chốt nhưng chưa có code: không import chúng; nhánh phụ trách tạo đúng đường dẫn và chữ ký đã ghi.
 - Route WebSocket mới được thêm thẳng vào danh sách `websocket_urlpatterns` trong `marketlink_core/asgi.py`.
@@ -263,7 +270,7 @@ Chỉ được dùng các mã dưới đây. Cần mã mới → đề xuất b�
 | :---: | :--- | :--- |
 | 400 | `VALIDATION_ERROR` | Dữ liệu sai định dạng / thiếu trường (gồm cả lỗi file upload) |
 | 400 | `EMAIL_EXISTS` | Email đã đăng ký |
-| 400 | `INSUFFICIENT_STOCK` | Thiếu hàng khi đặt / sửa đơn |
+| 400 | `INSUFFICIENT_STOCK` | Thiếu hàng khi đặt / sửa đơn / gửi yêu cầu thay đổi (kiểm tra khả dụng), hoặc khi Farmer duyệt đơn / chấp nhận yêu cầu thay đổi (trừ kho — D-029) |
 | 400 | `INVALID_STATUS_TRANSITION` | Gate 1: cạnh FSM không tồn tại |
 | 401 | `NOT_AUTHENTICATED` | Thiếu / hết hạn access token |
 | 401 | `INVALID_CREDENTIALS` | Sai email / mật khẩu |
@@ -277,18 +284,18 @@ Chỉ được dùng các mã dưới đây. Cần mã mới → đề xuất b�
 | 409 | `RESOURCE_MODIFIED` | `If-Match` lệch `version` |
 | 409 | `IDEMPOTENCY_IN_PROGRESS` | Cùng `Idempotency-Key` đang xử lý |
 | 409 | `CONFLICT_RETRY` | Deadlock MySQL sau 1 lần retry |
-| 422 | `OPEN_ORDER_LIMIT_EXCEEDED` | Vượt 1 đơn mở / Farmer hoặc 5 đơn mở (D-005) |
-| 422 | `CUTOFF_PASSED` | Sửa / hủy / đặt sau `cutoff_at`; Farmer từ chối đơn `ACCEPTED` sau cutoff |
+| 422 | `OPEN_ORDER_LIMIT_EXCEEDED` | Vượt 10 đơn `PLACED` chưa qua `pickup_start_at` trên toàn sàn (D-005 v1.5); không giới hạn theo Farmer |
+| 422 | `CUTOFF_PASSED` | Khách sửa / gửi yêu cầu thay đổi / hủy / đặt sau `cutoff_at` (không còn dùng cho Farmer từ chối đơn — v1.7) |
 | 422 | `CUTOFF_NOT_REACHED` | Đánh dấu sẵn sàng trước `cutoff_at` (T9) |
-| 422 | `PICKUP_ALREADY_STARTED` | Duyệt / từ chối đơn `PLACED` sau `pickup_start_at` |
-| 422 | `PICKUP_NOT_ENDED` | Đánh dấu không đến trước `pickup_end_at` (T11) |
-| 422 | `SLOT_NOT_AVAILABLE` | Khung giờ tắt / sai thứ / ngoài horizon / chợ ngừng / chợ đóng cửa / Farmer nghỉ (D-023) |
+| 422 | `PICKUP_ALREADY_STARTED` | Duyệt / từ chối đơn (T2, T3, T4) hoặc xử lý yêu cầu thay đổi sau `pickup_start_at` |
+| 422 | `PICKUP_NOT_ENDED` | Đánh dấu không đến trước `pickup_end_at` (T11, T14) |
+| 422 | `SLOT_NOT_AVAILABLE` | Khung giờ tắt / sai thứ / ngày quá khứ / ngoài horizon / không phải ngày chợ họp hoặc ngày hoạt động của Farmer (D-031) / chợ ngừng / chợ đóng cửa / Farmer nghỉ (D-023) |
 | 422 | `PRODUCT_NOT_AVAILABLE` | Sản phẩm lưu trữ / tạm ngừng / bị gỡ / Farmer không `APPROVED` |
 | 422 | `REVIEW_NOT_ALLOWED` | Đơn chưa `COMPLETED` hoặc đã đánh giá |
 | 422 | `REPLY_ALREADY_EXISTS` | Farmer phản hồi lần 2 |
-| 422 | `RESOURCE_IN_USE` | Xóa / ngừng tài nguyên còn được tham chiếu hoặc còn đơn mở |
+| 422 | `RESOURCE_IN_USE` | Xóa / ngừng tài nguyên còn được tham chiếu hoặc còn đơn mở; bỏ ngày hoạt động khi còn đơn mở vào thứ đó (D-031) |
 | 422 | `IDEMPOTENCY_KEY_REUSED` | Cùng `Idempotency-Key` nhưng body khác |
-| 422 | `FAILED_PRECONDITION` | Điều kiện tiên quyết khác (dự phòng) |
+| 422 | `FAILED_PRECONDITION` | Đánh dấu sẵn sàng khi còn yêu cầu thay đổi đang chờ; chấp nhận / từ chối khi không có yêu cầu (D-030); dự phòng |
 | 428 | `PRECONDITION_REQUIRED` | Thiếu `If-Match` / `Idempotency-Key` |
 | 429 | `THROTTLED` | Vượt giới hạn tần suất |
 | 500 | `INTERNAL_SERVER_ERROR` | Lỗi không lường trước |
@@ -433,7 +440,7 @@ Khai báo `REST_FRAMEWORK["EXCEPTION_HANDLER"] = "marketlink_core.responses.cust
 - Engine InnoDB, charset `utf8mb4`, collation duy nhất `utf8mb4_0900_ai_ci`.
 - Mọi `CharField` có `max_length`. Không `db_index`/`unique` trên `TextField`; index ghép ≤ 3072 byte.
 - Index khai báo tập trung trong `Meta.indexes`, đặt `name` tường minh.
-- `JSONField`: `default=dict`, `encoder=DjangoJSONEncoder`.
+- `JSONField`: `default=dict`, `encoder=DjangoJSONEncoder`. Ngoại lệ v1.7: `farmer_profiles.operating_days` (`default=list`, danh sách số 1–7) và `orders.pending_change` (`null=True`) — định dạng theo Pass 4A; không thêm bảng cho hai dữ liệu này.
 - Thực thể có OCC (`orders`) có `version = PositiveIntegerField(default=1)`.
 - Model chỉ chứa phương thức kiểm tra trạng thái của chính nó (`is_open`); không gửi mail, không logic liên bảng trong `save()`.
 
@@ -473,6 +480,8 @@ with transaction.atomic():
 ```
 
 - `order_by("id")` + `of=("self",)` + `list(...)` bên trong khối atomic.
+- **Khi nào khóa `products` (D-029)**: chỉ khi trừ / cộng kho — Farmer duyệt đơn (T2), Farmer chấp nhận yêu cầu thay đổi, và các cạnh cộng trả kho (T4, T6, T11, T12, T13, T14). Tạo đơn (T1), sửa đơn `PLACED` và gửi yêu cầu thay đổi **chỉ đọc** tồn kho để kiểm tra, không khóa, không trừ.
+- Quét lười (`expire_overdue_orders`) chạy trong transaction riêng và commit **trước** transaction checkout / mẫu tuần, để không giữ khóa sản phẩm lẫn lộn.
 - **Thứ tự khóa giữa các bảng (bắt buộc)**: `users` / `customer_profiles` / `farmer_profiles` → `orders` (theo id) → `products` (theo id). Không service nào khóa `products` trước `orders`.
 - Cập nhật tồn kho: đọc dưới khóa rồi gán và `save(update_fields=[...])`, hoặc `F()` có điều kiện (`filter(id=..., stock_quantity__gte=n).update(...)`) — `products` không có history nên `F()` được phép.
 - Không dùng `F("version") + 1`; dùng `instance.version += 1` sau khi đã khóa dòng.
@@ -516,15 +525,15 @@ Vòng retry luôn nằm **bên ngoài** `transaction.atomic()`.
 1. **View**: lấy đơn qua `get_queryset()` đã thu hẹp theo actor (ngoài phạm vi → 404), đọc `If-Match` bằng `parse_if_match()`, gọi service với `order_id` và `expected_version`.
 2. **Khóa**: trong `transaction.atomic()`, `Order.objects.select_for_update(of=("self",)).get(id=order_id)`.
 3. **OCC**: `order.version != expected_version` → `ConflictError(code="RESOURCE_MODIFIED")`. Hợp lệ → `order.version += 1`.
-4. **Gate 1**: cặp (trạng thái hiện tại → đích) phải có trong ma trận `TRANSITIONS` (13 cạnh T1–T13) → sai: `BusinessValidationError(code="INVALID_STATUS_TRANSITION")`.
+4. **Gate 1**: cặp (trạng thái hiện tại → đích) phải có trong ma trận `TRANSITIONS` (13 cạnh v1.7: T1–T6, T8–T14; **T7 bãi bỏ**, **T14 `ACCEPTED → NO_SHOW` mới**) → sai: `BusinessValidationError(code="INVALID_STATUS_TRANSITION")`.
 5. **Gate 2**: đúng actor cho cạnh đó → sai: `ForbiddenActionError(code="ACTION_NOT_PERMITTED_FOR_ROLE")`.
 6. **Gate 3**: điều kiện thời gian / lý do theo Pass 4B §5.3 → `UnprocessableEntityError` với mã cụ thể (`CUTOFF_PASSED`, `CUTOFF_NOT_REACHED`, `PICKUP_ALREADY_STARTED`, `PICKUP_NOT_ENDED`, …).
-7. **Ghi**: cập nhật `orders`, điều chỉnh kho nếu cạnh yêu cầu, ghi **đúng 1 dòng** `order_status_history` (`from_status`, `to_status`, `transition`, `actor`, `actor_role`, `change_reason`, `request_id`) — tất cả **trong cùng** `transaction.atomic()`.
+7. **Ghi**: cập nhật `orders`, điều chỉnh kho theo bảng §7.5, xóa `pending_change` khi đơn kết thúc, ghi **đúng 1 dòng** `order_status_history` (`from_status`, `to_status`, `transition`, `actor`, `actor_role`, `change_reason`, `request_id`) — tất cả **trong cùng** `transaction.atomic()`.
 8. **Thông báo**: gọi `notify()` bên trong transaction; phần WebSocket/email tự chạy sau commit (§9).
 
 ### 7.2 OCC & `If-Match`
 
-- Bắt buộc với thao tác do Customer / Farmer thực hiện (T2–T6, T9–T11, sửa đơn).
+- Bắt buộc với thao tác do Customer / Farmer thực hiện (T2–T6, T9–T11, T14, sửa đơn, gửi / chấp nhận / từ chối yêu cầu thay đổi).
 - T8 (quét lười), T12, T13 và các cạnh Admin kích hoạt hàng loạt: không cần `If-Match`, chạy dưới khóa dòng nhưng **vẫn tăng `version`**.
 - `parse_if_match()` (`marketlink_core/http.py`): thiếu header → `PreconditionRequiredError`; chấp nhận `"3"`, `3`, `W/"3"`; giá trị không phải số nguyên dương → `BusinessValidationError(code="VALIDATION_ERROR", errors={"if_match": ["Invalid If-Match value."]})`.
 - `ReadSerializer` của đơn luôn trả `version` và `allowed_actions`.
@@ -535,16 +544,38 @@ Vòng retry luôn nằm **bên ngoài** `transaction.atomic()`.
 | :--- | :--- |
 | T3, T4 | Lý do Farmer nhập (≤ 500 ký tự) hoặc `FARMER_SUSPENDED_BY_ADMIN` |
 | T5, T6 | Lý do Khách nhập hoặc `CUSTOMER_LOCKED_BY_ADMIN` |
-| T7 / sửa đơn | Tóm tắt thay đổi bằng tiếng Anh |
+| Sửa đơn `PLACED`, sự kiện yêu cầu thay đổi (`transition = NULL`, `from_status = to_status`) | Tóm tắt bằng tiếng Anh: `"Customer modified: …"`, `"Change request submitted: …"`, `"Change request approved by farmer"`, `"Change request rejected: …"`, `"Change request expired"` |
 | T8 | `SYSTEM_EXPIRED` |
 | T12 | `FARMER_SUSPENDED_BY_ADMIN` |
 | T13 | `CUSTOMER_LOCKED_BY_ADMIN` |
 
 Actor hệ thống: `actor = None`, `actor_role = ActorRole.SYSTEM`.
 
+Lý do Admin tự nhập khi đình chỉ / khóa **không** ghi vào `change_reason` và không gửi cho khách; chỉ lưu `status_reason` / `deactivation_reason` và `audit_logs` (D-033).
+
 ### 7.4 Timeline API
 
 `GET /api/[role]/orders/<int:id>/histories/` đọc thẳng `order.status_history.order_by("created_at")` — một truy vấn, không so sánh bản ghi liền kề. Với `farmer_profile_histories` (simple-history) không gọi `.prev_record` trong vòng lặp (N+1); lấy toàn bộ rồi diff trong bộ nhớ.
+
+### 7.5 Tồn kho theo cạnh (D-029)
+
+| Sự kiện | `products.stock_quantity` |
+| :--- | :--- |
+| T2 Farmer duyệt | − số lượng (khóa, thiếu → `INSUFFICIENT_STOCK`) |
+| Farmer chấp nhận yêu cầu thay đổi | − phần tăng / + phần giảm |
+| T4, T6, T11, T12, T13, T14 (đơn đã bị trừ kho) | + trả lại |
+| T1, T3, T5, T8, T9, T10, sửa đơn `PLACED`, gửi / từ chối / tự hủy yêu cầu thay đổi | không đổi |
+
+- `EXPIRED` (T8): không đổi kho, không tính lỗi khách. `NO_SHOW` (T11, T14): cộng trả kho, tính vào cờ At risk (chỉ đếm `NO_SHOW` — D-028).
+- Restock alert chỉ gửi khi Farmer chủ động nạp hàng (FA-14, FA-18), không gửi khi kho tăng do các cạnh trên (D-025).
+
+### 7.6 Yêu cầu thay đổi đơn (D-030)
+
+- Đơn `PLACED`: khách sửa trực tiếp (không đổi trạng thái, không trừ kho).
+- Đơn `ACCEPTED`: khách gửi yêu cầu → lưu `orders.pending_change`, đơn giữ nguyên nội dung và số hàng đã trừ; yêu cầu mới ghi đè yêu cầu cũ.
+- Farmer: chấp nhận (FA-34, khóa sản phẩm cũ ∪ mới theo `id`, trừ / trả chênh lệch, áp dụng nội dung mới), từ chối (FA-35, giữ đơn cũ), hoặc hủy cả đơn (T4).
+- Quy tắc thời gian: gửi trước `cutoff_at`; ngày nhận mới từ hôm nay đến `BOOKING_HORIZON_DAYS`; Farmer xử lý trước `pickup_start_at`, quá hạn thì quét lười tự hủy và báo khách `ORDER_CHANGE_REJECTED`.
+- Còn yêu cầu đang chờ thì T9 bị chặn (`FAILED_PRECONDITION`).
 
 ---
 
@@ -650,7 +681,8 @@ def notify(*, recipient: CustomUser, event_type: str, context: dict[str, Any]) -
 3. `transaction.on_commit(...)` → nếu sự kiện có email: render template rồi đẩy vào `ThreadPoolExecutor(max_workers=2)` khai báo cấp module.
 
 - Không nơi nào khác được tự tạo `Notification`, tự gửi WebSocket hay tự gửi mail.
-- `NotificationType`: `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`, `RESTOCK`, `ORDER_PLACED`, `ORDER_MODIFIED`, `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`, `ACCOUNT_STATUS_CHANGED`, `MARKET_SCHEDULE_CHANGED`.
+- `NotificationType`: `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`, `RESTOCK`, `ORDER_PLACED`, `ORDER_MODIFIED`, `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`, `ACCOUNT_STATUS_CHANGED`, `MARKET_SCHEDULE_CHANGED`, và từ v1.7 `ORDER_CHANGE_APPROVED`, `ORDER_CHANGE_REJECTED` (gửi khách, chỉ in-app — D-030).
+- `ORDER_CANCELLED_CUSTOMER_LOCKED` báo Farmer rằng hàng của đơn đã duyệt / sẵn sàng đã được trả về kho online (không còn câu "bán tại sạp" — D-033).
 - Sự kiện có email (6): Customer `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`; Farmer `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`. `RESTOCK` chỉ in-app và chỉ khi Farmer chủ động nạp hàng làm tồn kho từ 0 lên > 0 (D-025).
 - Template email tiếng Anh, mỗi sự kiện một cặp HTML + TXT: `order_accepted`, `order_ready`, `order_declined`, `order_expired`, `order_cancelled_by_customer`, `order_cancelled_customer_locked`.
 - Settings: `EMAIL_TIMEOUT = 10`; `EMAIL_ASYNC` (đặt `False` khi chạy pytest để gửi đồng bộ).
@@ -809,6 +841,7 @@ EMAIL_TIMEOUT = 10
 EMAIL_ASYNC = True          # False in pytest so emails are sent synchronously
 
 MAX_PLACED_ORDERS_PER_CUSTOMER = 10   # D-005: unconfirmed (PLACED) orders per customer, no per-farmer limit
+BOOKING_HORIZON_DAYS = 7              # U-01 / D-030: latest pickup date a customer can choose or move to
 AT_RISK_THRESHOLD = 3                 # D-028: NO_SHOW/EXPIRED orders that flag a customer "At risk"
 AT_RISK_WINDOW_DAYS = 30
 
@@ -816,6 +849,7 @@ LOGGING = {...}             # logger "marketlink" -> console; use logging.getLog
 ```
 
 - `INSTALLED_APPS` **không** có `rest_framework_simplejwt.token_blacklist`.
+- Cấu hình gọi Nominatim (URL, User-Agent riêng của dự án, timeout 5 giây) đặt trong settings và đọc từ `.env` (D-032); gọi ngoài transaction, tối đa 1 lượt/giây, lỗi thì để tọa độ trống.
 
 - Scope `login`, `admin_login`, `register`, `orders`, `chat` gắn vào view bằng `ScopedRateThrottle` + `throttle_scope`.
 - Throttle, idempotency, blacklist, ws-ticket đều cần Redis dùng chung giữa các worker; `LocMemCache` chỉ chấp nhận khi dev một tiến trình.
@@ -831,7 +865,8 @@ LOGGING = {...}             # logger "marketlink" -> console; use logging.getLog
 - `validate_<field>()` cho 1 trường, `validate()` cho nhiều trường; thông báo lỗi tiếng Anh.
 - View mỏng (≤ 15 dòng/method): validate serializer → gọi service/selector → `api_response()`. Không ORM phức tạp, không transaction, không logic FSM trong view.
 - `get_queryset()` luôn thu hẹp theo actor (§8.1).
-- Endpoint hành động FSM trả `OrderDetail` sau cập nhật (có `version` mới và `allowed_actions`).
+- Endpoint hành động FSM trả `OrderDetail` sau cập nhật (có `version` mới, `allowed_actions`, `pending_change`).
+- `allowed_actions` do backend tính theo role + trạng thái + thời gian + có / không có `pending_change`; giá trị theo `OrderAction` (Pass 4B §3.4), gồm cả `REQUEST_CHANGE`, `APPROVE_CHANGE`, `REJECT_CHANGE`. Luật đặt ở `orders/policies.py`, dùng chung điều kiện thời gian với Gate 3, không viết lại trong từng serializer.
 
 ---
 
@@ -839,12 +874,12 @@ LOGGING = {...}             # logger "marketlink" -> console; use logging.getLog
 
 Áp dụng cho ảnh sản phẩm, ảnh sạp, ảnh chợ:
 
-1. Dung lượng ≤ 5 MB.
+1. Dung lượng ≤ 2 MB (NFR-01, Pass 3 §1.5, PU-01 `max_upload_mb: 2`).
 2. Đuôi file thuộc `{".jpg", ".jpeg", ".png", ".webp"}`.
 3. Mở bằng Pillow, `img.verify()`, và `img.format` thuộc `{"JPEG", "PNG", "WEBP"}` (chặn file đổi đuôi).
 4. Lưu với tên ngẫu nhiên qua `UUIDUploadTo(folder)`.
 
-Mọi vi phạm trả 400 `VALIDATION_ERROR` với lỗi theo trường, ví dụ `errors={"image": ["Image must be 5 MB or smaller."]}`.
+Mọi vi phạm trả 400 `VALIDATION_ERROR` với lỗi theo trường, ví dụ `errors={"image": ["Image must be 2 MB or smaller."]}`.
 
 ---
 
