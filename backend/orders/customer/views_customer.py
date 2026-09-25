@@ -3,13 +3,22 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from marketlink_core.http import require_idempotency_key
+from marketlink_core.exceptions import ResourceNotFoundError
+from marketlink_core.http import parse_if_match, require_idempotency_key
+from marketlink_core.pagination import StandardPagination
 from marketlink_core.permissions import IsCustomer
 from marketlink_core.responses import api_response
 from marketlink_core.services.db_retry import run_with_deadlock_retry
-from orders.customer.serializers_customer import CheckoutWriteSerializer, OrderSummaryReadSerializer
-from orders.selectors import order_summary_queryset
+from orders.customer.serializers_customer import (
+    CancelOrderWriteSerializer,
+    CheckoutWriteSerializer,
+    CustomerOrderDetailReadSerializer,
+    CustomerOrderListQuerySerializer,
+    OrderSummaryReadSerializer,
+)
+from orders.selectors import customer_order_detail, customer_orders_queryset, order_summary_queryset
 from orders.services.checkout_service import expire_overdue_before_checkout, place_orders
+from orders.services.customer_order_service import cancel_customer_order
 from orders.services.idempotency_service import run_idempotent
 
 
@@ -47,3 +56,43 @@ class CustomerOrdersView(APIView):
         result = run_idempotent(user_id=request.user.pk, key=key, payload=request.data, action=lambda: _place_orders(request))
         headers = {"Idempotent-Replayed": "true"} if result.replayed else None
         return Response(result.body, status=result.status, headers=headers)
+
+    def get(self, request):
+        """CU-05: own orders, paginated (C-04)."""
+        query = CustomerOrderListQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        paginator = StandardPagination()
+        page = paginator.paginate_queryset(customer_orders_queryset(request.user, **query.validated_data), request, view=self)
+        return paginator.get_paginated_response(OrderSummaryReadSerializer(page, many=True).data)
+
+
+def _own_order_detail(request, order_id: int) -> dict:
+    order = customer_order_detail(request.user, order_id)
+    if order is None:
+        raise ResourceNotFoundError()
+    return CustomerOrderDetailReadSerializer(order).data
+
+
+class CustomerOrderDetailView(APIView):
+    """CU-06 (C-05)."""
+
+    permission_classes = [IsCustomer]
+
+    def get(self, request, order_id: int):
+        return api_response(message="Order retrieved", data=_own_order_detail(request, order_id), request=request)
+
+
+class CustomerOrderCancelView(APIView):
+    """CU-08: If-Match required; T5 / T6 through the shared FSM."""
+
+    permission_classes = [IsCustomer]
+
+    def post(self, request, order_id: int):
+        expected_version = parse_if_match(request)
+        serializer = CancelOrderWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        run_with_deadlock_retry(
+            cancel_customer_order, customer=request.user, order_id=order_id, expected_version=expected_version,
+            reason=serializer.validated_data.get("reason"),
+        )
+        return api_response(message="Order cancelled", data=_own_order_detail(request, order_id), request=request)
