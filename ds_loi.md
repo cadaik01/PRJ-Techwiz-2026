@@ -14,8 +14,8 @@
 - [x] **Mục 2: [Cờ At Risk D-028] Đã cập nhật tài liệu (5).md chỉ đếm đơn NO_SHOW (áp dụng khi viết AD-09)**
 - [x] **Mục 3: [Hạn mức đơn mở D-005 v1.5] Đã cập nhật tài liệu (5).md và settings.py (MAX_PLACED_ORDERS_PER_CUSTOMER = 10)**
 - [x] **Mục 4: [Bảo mật & Email FSM] Sửa lỗi Admin Reason trong fsm.py dòng 195-199 (dùng hằng số ChangeReason, tránh lộ ghi chú nội bộ)**
-- [ ] **Mục 5: [Màn hình & Sắp xếp] Sắp xếp đơn theo tab cho FA-19 (F-02: Placed `created_at ASC`; Accepted/Ready `pickup_start_at ASC`; History `-created_at`)**
-- [ ] **Mục 6: [Phòng bị hết hàng FA-16] Thêm checkbox đánh dấu hết hàng trong action từ chối đơn FA-24**
+- [x] **Mục 5: [Màn hình & Sắp xếp] Sắp xếp đơn theo tab cho FA-19 (F-02: Placed `created_at ASC`; Accepted/Ready `pickup_start_at ASC`; History `-created_at`)**
+- [x] **Mục 6: [Phòng bị hết hàng FA-16] Thêm checkbox đánh dấu hết hàng trong action từ chối đơn FA-24**
 - [x] **Mục 7: [Sửa đơn CU-07] Khắc phục toàn bộ 7 lỗi trong backend/orders/services/modify.py**
   - [x] 7.1: Sửa `prod.is_active` -> `prod.is_available and not prod.is_archived` (tránh lỗi 500)
   - [x] 7.2: Đổi mã lỗi `SLOT_NOT_AVAILABLE` và `PRODUCT_NOT_AVAILABLE` sang HTTP 422 (`UnprocessableEntityError`)
@@ -27,8 +27,13 @@
 - [x] **Mục 8: [Tài liệu dự án] Đã đồng bộ tài liệu MarketLink_requirement_analysis_ok (5).md**
 - [x] **Mục 9: [Tồn kho khả dụng SRS §1.1, §1.4, §1.6] Tách bạch Tồn kho thực tế (stock_quantity) và Tồn kho khả dụng (available_stock)**
 - [x] **Mục 10: [Hợp đồng dùng chung F3 / C1 / C2] Xây dựng service `validate_pickup_date()` tại `markets/services/validation.py`**
-- [ ] **Mục 11: [WebSocket P4-BE] Hoàn thiện ws_ticket.py, notifications/consumers.py, routing.py và asgi.py**
-- [ ] **Mục 12: [API Role Farmer] Xây dựng bộ 33 endpoints FA-01 -> FA-33 cho Farmer**
+- [x] **Mục 11: [WebSocket P4-BE] Hoàn thiện ws_ticket.py, notifications/consumers.py, routing.py và asgi.py**
+- [/] **Mục 12: [API Role Farmer] Xây dựng bộ 35 endpoints FA-01 -> FA-35 cho Farmer**
+  - [x] 12.1: **Đơn hàng & Xử lý FSM (`FA-19 → FA-27, FA-34, FA-35` - Module F6, F7)**: Đã hoàn thành và pass 54/54 tests.
+  - [x] 12.2: **Sản phẩm & Mẫu tồn kho tuần (`FA-11 → FA-18` - Module F4, F5)**: Đã hoàn thành và pass 8/8 tests.
+  - [ ] 12.3: **Chợ, Khung giờ pickup & Lịch nghỉ bán (`FA-04 → FA-10, FA-31 → FA-33` - Module F3)**.
+  - [ ] 12.4: **Hồ sơ Farmer, Ngày hoạt động & Geocoding (`FA-02, FA-03, AU-02` - Module F1, F2)**.
+  - [ ] 12.5: **Dashboard thống kê & Đánh giá (`FA-01, FA-28 → FA-30` - Module F8, F9)**.
 
 ---
 

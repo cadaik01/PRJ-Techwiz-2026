@@ -50,3 +50,22 @@ class HealthCheckView(APIView):
             code=ErrorCode.INTERNAL_SERVER_ERROR,
             request=request,
         )
+
+
+class WebSocketTicketView(APIView):
+    def post(self, request):
+        from rest_framework.permissions import IsAuthenticated
+        from marketlink_core.services.ws_ticket import DEFAULT_TTL, create_ws_ticket
+
+        if not request.user or not request.user.is_authenticated:
+            from marketlink_core.exceptions import AuthenticationError
+            raise AuthenticationError("Please sign in to obtain a WebSocket ticket.")
+
+        role_code = getattr(getattr(request.user, "role", None), "code", "")
+        ticket = create_ws_ticket(user_id=request.user.pk, role=role_code)
+        return api_response(
+            message="Ticket generated.",
+            data={"ticket": ticket, "expires_in": DEFAULT_TTL},
+            request=request,
+        )
+
