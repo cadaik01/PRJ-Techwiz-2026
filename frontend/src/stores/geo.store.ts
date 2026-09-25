@@ -18,7 +18,7 @@ export const useGeoStore = create<GeoState>()(
       longitude: null,
       label: null,
       setCoords: (latitude, longitude, label) =>
-        set({ latitude, longitude, label: label ?? 'Vị trí của tôi' }),
+        set({ latitude, longitude, label: label ?? 'My location' }),
       clear: () => set({ latitude: null, longitude: null, label: null }),
     }),
     { name: STORAGE_KEYS.GEO },

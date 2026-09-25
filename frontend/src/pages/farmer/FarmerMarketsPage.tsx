@@ -20,7 +20,6 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
 import { Switch } from '@/components/ui/Switch';
 import type { DayOfWeek } from '@/types';
 
@@ -33,13 +32,13 @@ L.Icon.Default.mergeOptions({
 });
 
 const WEEKDAYS: Array<{ value: DayOfWeek; label: string }> = [
-  { value: 1, label: 'T2' },
-  { value: 2, label: 'T3' },
-  { value: 3, label: 'T4' },
-  { value: 4, label: 'T5' },
-  { value: 5, label: 'T6' },
-  { value: 6, label: 'T7' },
-  { value: 7, label: 'CN' },
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+  { value: 7, label: 'Sun' },
 ];
 
 export default function FarmerMarketsPage() {
@@ -76,14 +75,17 @@ export default function FarmerMarketsPage() {
   return (
     <div className="farmer-markets-page">
       <PageHeader
-        title="Chợ & khung giờ"
-        description="Tham gia chợ, đặt nhãn quầy và cấu hình khung giờ nhận hàng."
+        title="Markets & pickup times"
+        description="Join markets, set your stall label, and publish bookable pickup slots."
       />
 
       <div className="page-primitive__layout-5">
         <div className="page-primitive__layout-5-side">
           {!marketsQuery.data?.length ? (
-            <EmptyState title="Chưa tham gia chợ nào" />
+            <EmptyState
+              title="You have not joined a market yet"
+              description="Join a market session to start receiving pre-orders."
+            />
           ) : (
             marketsQuery.data.map((m) => (
               <button
@@ -103,13 +105,13 @@ export default function FarmerMarketsPage() {
           )}
 
           <div className="page-primitive__dashed-panel">
-            <p className="page-primitive__font-medium">Thêm chợ</p>
+            <p className="page-primitive__font-medium">Add market</p>
             <select
               className="page-primitive__select-full"
               value={addMarketId}
               onChange={(e) => setAddMarketId(e.target.value)}
             >
-              <option value="">Chọn chợ…</option>
+              <option value="">Select market…</option>
               {availableToJoin.map((m) => (
                 <option key={m.id} value={String(m.id)}>
                   {m.name}
@@ -117,7 +119,7 @@ export default function FarmerMarketsPage() {
               ))}
             </select>
             <Input
-              placeholder="Nhãn quầy (VD: Dãy A · Quầy 12)"
+              label="Stall label (e.g. Aisle A · Stall 12)"
               value={stallLabel}
               onChange={(e) => setStallLabel(e.target.value)}
             />
@@ -132,7 +134,7 @@ export default function FarmerMarketsPage() {
                 addMutation.mutate(
                   {
                     market_id: marketId,
-                    stall_label: stallLabel || 'Quầy mới',
+                    stall_label: stallLabel || 'New stall',
                   },
                   {
                     onSuccess: (data) => {
@@ -145,20 +147,20 @@ export default function FarmerMarketsPage() {
                 );
               }}
             >
-              Thêm chợ
+              Add market
             </Button>
           </div>
         </div>
 
         <div className="page-primitive__layout-5-main">
           {!selected ? (
-            <EmptyState title="Chọn một chợ để cấu hình" />
+            <EmptyState title="Select a market to set up pickup times" />
           ) : (
             <>
               <div className="page-primitive__form-field">
-                <Label>Nhãn quầy</Label>
                 <div className="page-primitive__inline-row">
                   <Input
+                    label="Stall label"
                     value={editStall}
                     onChange={(e) => setEditStall(e.target.value)}
                   />
@@ -172,7 +174,7 @@ export default function FarmerMarketsPage() {
                       })
                     }
                   >
-                    Lưu
+                    Save
                   </Button>
                 </div>
               </div>
@@ -195,7 +197,7 @@ export default function FarmerMarketsPage() {
 
               <div>
                 <div className="farmer-markets-page__slots-head">
-                  <h3 className="page-primitive__heading">Khung giờ theo tuần</h3>
+                  <h3 className="page-primitive__heading">Weekly pickup slots</h3>
                 </div>
                 <div className="page-primitive__actions-row farmer-markets-page__slots-actions">
                   {WEEKDAYS.map((d) => (
@@ -219,7 +221,7 @@ export default function FarmerMarketsPage() {
                 </div>
                 <div className="page-primitive__stack-2">
                   {selected.slots.length === 0 ? (
-                    <p className="page-primitive__muted-sm">Chưa có khung giờ.</p>
+                    <p className="page-primitive__muted-sm">No pickup slots yet.</p>
                   ) : (
                     selected.slots.map((slot) => {
                       const day =
@@ -256,7 +258,7 @@ export default function FarmerMarketsPage() {
                   })
                 }
               >
-                Rời chợ
+                Leave market
               </Button>
             </>
           )}

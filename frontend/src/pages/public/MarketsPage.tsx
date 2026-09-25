@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
 
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { MarketCard } from '@/features/catalog/components/MarketCard';
@@ -13,7 +12,7 @@ import type { DayOfWeek, MarketSort } from '@/types';
 import './MarketsPage.css';
 
 function parseMarketSort(value: string): MarketSort {
-  if (value === 'distance' || value === 'name') return value;
+  if (value === 'distance' || value === 'name' || value === 'name_desc') return value;
   return 'name';
 }
 
@@ -49,12 +48,12 @@ export default function MarketsPage() {
       <section className="markets-page__hero">
         <div className="markets-page__hero-inner">
           <div className="markets-page__hero-copy">
-            <p className="markets-page__eyebrow">Phiên chợ địa phương</p>
-            <h1 className="markets-page__title">Danh sách chợ</h1>
+            <p className="markets-page__eyebrow">Where freshness gathers</p>
+            <h1 className="markets-page__title">Local markets</h1>
             <p className="markets-page__subtitle">
               {lat != null
-                ? 'Đang ưu tiên chợ gần vị trí của bạn'
-                : 'Tìm theo tên, địa chỉ hoặc ngày họp chợ'}
+                ? 'Nearest markets to you, ready for your next visit'
+                : 'Search by name, address, or the days they open'}
             </p>
           </div>
         </div>
@@ -62,52 +61,51 @@ export default function MarketsPage() {
 
       <div className="markets-page__body">
         <div className="markets-page__toolbar">
-          <div className="markets-page__search-wrap">
-            <Search className="markets-page__search-icon" aria-hidden />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Tìm theo tên chợ, địa chỉ…"
-              className="markets-page__search-input"
-              aria-label="Tìm chợ"
-            />
-          </div>
-
-          <div className="markets-page__filters-row">
-            <div className="markets-page__day-list">
-              {DAY_OPTIONS.map((d) => {
-                const active = weekday === d.value;
-                return (
-                  <button
-                    key={d.value}
-                    type="button"
-                    className={
-                      active
-                        ? 'markets-page__day-btn markets-page__day-btn--active'
-                        : 'markets-page__day-btn'
-                    }
-                    onClick={() => setWeekday(active ? undefined : d.value)}
-                  >
-                    {d.label}
-                  </button>
-                );
-              })}
+          <div className="markets-page__search-row">
+            <div className="markets-page__search-wrap">
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                label="Search markets or addresses"
+                className="markets-page__search-input"
+              />
             </div>
 
             <select
               className="markets-page__select"
               value={sort}
               onChange={(e) => setSort(parseMarketSort(e.target.value))}
-              aria-label="Sắp xếp"
+              aria-label="Sort markets"
             >
-              <option value="distance">Khoảng cách</option>
-              <option value="name">Tên A–Z</option>
+              <option value="distance">Nearest first</option>
+              <option value="name">Name A–Z</option>
+              <option value="name_desc">Name Z–A</option>
             </select>
+          </div>
+
+          <div className="markets-page__day-list">
+            {DAY_OPTIONS.map((d) => {
+              const active = weekday === d.value;
+              return (
+                <button
+                  key={d.value}
+                  type="button"
+                  className={
+                    active
+                      ? 'markets-page__day-btn markets-page__day-btn--active'
+                      : 'markets-page__day-btn'
+                  }
+                  onClick={() => setWeekday(active ? undefined : d.value)}
+                >
+                  {d.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {!query.isLoading && !query.isError && markets.length > 0 ? (
-          <p className="markets-page__count">{markets.length} chợ</p>
+          <p className="markets-page__count">{markets.length} markets</p>
         ) : null}
 
         {query.isLoading ? (
@@ -118,14 +116,14 @@ export default function MarketsPage() {
           </div>
         ) : query.isError ? (
           <EmptyState
-            title="Không tải được chợ"
-            actionLabel="Thử lại"
+            title="Markets couldn't be loaded"
+            actionLabel="Try again"
             onAction={() => query.refetch()}
           />
         ) : markets.length === 0 ? (
           <EmptyState
-            title="Không có chợ phù hợp"
-            description="Thử đổi bộ lọc hoặc từ khóa."
+            title="No markets match your filters"
+            description="Try another day, keyword, or clear your search."
           />
         ) : (
           <div className="markets-page__grid">

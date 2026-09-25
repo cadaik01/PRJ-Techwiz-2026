@@ -18,9 +18,9 @@ export default function FarmerNotificationsPage() {
   if (query.isError) {
     return (
       <EmptyState
-        title="Không tải được thông báo"
+        title="Notifications couldn't be loaded"
         description={ApiError.fromUnknown(query.error).friendlyMessage}
-        actionLabel="Thử lại"
+        actionLabel="Try again"
         onAction={() => void query.refetch()}
       />
     );
@@ -29,8 +29,12 @@ export default function FarmerNotificationsPage() {
   return (
     <div className="farmer-notifications-page">
       <PageHeader
-        title="Thông báo"
-        description={`${unread} chưa đọc`}
+        title="Stall notifications"
+        description={
+          unread > 0
+            ? `${unread} unread update${unread === 1 ? '' : 's'}`
+            : 'You are all caught up'
+        }
         actions={
           <Button
             size="sm"
@@ -38,12 +42,15 @@ export default function FarmerNotificationsPage() {
             loading={markAll.isPending}
             onClick={() => markAll.mutate()}
           >
-            Đánh dấu đã đọc tất cả
+            Mark all as read
           </Button>
         }
       />
       {!results.length ? (
-        <EmptyState title="Chưa có thông báo" />
+        <EmptyState
+          title="No notifications yet"
+          description="Order alerts and system updates will appear here."
+        />
       ) : (
         <ul className="farmer-notifications-page__list">
           {results.map((item) => (
@@ -75,7 +82,7 @@ export default function FarmerNotificationsPage() {
                     className="farmer-notifications-page__link"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    Xem chi tiết →
+                    View details →
                   </Link>
                 ) : null}
               </button>

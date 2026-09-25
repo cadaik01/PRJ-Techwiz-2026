@@ -21,7 +21,6 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatDate, formatVnd } from '@/utils/formatters';
 
@@ -49,8 +48,8 @@ export default function FarmerDashboardPage() {
   if (query.isError || !query.data) {
     return (
       <EmptyState
-        title="Không tải được tổng quan"
-        actionLabel="Thử lại"
+        title="Overview couldn't be loaded"
+        actionLabel="Try again"
         onAction={() => query.refetch()}
       />
     );
@@ -59,22 +58,22 @@ export default function FarmerDashboardPage() {
   const data = query.data;
   const kpis = [
     {
-      label: 'Tổng đơn',
+      label: 'Total orders',
       value: String(data.kpis.total_orders),
       icon: Package,
     },
     {
-      label: 'Chờ duyệt',
+      label: 'Pending approval',
       value: String(data.kpis.pending_approval),
       icon: AlertTriangle,
     },
     {
-      label: 'Đang xử lý',
+      label: 'In progress',
       value: String(data.kpis.in_progress),
       icon: TrendingUp,
     },
     {
-      label: 'Doanh thu',
+      label: 'Revenue',
       value: formatVnd(data.kpis.revenue),
       icon: Wallet,
     },
@@ -83,28 +82,24 @@ export default function FarmerDashboardPage() {
   return (
     <div className="farmer-dashboard-page">
       <PageHeader
-        title="Tổng quan quầy"
-        description={`${user?.display_name ?? ''} — theo dõi đơn pre-order và doanh thu.`}
+        title="Stall overview"
+        description={`${user?.display_name ?? 'Your stall'} — today's pickups, revenue, and what needs attention.`}
         actions={
           <div className="page-primitive__inline-row-end">
             <div>
-              <Label htmlFor="from" className="page-primitive__label-xs">
-                Từ ngày
-              </Label>
               <Input
                 id="from"
                 type="date"
+                label="From"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="to" className="page-primitive__label-xs">
-                Đến ngày
-              </Label>
               <Input
                 id="to"
                 type="date"
+                label="To"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
               />
@@ -116,10 +111,10 @@ export default function FarmerDashboardPage() {
       {data.overdue_open_count > 0 ? (
         <div className="farmer-dashboard-page__overdue">
           <p className="page-primitive__font-medium">
-            {data.overdue_open_count} đơn quá hạn cần xử lý
+            {data.overdue_open_count} overdue order(s) need attention
           </p>
           <Button asChild size="sm" variant="outline">
-            <Link to="/farmer/orders?tab=overdue">Xem ngay</Link>
+            <Link to="/farmer/orders?tab=overdue">View now</Link>
           </Button>
         </div>
       ) : null}
@@ -143,11 +138,11 @@ export default function FarmerDashboardPage() {
       <div className="farmer-dashboard-page__charts">
         <Card>
           <CardHeader>
-            <CardTitle>Doanh thu theo ngày</CardTitle>
+            <CardTitle>Daily revenue</CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__chart-h">
             {data.revenue_by_day.length === 0 ? (
-              <p className="page-primitive__muted-sm">Chưa có doanh thu trong kỳ.</p>
+              <p className="page-primitive__muted-sm">No revenue in this period.</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data.revenue_by_day}>
@@ -179,11 +174,11 @@ export default function FarmerDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Top 5 sản phẩm</CardTitle>
+            <CardTitle>Best sellers</CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__chart-h">
             {data.top_products.length === 0 ? (
-              <p className="page-primitive__muted-sm">Chưa có dữ liệu.</p>
+              <p className="page-primitive__muted-sm">No data yet.</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.top_products} layout="vertical" margin={{ left: 8 }}>
@@ -206,14 +201,14 @@ export default function FarmerDashboardPage() {
 
       <Card>
         <CardHeader className="page-primitive__card-header-row">
-          <CardTitle>Đơn sắp tới</CardTitle>
+          <CardTitle>Upcoming pickups</CardTitle>
           <Button asChild variant="link" size="sm">
-            <Link to="/farmer/orders">Tất cả đơn</Link>
+            <Link to="/farmer/orders">All orders</Link>
           </Button>
         </CardHeader>
         <CardContent className="farmer-dashboard-page__upcoming-list">
           {data.upcoming.length === 0 ? (
-            <p className="page-primitive__muted-sm">Không có đơn sắp tới.</p>
+            <p className="page-primitive__muted-sm">No upcoming orders.</p>
           ) : (
             data.upcoming.map((order) => (
               <div key={order.id} className="page-primitive__row-card-responsive">
@@ -226,7 +221,7 @@ export default function FarmerDashboardPage() {
                   </Link>
                   <p className="page-primitive__muted-sm">
                     {order.market.name} · {formatDate(order.pickup_date)} ·{' '}
-                    {order.item_count} SP · {formatVnd(order.total_amount)}
+                    {order.item_count} items · {formatVnd(order.total_amount)}
                   </p>
                 </div>
                 <div className="page-primitive__actions-row">

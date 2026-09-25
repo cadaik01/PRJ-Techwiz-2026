@@ -40,6 +40,22 @@
   color: var(--color-primary-700);
 }
 
+.checkout-page__panels {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .checkout-page__panels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.checkout-page__panels-actions,
+.checkout-page__panels-banner {
+  grid-column: 1 / -1;
+}
+
 .checkout-page__panel {
   border-radius: var(--radius-2xl);
   border: 1px solid var(--color-border);

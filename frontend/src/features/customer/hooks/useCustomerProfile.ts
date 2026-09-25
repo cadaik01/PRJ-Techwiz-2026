@@ -17,7 +17,7 @@ export function useUpdateCustomerProfile() {
     mutationFn: customerApi.updateProfile,
     onSuccess: (data) => {
       queryClient.setQueryData(QUERY_KEYS.CUSTOMER_PROFILE, data);
-      toast.success('Đã cập nhật hồ sơ');
+      toast.success('Profile updated');
     },
   });
 }

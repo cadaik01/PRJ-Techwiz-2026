@@ -28,8 +28,18 @@
 }
 
 @media (min-width: 1024px) {
+  .favorites-page__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .favorites-page__grid--products {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .favorites-page__grid--products {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

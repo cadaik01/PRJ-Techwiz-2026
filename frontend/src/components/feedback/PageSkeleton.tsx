@@ -4,7 +4,7 @@ import './PageSkeleton.css';
 
 export function PageSkeleton() {
   return (
-    <div className="page-skeleton" aria-busy aria-label="Đang tải">
+    <div className="page-skeleton" aria-busy aria-label="Loading">
       <div className="page-skeleton__header">
         <Skeleton className="page-skeleton__title" />
         <Skeleton className="page-skeleton__subtitle" />

@@ -21,10 +21,22 @@
 }
 
 .farmers-page__eyebrow {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  letter-spacing: 0.025em;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   color: var(--color-primary-700);
+}
+
+.farmers-page__eyebrow::before {
+  content: '';
+  width: 1.75rem;
+  height: 1px;
+  background-color: var(--color-accent-400);
 }
 
 .dark .farmers-page__eyebrow {
@@ -89,43 +101,33 @@
   }
 }
 
-.farmers-page__search-wrap {
-  position: relative;
-}
-
-.farmers-page__search-icon {
-  position: absolute;
-  left: var(--space-4);
-  top: 50%;
-  width: 1rem;
-  height: 1rem;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: var(--color-muted-foreground);
-}
-
-.farmers-page__search-input {
-  height: 3rem;
-  padding-left: 2.75rem;
-}
-
-.farmers-page__sort-row {
+.farmers-page__search-row {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
 @media (min-width: 640px) {
-  .farmers-page__sort-row {
+  .farmers-page__search-row {
     flex-direction: row;
     align-items: center;
-    justify-content: flex-end;
   }
+}
+
+.farmers-page__search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.farmers-page__search-input {
+  height: 2.75rem;
 }
 
 .farmers-page__select {
   height: 2.75rem;
   width: 100%;
+  flex-shrink: 0;
   padding-inline: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);

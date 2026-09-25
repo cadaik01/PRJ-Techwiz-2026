@@ -24,8 +24,8 @@ export default function FarmerStatsPage() {
   if (query.isError || !query.data) {
     return (
       <EmptyState
-        title="Không tải được thống kê"
-        actionLabel="Thử lại"
+        title="Stats couldn't be loaded"
+        actionLabel="Try again"
         onAction={() => query.refetch()}
       />
     );
@@ -35,11 +35,14 @@ export default function FarmerStatsPage() {
 
   return (
     <div className="farmer-stats-page">
-      <PageHeader title="Thống kê" description="Doanh thu và sản phẩm bán chạy." />
+      <PageHeader
+        title="Stall performance"
+        description="Revenue trends and your best-selling produce."
+      />
       <div className="page-primitive__stat-grid-3">
         <Card>
           <CardHeader className="page-primitive__card-header-tight">
-            <CardTitle className="page-primitive__card-title-muted">Doanh thu</CardTitle>
+            <CardTitle className="page-primitive__card-title-muted">Revenue</CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__stat-value">
             {formatVnd(data.kpis.revenue)}
@@ -47,7 +50,7 @@ export default function FarmerStatsPage() {
         </Card>
         <Card>
           <CardHeader className="page-primitive__card-header-tight">
-            <CardTitle className="page-primitive__card-title-muted">Tổng đơn</CardTitle>
+            <CardTitle className="page-primitive__card-title-muted">Total orders</CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__stat-value">
             {data.kpis.total_orders}
@@ -55,7 +58,7 @@ export default function FarmerStatsPage() {
         </Card>
         <Card>
           <CardHeader className="page-primitive__card-header-tight">
-            <CardTitle className="page-primitive__card-title-muted">Đang xử lý</CardTitle>
+            <CardTitle className="page-primitive__card-title-muted">In progress</CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__stat-value">
             {data.kpis.in_progress}
@@ -65,11 +68,11 @@ export default function FarmerStatsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Top sản phẩm theo doanh thu</CardTitle>
+          <CardTitle>Top produce by revenue</CardTitle>
         </CardHeader>
         <CardContent className="page-primitive__chart-h-72">
           {data.top_products.length === 0 ? (
-            <p className="page-primitive__muted-sm">Chưa có dữ liệu.</p>
+            <p className="page-primitive__muted-sm">No data yet.</p>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.top_products}>

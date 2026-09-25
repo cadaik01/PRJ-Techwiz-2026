@@ -38,7 +38,7 @@ export function useCancelOrder(orderId: string | number) {
     mutationFn: ({ reason, version }: { reason: string; version: number }) =>
       customerApi.cancelOrder(Number(orderId), reason, version),
     onSuccess: () => {
-      toast.success('Đã hủy đơn');
+      toast.success('Pre-order cancelled');
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDER(id) });
       void queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.ORDERS()[0]],
@@ -60,7 +60,7 @@ export function useUpdateOrder(orderId: string | number) {
       version: number;
     }) => customerApi.updateOrder(Number(orderId), payload, version),
     onSuccess: () => {
-      toast.success('Đã cập nhật đơn');
+      toast.success('Pre-order updated');
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDER(id) });
       void queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.ORDERS()[0]],
@@ -72,7 +72,7 @@ export function useUpdateOrder(orderId: string | number) {
 export function useReorderPreview() {
   return useMutation({
     mutationFn: customerApi.reorderPreview,
-    onError: () => toast.error('Không lấy được xem trước đặt lại'),
+    onError: () => toast.error('Reorder preview could not be loaded'),
   });
 }
 
@@ -101,7 +101,7 @@ export function useSubmitOrderReview(orderId: string | number) {
       }
     },
     onSuccess: () => {
-      toast.success('Cảm ơn bạn đã đánh giá');
+      toast.success('Thanks — your review helps other shoppers');
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDER(id) });
     },
     onError: (error) => toast.error(ApiError.fromUnknown(error).friendlyMessage),

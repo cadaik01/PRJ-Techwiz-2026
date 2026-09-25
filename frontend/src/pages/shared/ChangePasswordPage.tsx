@@ -8,8 +8,8 @@ export default function ChangePasswordPage() {
   return (
     <div>
       <PageHeader
-        title="Đổi mật khẩu"
-        description="Sau khi đổi mật khẩu, bạn sẽ cần đăng nhập lại."
+        title="Change password"
+        description="For your security, you will be asked to sign in again after saving."
       />
       <Card className="change-password-page__card">
         <CardContent className="change-password-page__content">

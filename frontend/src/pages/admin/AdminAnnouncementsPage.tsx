@@ -74,8 +74,8 @@ export default function AdminAnnouncementsPage() {
   return (
     <div className="admin-announcements-page">
       <PageHeader
-        title="Thông báo hệ thống"
-        description="CRUD banner theo audience và lịch hiệu lực."
+        title="Announcements"
+        description="Publish banners by audience and schedule when they appear."
       />
 
       <form
@@ -83,14 +83,13 @@ export default function AdminAnnouncementsPage() {
         onSubmit={form.handleSubmit(onSubmit)}
       >
         <div className="page-primitive__form-field">
-          <Label htmlFor="title">Tiêu đề</Label>
-          <Input id="title" {...form.register('title')} />
+          <Input id="title" label="Title" {...form.register('title')} />
           {form.formState.errors.title ? (
             <p className="page-primitive__error">{form.formState.errors.title.message}</p>
           ) : null}
         </div>
         <div className="page-primitive__form-field">
-          <Label htmlFor="content">Nội dung</Label>
+          <Label htmlFor="content">Content</Label>
           <Textarea id="content" {...form.register('content')} />
           {form.formState.errors.content ? (
             <p className="page-primitive__error">
@@ -100,12 +99,13 @@ export default function AdminAnnouncementsPage() {
         </div>
         <div className="admin-announcements-page__create-row">
           <select className="page-primitive__select" {...form.register('audience')}>
-            <option value="ALL">Tất cả</option>
-            <option value="CUSTOMER">Khách hàng</option>
-            <option value="FARMER">Nông dân</option>
+            <option value="ALL">All</option>
+            <option value="CUSTOMER">Customers</option>
+            <option value="FARMER">Farmers</option>
           </select>
           <Input
             type="datetime-local"
+            label="Starts at"
             className="page-primitive__input-auto"
             {...form.register('starts_at')}
           />
@@ -114,10 +114,10 @@ export default function AdminAnnouncementsPage() {
               checked={isActive}
               onCheckedChange={(checked) => form.setValue('is_active', checked)}
             />
-            <span className="page-primitive__muted-sm">Kích hoạt</span>
+            <span className="page-primitive__muted-sm">Active</span>
           </div>
           <Button type="submit" loading={create.isPending}>
-            Tạo thông báo
+            Create announcement
           </Button>
         </div>
         {form.formState.errors.starts_at ? (
@@ -130,7 +130,10 @@ export default function AdminAnnouncementsPage() {
       {query.isLoading ? (
         <PageSkeleton />
       ) : !query.data?.results.length ? (
-        <EmptyState title="Chưa có thông báo" />
+        <EmptyState
+          title="No announcements yet"
+          description="Create a banner when you need to reach farmers or shoppers."
+        />
       ) : (
         <ul className="admin-announcements-page__list">
           {query.data.results.map((announcement) => (
@@ -160,14 +163,14 @@ export default function AdminAnnouncementsPage() {
                       })
                     }
                   >
-                    {announcement.is_active ? 'Tắt' : 'Bật'}
+                    {announcement.is_active ? 'Off' : 'On'}
                   </Button>
                   <Button
                     size="sm"
                     variant="destructive"
                     onClick={() => remove.mutate(announcement.id)}
                   >
-                    Xóa
+                    Delete
                   </Button>
                 </div>
               </div>

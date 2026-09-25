@@ -1,7 +1,6 @@
 import axios, {
   type AxiosError,
   type AxiosRequestConfig,
-  type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
@@ -9,7 +8,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { ApiError } from '@/lib/ApiError';
 import { STORAGE_KEYS } from '@/config/constants';
 import { env } from '@/config/env';
-import { convertMoneyFields, convertMoneyParams } from '@/utils/helpers/currency';
 import { useAuthStore } from '@/stores/auth.store';
 import type { ApiResponse } from '@/types';
 
@@ -18,8 +16,6 @@ declare module 'axios' {
     idempotent?: boolean;
     ifMatch?: string;
     _retried?: boolean;
-    /** Set after VND→USD so a 401 retry does not convert twice. */
-    _moneyPrepared?: boolean;
   }
 }
 
@@ -59,18 +55,6 @@ function ensureTrailingSlash(url: string): string {
     );
   }
   return query ? `${withSlash}?${query}` : withSlash;
-}
-
-function isFormData(data: unknown): boolean {
-  return typeof FormData !== 'undefined' && data instanceof FormData;
-}
-
-function isBlobLike(data: unknown): boolean {
-  return typeof Blob !== 'undefined' && data instanceof Blob;
-}
-
-function isParamsRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 const axiosClient = axios.create({
@@ -126,24 +110,6 @@ axiosClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     config.url = ensureTrailingSlash(config.url);
   }
 
-  if (!config._moneyPrepared) {
-    if (isParamsRecord(config.params)) {
-      config.params = convertMoneyParams(config.params);
-    }
-
-    const method = (config.method ?? 'get').toLowerCase();
-    if (
-      (method === 'post' || method === 'put' || method === 'patch') &&
-      config.data &&
-      !isFormData(config.data) &&
-      !isBlobLike(config.data) &&
-      typeof config.data === 'object'
-    ) {
-      config.data = convertMoneyFields(config.data, 'toUsd');
-    }
-    config._moneyPrepared = true;
-  }
-
   if (config.idempotent) {
     config.headers['Idempotency-Key'] = uuidv4();
   }
@@ -154,26 +120,12 @@ axiosClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-function applyMoneyToResponse(response: AxiosResponse): AxiosResponse {
-  if (
-    response.config.responseType === 'blob' ||
-    isBlobLike(response.data) ||
-    typeof response.data === 'string'
-  ) {
-    return response;
-  }
-  if (response.data !== null && typeof response.data === 'object') {
-    response.data = convertMoneyFields(response.data, 'toVnd');
-  }
-  return response;
-}
-
 axiosClient.interceptors.response.use(
   (response) => {
     if (isEnvelope(response.data)) {
       response.data = response.data.data;
     }
-    return applyMoneyToResponse(response);
+    return response;
   },
   async (error: AxiosError) => {
     const original = error.config;

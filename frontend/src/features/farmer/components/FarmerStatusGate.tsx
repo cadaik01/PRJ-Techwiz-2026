@@ -35,12 +35,13 @@ export function FarmerStatusGate({
         <div className="farmer-status-gate__alert farmer-status-gate__alert--pending">
           <Clock className="farmer-status-gate__icon" />
           <div>
-            <p className="farmer-status-gate__title">Hồ sơ đang chờ duyệt</p>
+            <p className="farmer-status-gate__title">Waiting for approval</p>
             <p className="farmer-status-gate__desc">
-              Bạn có thể xem dữ liệu nhưng chưa thể tạo hoặc sửa sản phẩm.
+              You can browse the workspace, but listing produce is unlocked after
+              an admin reviews your stall.
             </p>
           </div>
-          <Badge variant="warning">Chờ duyệt</Badge>
+          <Badge variant="warning">Pending</Badge>
         </div>
       ) : null}
 
@@ -48,9 +49,9 @@ export function FarmerStatusGate({
         <div className="farmer-status-gate__alert farmer-status-gate__alert--danger">
           <AlertTriangle className="farmer-status-gate__icon" />
           <div>
-            <p className="farmer-status-gate__title">Hồ sơ bị từ chối</p>
+            <p className="farmer-status-gate__title">Stall application declined</p>
             <p className="farmer-status-gate__desc">
-              {rejectionReason || 'Vui lòng cập nhật hồ sơ và gửi lại.'}
+              {rejectionReason || 'Update your profile details and resubmit for review.'}
             </p>
           </div>
         </div>
@@ -60,9 +61,9 @@ export function FarmerStatusGate({
         <div className="farmer-status-gate__alert farmer-status-gate__alert--danger">
           <Ban className="farmer-status-gate__icon" />
           <div>
-            <p className="farmer-status-gate__title">Tài khoản tạm khóa</p>
+            <p className="farmer-status-gate__title">Stall temporarily suspended</p>
             <p className="farmer-status-gate__desc">
-              Các thao tác ghi bị vô hiệu. Bạn vẫn xem được dữ liệu hiện có.
+              Editing and new listings are paused. You can still review existing data.
             </p>
           </div>
         </div>
@@ -81,12 +82,12 @@ export function FarmerStatusGate({
                 <div>{children}</div>
               </TooltipTrigger>
               <TooltipContent>
-                Không thể thực hiện khi hồ sơ{' '}
+                Cannot perform this action while profile is{' '}
                 {status === 'PENDING'
-                  ? 'chờ duyệt'
+                  ? 'pending approval'
                   : status === 'REJECTED'
-                    ? 'bị từ chối'
-                    : 'bị tạm khóa'}
+                    ? 'rejected'
+                    : 'suspended'}
               </TooltipContent>
             </Tooltip>
           ) : (

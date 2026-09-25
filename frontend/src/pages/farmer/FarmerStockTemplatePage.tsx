@@ -23,8 +23,8 @@ export default function FarmerStockTemplatePage() {
   if (previewQuery.isError || !previewQuery.data) {
     return (
       <EmptyState
-        title="Không tải được mẫu tồn kho"
-        actionLabel="Thử lại"
+        title="Stock template couldn't be loaded"
+        actionLabel="Try again"
         onAction={() => previewQuery.refetch()}
       />
     );
@@ -35,15 +35,15 @@ export default function FarmerStockTemplatePage() {
   return (
     <div className="farmer-stock-template-page">
       <PageHeader
-        title="Mẫu tồn kho tuần"
-        description="Xem trước thay đổi tồn hiện tại → tồn mặc định tuần, rồi áp dụng."
+        title="Weekly stock reset"
+        description="Preview current vs default stock, then apply the weekly template."
         actions={
           <Button
             data-write
             disabled={!preview.can_apply}
             onClick={() => setConfirmOpen(true)}
           >
-            Áp dụng mẫu tuần
+            Apply weekly template
           </Button>
         }
       />
@@ -51,7 +51,7 @@ export default function FarmerStockTemplatePage() {
       {preview.overdue_orders.length > 0 ? (
         <div className="page-primitive__warn-panel">
           <p className="page-primitive__semibold">
-            Cần xử lý {preview.overdue_orders.length} đơn quá hạn trước khi áp dụng
+            Resolve {preview.overdue_orders.length} overdue order(s) before applying
           </p>
           <ul className="page-primitive__warn-list page-primitive__list-plain">
             {preview.overdue_orders.map((o) => (
@@ -66,7 +66,7 @@ export default function FarmerStockTemplatePage() {
             ))}
           </ul>
           <Button asChild size="sm" className="page-primitive__mt-3" variant="outline">
-            <Link to="/farmer/orders?tab=overdue">Xử lý đơn quá hạn</Link>
+            <Link to="/farmer/orders?tab=overdue">Handle overdue orders</Link>
           </Button>
         </div>
       ) : null}
@@ -75,10 +75,10 @@ export default function FarmerStockTemplatePage() {
         <table className="page-primitive__table">
           <thead className="page-primitive__table-head">
             <tr>
-              <th className="page-primitive__table-th">Sản phẩm</th>
-              <th className="page-primitive__table-th">Tồn hiện tại</th>
-              <th className="page-primitive__table-th">Tồn mới</th>
-              <th className="page-primitive__table-th">Đang giữ</th>
+              <th className="page-primitive__table-th">Product</th>
+              <th className="page-primitive__table-th">Current stock</th>
+              <th className="page-primitive__table-th">New stock</th>
+              <th className="page-primitive__table-th">Held</th>
             </tr>
           </thead>
           <tbody>
@@ -101,8 +101,8 @@ export default function FarmerStockTemplatePage() {
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Áp dụng mẫu tồn kho tuần?"
-        description="Tồn kho sẽ được đặt lại theo giá trị mặc định tuần."
+        title="Apply weekly stock reset?"
+        description="Current stock will be replaced with each item's weekly default."
         loading={applyMutation.isPending}
         onConfirm={() =>
           applyMutation.mutate(undefined, {

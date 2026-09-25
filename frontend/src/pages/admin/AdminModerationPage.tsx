@@ -12,6 +12,8 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { PageHeader } from '@/components/common/PageHeader';
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
+import { LazyImage } from '@/components/common/LazyImage';
+import { RatingStars } from '@/components/common/RatingStars';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
@@ -34,23 +36,26 @@ export default function AdminModerationPage() {
 
   return (
     <div className="page-primitive__stack-4">
-      <PageHeader title="Kiểm duyệt" description="Ẩn/khôi phục sản phẩm và đánh giá." />
+      <PageHeader
+        title="Content moderation"
+        description="Hide or restore products and reviews that need review."
+      />
       <Tabs defaultValue="products">
         <TabsList>
-          <TabsTrigger value="products">Sản phẩm</TabsTrigger>
-          <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
+          <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews</TabsTrigger>
         </TabsList>
         <TabsContent value="products" className="admin-moderation-page__list">
           {productsQuery.isLoading ? (
             <PageSkeleton />
           ) : !productsQuery.data?.results.length ? (
-            <EmptyState title="Không có sản phẩm" />
+            <EmptyState title="No products awaiting moderation" />
           ) : (
             productsQuery.data.results.map((p) => (
               <div key={p.id} className="admin-moderation-page__row">
                 <div className="admin-moderation-page__info">
-                  <img
-                    src={p.image ?? ''}
+                  <LazyImage
+                    src={p.image}
                     alt=""
                     className="admin-moderation-page__thumb"
                   />
@@ -59,14 +64,14 @@ export default function AdminModerationPage() {
                     <p className="page-primitive__muted-xs">{p.farmer.stall_name}</p>
                     {p.is_hidden_by_admin ? (
                       <Badge variant="danger" className="admin-moderation-page__badge">
-                        Ẩn: {p.hidden_reason}
+                        Hidden: {p.hidden_reason}
                       </Badge>
                     ) : null}
                   </div>
                 </div>
                 {p.is_hidden_by_admin ? (
                   <Button size="sm" onClick={() => restoreProduct.mutate(p.id)}>
-                    Khôi phục
+                    Restore
                   </Button>
                 ) : (
                   <Button
@@ -77,7 +82,7 @@ export default function AdminModerationPage() {
                       setReason('');
                     }}
                   >
-                    Ẩn
+                    Hide
                   </Button>
                 )}
               </div>
@@ -88,26 +93,27 @@ export default function AdminModerationPage() {
           {reviewsQuery.isLoading ? (
             <PageSkeleton />
           ) : !reviewsQuery.data?.results.length ? (
-            <EmptyState title="Không có đánh giá" />
+            <EmptyState title="No reviews awaiting moderation" />
           ) : (
             reviewsQuery.data.results.map((r) => (
               <div key={r.id} className="admin-moderation-page__review-card">
                 <div className="admin-moderation-page__review-top">
                   <div>
                     <p className="admin-moderation-page__name">
-                      {r.customer_display_name} · {r.rating}★
+                      {r.customer_display_name}
                     </p>
+                    <RatingStars value={r.rating} />
                     <p className="page-primitive__muted-xs">{r.target_label}</p>
                     <p className="admin-moderation-page__comment">{r.comment}</p>
                     {r.is_hidden_by_admin ? (
                       <Badge variant="danger" className="admin-moderation-page__badge">
-                        Ẩn: {r.hidden_reason}
+                        Hidden: {r.hidden_reason}
                       </Badge>
                     ) : null}
                   </div>
                   {r.is_hidden_by_admin ? (
                     <Button size="sm" onClick={() => restoreReview.mutate(r.id)}>
-                      Khôi phục
+                      Restore
                     </Button>
                   ) : (
                     <Button
@@ -118,7 +124,7 @@ export default function AdminModerationPage() {
                         setReason('');
                       }}
                     >
-                      Ẩn
+                      Hide
                     </Button>
                   )}
                 </div>
@@ -133,13 +139,13 @@ export default function AdminModerationPage() {
         onOpenChange={(open) => {
           if (!open) setHideTarget(null);
         }}
-        title="Ẩn nội dung"
-        description="Nhập lý do ẩn."
+        title="Hide this content"
+        description="Add a short reason before hiding it from shoppers."
         destructive
         loading={hide.isPending}
         onConfirm={() => {
           if (!hideTarget || reason.trim().length < 3) {
-            toast.error('Lý do tối thiểu 3 ký tự');
+            toast.error('Reason must be at least 3 characters');
             return;
           }
           hide.mutate(

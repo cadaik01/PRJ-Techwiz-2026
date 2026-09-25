@@ -44,7 +44,7 @@ export function useHideModerationItem() {
       return adminApi.hideReview(input.id, input.reason);
     },
     onSuccess: () => {
-      toast.success('Đã ẩn');
+      toast.success('Content hidden from shoppers');
       invalidateModeration(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -56,7 +56,7 @@ export function useRestoreModerationProduct() {
   return useMutation({
     mutationFn: adminApi.restoreProduct,
     onSuccess: () => {
-      toast.success('Đã khôi phục');
+      toast.success('Content restored');
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.ADMIN_MODERATION_PRODUCTS,
       });
@@ -70,7 +70,7 @@ export function useRestoreModerationReview() {
   return useMutation({
     mutationFn: adminApi.restoreReview,
     onSuccess: () => {
-      toast.success('Đã khôi phục');
+      toast.success('Content restored');
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.ADMIN_MODERATION_REVIEWS,
       });

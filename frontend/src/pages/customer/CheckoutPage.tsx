@@ -92,10 +92,11 @@ export default function CheckoutPage() {
   if (farmerIds.length === 0) {
     return (
       <div>
-        <PageHeader title="Đặt hàng" />
+        <PageHeader title="Checkout" />
         <EmptyState
-          title="Không có sản phẩm khả dụng"
-          actionLabel="Về giỏ hàng"
+          title="Nothing ready to check out"
+          description="Add in-stock produce to your cart, then come back here."
+          actionLabel="Back to cart"
           onAction={() => navigate('/app/cart')}
         />
       </div>
@@ -105,12 +106,12 @@ export default function CheckoutPage() {
   return (
     <div className="checkout-page">
       <PageHeader
-        title="Đặt hàng"
-        description="Thanh toán khi nhận hàng tại quầy — không thanh toán online."
+        title="Checkout"
+        description="Choose a pickup slot and pay at the stall — no online payment."
       />
 
       <div className="checkout-page__steps">
-        {['Xem lại giỏ', 'Chọn khung giờ', 'Xác nhận'].map((label, index) => {
+        {['Review', 'Pickup slot', 'Confirm'].map((label, index) => {
           const n = index + 1;
           return (
             <div key={label} className={stepClass(n, step)}>
@@ -121,7 +122,7 @@ export default function CheckoutPage() {
       </div>
 
       {step === 1 ? (
-        <div className="page-primitive__stack-4">
+        <div className="checkout-page__panels">
           {farmerIds.map((farmerId) => (
             <div key={farmerId} className="checkout-page__panel">
               <h3 className="checkout-page__panel-title">
@@ -139,11 +140,11 @@ export default function CheckoutPage() {
               </ul>
             </div>
           ))}
-          <div className="page-primitive__actions-between">
+          <div className="page-primitive__actions-between checkout-page__panels-actions">
             <Button variant="outline" asChild>
-              <Link to="/app/cart">Quay lại giỏ</Link>
+              <Link to="/app/cart">Back to cart</Link>
             </Button>
-            <Button onClick={() => setStep(2)}>Tiếp tục</Button>
+            <Button onClick={() => setStep(2)}>Continue</Button>
           </div>
         </div>
       ) : null}
@@ -158,7 +159,7 @@ export default function CheckoutPage() {
                   {grouped[farmerId]?.[0]?.farmer_name}
                 </h3>
                 {pickupQueries[index]?.isLoading ? (
-                  <p className="checkout-page__loading-hint">Đang tải khung giờ…</p>
+                  <p className="checkout-page__loading-hint">Loading pickup slots…</p>
                 ) : (
                   <TimeSlotPicker
                     options={options}
@@ -171,7 +172,7 @@ export default function CheckoutPage() {
                 )}
                 <Textarea
                   className="checkout-page__note-field"
-                  placeholder="Ghi chú cho quầy (tuỳ chọn)"
+                  placeholder="Optional note for the stall"
                   value={notes[farmerId] ?? ''}
                   onChange={(e) =>
                     setNotes((prev) => ({ ...prev, [farmerId]: e.target.value }))
@@ -182,17 +183,17 @@ export default function CheckoutPage() {
           })}
           <div className="page-primitive__actions-between">
             <Button variant="outline" onClick={() => setStep(1)}>
-              Quay lại
+              Back
             </Button>
             <Button disabled={!allSlotsSelected} onClick={() => setStep(3)}>
-              Tiếp tục
+              Continue
             </Button>
           </div>
         </div>
       ) : null}
 
       {step === 3 ? (
-        <div className="page-primitive__stack-4">
+        <div className="checkout-page__panels">
           {farmerIds.map((farmerId) => {
             const slot = slots[farmerId];
             const subtotal =
@@ -208,17 +209,17 @@ export default function CheckoutPage() {
                 <p className="checkout-page__slot-label">{slot?.label}</p>
                 <p className="checkout-page__subtotal">{formatVnd(subtotal)}</p>
                 {notes[farmerId] ? (
-                  <p className="checkout-page__note-text">Ghi chú: {notes[farmerId]}</p>
+                  <p className="checkout-page__note-text">Note: {notes[farmerId]}</p>
                 ) : null}
               </div>
             );
           })}
-          <div className="checkout-page__pay-banner">
-            Tổng {formatVnd(total)} · <strong>Thanh toán khi nhận hàng tại quầy</strong>
+          <div className="checkout-page__pay-banner checkout-page__panels-banner">
+            Total {formatVnd(total)} · <strong>Pay on pickup at the stall</strong>
           </div>
-          <div className="page-primitive__actions-between">
+          <div className="page-primitive__actions-between checkout-page__panels-actions">
             <Button variant="outline" onClick={() => setStep(2)}>
-              Quay lại
+              Back
             </Button>
             <Button
               loading={createMutation.isPending}
@@ -265,7 +266,7 @@ export default function CheckoutPage() {
                   });
               }}
             >
-              Xác nhận đặt hàng
+              Confirm pre-order
             </Button>
           </div>
         </div>
@@ -274,9 +275,9 @@ export default function CheckoutPage() {
       <Dialog open={errorOpen} onOpenChange={setErrorOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Không thể tạo một số đơn</DialogTitle>
+            <DialogTitle>Some orders could not be created</DialogTitle>
             <DialogDescription>
-              Kiểm tra sản phẩm hoặc khung giờ bên dưới rồi chỉnh lại giỏ/checkout.
+              Check the products or pickup slots below, then adjust your cart/checkout.
             </DialogDescription>
           </DialogHeader>
           <ul className="checkout-page__error-list">
@@ -287,7 +288,7 @@ export default function CheckoutPage() {
               </li>
             ))}
           </ul>
-          <Button onClick={() => setErrorOpen(false)}>Đóng và chỉnh sửa</Button>
+          <Button onClick={() => setErrorOpen(false)}>Close and edit</Button>
         </DialogContent>
       </Dialog>
     </div>

@@ -15,6 +15,7 @@ import {
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { PageHeader } from '@/components/common/PageHeader';
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
+import { LazyImage } from '@/components/common/LazyImage';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -55,8 +56,8 @@ export default function FarmerProfilePage() {
   if (query.isError || !query.data) {
     return (
       <EmptyState
-        title="Không tải được hồ sơ"
-        actionLabel="Thử lại"
+        title="Profile couldn't be loaded"
+        actionLabel="Try again"
         onAction={() => query.refetch()}
       />
     );
@@ -65,19 +66,23 @@ export default function FarmerProfilePage() {
   const profile = query.data;
 
   return (
-    <div>
+    <div className="farmer-profile-page">
       <PageHeader
-        title="Hồ sơ quầy"
-        description="Thông tin hiển thị với khách hàng khi đặt trước."
+        title="Stall profile"
+        description="This is what shoppers see when they discover and pre-order from you."
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link to="/farmer/settings">Đổi mật khẩu</Link>
+            <Link to="/farmer/settings">Change password</Link>
           </Button>
         }
       />
 
       {profile.image ? (
-        <img src={profile.image} alt="" className="farmer-profile-page__banner" />
+        <LazyImage
+          src={profile.image}
+          alt=""
+          className="farmer-profile-page__banner"
+        />
       ) : null}
 
       <Card className="farmer-profile-page__card">
@@ -112,8 +117,7 @@ export default function FarmerProfilePage() {
             )}
           >
             <div className="page-primitive__form-field">
-              <Label htmlFor="stall_name">Tên quầy</Label>
-              <Input id="stall_name" {...form.register('stall_name')} />
+              <Input id="stall_name" label="Stall name" {...form.register('stall_name')} />
               {form.formState.errors.stall_name ? (
                 <p className="page-primitive__error">
                   {form.formState.errors.stall_name.message}
@@ -121,8 +125,11 @@ export default function FarmerProfilePage() {
               ) : null}
             </div>
             <div className="page-primitive__form-field">
-              <Label htmlFor="contact_person">Người liên hệ</Label>
-              <Input id="contact_person" {...form.register('contact_person')} />
+              <Input
+                id="contact_person"
+                label="Contact person"
+                {...form.register('contact_person')}
+              />
               {form.formState.errors.contact_person ? (
                 <p className="page-primitive__error">
                   {form.formState.errors.contact_person.message}
@@ -130,8 +137,12 @@ export default function FarmerProfilePage() {
               ) : null}
             </div>
             <div className="page-primitive__form-field">
-              <Label htmlFor="phone">Số điện thoại</Label>
-              <Input id="phone" type="tel" {...form.register('phone')} />
+              <Input
+                id="phone"
+                type="tel"
+                label="Phone number"
+                {...form.register('phone')}
+              />
               {form.formState.errors.phone ? (
                 <p className="page-primitive__error">
                   {form.formState.errors.phone.message}
@@ -139,16 +150,15 @@ export default function FarmerProfilePage() {
               ) : null}
             </div>
             <div className="page-primitive__form-field">
-              <Label htmlFor="address">Địa chỉ</Label>
-              <Input id="address" {...form.register('address')} />
+              <Input id="address" label="Address" {...form.register('address')} />
               {form.formState.errors.address ? (
                 <p className="page-primitive__error">
                   {form.formState.errors.address.message}
                 </p>
               ) : null}
             </div>
-            <div className="page-primitive__form-field">
-              <Label htmlFor="description">Giới thiệu</Label>
+            <div className="page-primitive__form-field farmer-profile-page__field--full">
+              <Label htmlFor="description">About</Label>
               <Textarea id="description" rows={4} {...form.register('description')} />
               {form.formState.errors.description ? (
                 <p className="page-primitive__error">
@@ -156,9 +166,11 @@ export default function FarmerProfilePage() {
                 </p>
               ) : null}
             </div>
-            <Button type="submit" data-write loading={mutation.isPending}>
-              Lưu hồ sơ
-            </Button>
+            <div className="farmer-profile-page__actions">
+              <Button type="submit" data-write loading={mutation.isPending}>
+                Save profile
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

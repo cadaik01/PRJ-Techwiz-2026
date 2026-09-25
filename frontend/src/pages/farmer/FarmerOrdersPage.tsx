@@ -20,11 +20,11 @@ import { formatDateTime, formatVnd } from '@/utils/formatters';
 import './FarmerOrdersPage.css';
 
 const TABS = [
-  { id: 'pending', label: 'Chờ xác nhận' },
-  { id: 'accepted', label: 'Đã nhận' },
-  { id: 'ready', label: 'Sẵn sàng' },
-  { id: 'overdue', label: 'Quá hạn' },
-  { id: 'history', label: 'Lịch sử' },
+  { id: 'pending', label: 'Pending' },
+  { id: 'accepted', label: 'Accepted' },
+  { id: 'ready', label: 'Ready' },
+  { id: 'overdue', label: 'Overdue' },
+  { id: 'history', label: 'History' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -71,8 +71,8 @@ export default function FarmerOrdersPage() {
   return (
     <div className="farmer-orders-page">
       <PageHeader
-        title="Quản lý đơn"
-        description="Xác nhận, chuẩn bị và hoàn tất đơn nhận tại quầy."
+        title="Pickup orders"
+        description="Accept requests, prep bags, and complete stall collections."
         actions={
           <div className="page-primitive__actions-row">
             <Button
@@ -80,7 +80,7 @@ export default function FarmerOrdersPage() {
               variant={mode === 'orders' ? 'default' : 'outline'}
               onClick={() => setMode('orders')}
             >
-              Danh sách đơn
+              Order list
             </Button>
             <Button
               size="sm"
@@ -98,27 +98,28 @@ export default function FarmerOrdersPage() {
           <div className="page-primitive__inline-row-end">
             <Input
               type="date"
+              label="Pickup date"
               value={pickupDate}
               onChange={(e) => setPickupDate(e.target.value)}
               className="page-primitive__input-auto"
             />
             <Button size="sm" variant="outline" onClick={() => window.print()}>
-              <Printer className="farmer-orders-page__print-icon" /> In
+              <Printer className="farmer-orders-page__print-icon" /> Print
             </Button>
           </div>
           {pickingQuery.isLoading ? (
             <PageSkeleton />
           ) : !pickingQuery.data?.length ? (
-            <EmptyState title="Không có sản phẩm cần chuẩn bị ngày này" />
+            <EmptyState title="Nothing to prep for this day" />
           ) : (
             <div className="page-primitive__table-wrap">
               <table className="page-primitive__table">
                 <thead className="page-primitive__table-head-60">
                   <tr>
-                    <th className="page-primitive__table-th">Sản phẩm</th>
-                    <th className="page-primitive__table-th">Số lượng</th>
-                    <th className="page-primitive__table-th">Đơn vị</th>
-                    <th className="page-primitive__table-th">Số đơn</th>
+                    <th className="page-primitive__table-th">Product</th>
+                    <th className="page-primitive__table-th">Quantity</th>
+                    <th className="page-primitive__table-th">Unit</th>
+                    <th className="page-primitive__table-th">Orders</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -151,13 +152,14 @@ export default function FarmerOrdersPage() {
             }}
           >
             <Input
-              placeholder="Tìm mã đơn / tên khách"
+              label="Search customer name"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               className="page-primitive__input-narrow"
             />
             <Input
               type="date"
+              label="Pickup date"
               value={params.get('pickup_date') ?? ''}
               onChange={(e) => {
                 const next = new URLSearchParams(params);
@@ -168,7 +170,7 @@ export default function FarmerOrdersPage() {
               className="page-primitive__input-auto"
             />
             <Button type="submit" size="sm">
-              Lọc
+              Filter
             </Button>
           </form>
 
@@ -196,12 +198,15 @@ export default function FarmerOrdersPage() {
                 <PageSkeleton />
               ) : ordersQuery.isError ? (
                 <EmptyState
-                  title="Không tải được đơn"
-                  actionLabel="Thử lại"
+                  title="Orders couldn't be loaded"
+                  actionLabel="Try again"
                   onAction={() => ordersQuery.refetch()}
                 />
               ) : !ordersQuery.data?.results.length ? (
-                <EmptyState title="Không có đơn trong tab này" />
+                <EmptyState
+                  title="No orders in this view"
+                  description="New pre-orders will land here as customers reserve."
+                />
               ) : (
                 ordersQuery.data.results.map((order) => (
                   <div key={order.id} className="page-primitive__row-card-responsive">

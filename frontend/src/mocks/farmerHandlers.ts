@@ -99,7 +99,7 @@ function checkIfMatch(request: Request, version: number) {
   const match = request.headers.get('If-Match');
   if (match && Number(match) !== version) {
     return HttpResponse.json(
-      errorEnvelope('Tài nguyên đã thay đổi', 'RESOURCE_MODIFIED'),
+      errorEnvelope('Resource was modified', 'RESOURCE_MODIFIED'),
       { status: 409 },
     );
   }
@@ -288,7 +288,7 @@ export const farmerHandlers = [
     }
     const order = farmerOrderList(user.id).find((o) => o.id === Number(params.id));
     if (!order) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy đơn', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Order not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -304,7 +304,7 @@ export const farmerHandlers = [
     }
     const order = farmerOrderList(user.id).find((o) => o.id === Number(params.id));
     if (!order) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy đơn', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Order not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -312,7 +312,7 @@ export const farmerHandlers = [
     if (conflict) return conflict;
     if (order.status !== 'PLACED') {
       return HttpResponse.json(
-        errorEnvelope('Không thể chuyển trạng thái', 'INVALID_STATUS_TRANSITION'),
+        errorEnvelope('Invalid status transition', 'INVALID_STATUS_TRANSITION'),
         { status: 400 },
       );
     }
@@ -322,7 +322,7 @@ export const farmerHandlers = [
       allowed_actions: computeActions({ ...order, status: 'ACCEPTED' }),
     });
     replaceOrder(next);
-    return HttpResponse.json(envelope(toFarmerDetail(next), 'Đã xác nhận đơn'));
+    return HttpResponse.json(envelope(toFarmerDetail(next), 'Order confirmed'));
   }),
 
   http.post('/api/orders/:id/decline/', async ({ params, request }) => {
@@ -334,7 +334,7 @@ export const farmerHandlers = [
     }
     const order = farmerOrderList(user.id).find((o) => o.id === Number(params.id));
     if (!order) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy đơn', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Order not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -344,13 +344,13 @@ export const farmerHandlers = [
     const reason = body.reason?.trim() ?? '';
     if (reason.length < 5 || reason.length > 500) {
       return HttpResponse.json(
-        errorEnvelope('Lý do từ chối phải từ 5–500 ký tự', 'VALIDATION_ERROR'),
+        errorEnvelope('Rejection reason must be 5–500 characters', 'VALIDATION_ERROR'),
         { status: 400 },
       );
     }
     if (order.status !== 'PLACED') {
       return HttpResponse.json(
-        errorEnvelope('Không thể chuyển trạng thái', 'INVALID_STATUS_TRANSITION'),
+        errorEnvelope('Invalid status transition', 'INVALID_STATUS_TRANSITION'),
         { status: 400 },
       );
     }
@@ -372,7 +372,7 @@ export const farmerHandlers = [
       ],
     });
     replaceOrder(next);
-    return HttpResponse.json(envelope(toFarmerDetail(next), 'Đã từ chối đơn'));
+    return HttpResponse.json(envelope(toFarmerDetail(next), 'Order rejected'));
   }),
 
   http.post('/api/orders/:id/ready/', ({ params, request }) => {
@@ -384,7 +384,7 @@ export const farmerHandlers = [
     }
     const order = farmerOrderList(user.id).find((o) => o.id === Number(params.id));
     if (!order) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy đơn', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Order not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -392,12 +392,12 @@ export const farmerHandlers = [
     if (conflict) return conflict;
     if (order.status !== 'ACCEPTED') {
       return HttpResponse.json(
-        errorEnvelope('Không thể chuyển trạng thái', 'INVALID_STATUS_TRANSITION'),
+        errorEnvelope('Invalid status transition', 'INVALID_STATUS_TRANSITION'),
         { status: 400 },
       );
     }
     if (Date.now() < new Date(order.cutoff_at).getTime()) {
-      return HttpResponse.json(errorEnvelope('Chưa tới cut-off', 'CUTOFF_NOT_REACHED'), {
+      return HttpResponse.json(errorEnvelope('Cut-off not reached yet', 'CUTOFF_NOT_REACHED'), {
         status: 400,
       });
     }
@@ -406,7 +406,7 @@ export const farmerHandlers = [
       status: 'READY_FOR_PICKUP',
     });
     replaceOrder(next);
-    return HttpResponse.json(envelope(toFarmerDetail(next), 'Đã sẵn sàng lấy'));
+    return HttpResponse.json(envelope(toFarmerDetail(next), 'Ready for pickup'));
   }),
 
   http.post('/api/orders/:id/complete/', ({ params, request }) => {
@@ -418,7 +418,7 @@ export const farmerHandlers = [
     }
     const order = farmerOrderList(user.id).find((o) => o.id === Number(params.id));
     if (!order) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy đơn', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Order not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -429,13 +429,13 @@ export const farmerHandlers = [
       !(order.status === 'ACCEPTED' && isOverdue(order))
     ) {
       return HttpResponse.json(
-        errorEnvelope('Không thể chuyển trạng thái', 'INVALID_STATUS_TRANSITION'),
+        errorEnvelope('Invalid status transition', 'INVALID_STATUS_TRANSITION'),
         { status: 400 },
       );
     }
     if (Date.now() < new Date(order.pickup_end_at).getTime()) {
       return HttpResponse.json(
-        errorEnvelope('Chưa hết khung giờ nhận', 'PICKUP_NOT_ENDED'),
+        errorEnvelope('Pickup window has not ended', 'PICKUP_NOT_ENDED'),
         { status: 400 },
       );
     }
@@ -449,7 +449,7 @@ export const farmerHandlers = [
       allowed_actions: [],
     });
     replaceOrder(next);
-    return HttpResponse.json(envelope(toFarmerDetail(next), 'Đã hoàn thành'));
+    return HttpResponse.json(envelope(toFarmerDetail(next), 'Completed'));
   }),
 
   http.post('/api/orders/:id/no-show/', ({ params, request }) => {
@@ -461,7 +461,7 @@ export const farmerHandlers = [
     }
     const order = farmerOrderList(user.id).find((o) => o.id === Number(params.id));
     if (!order) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy đơn', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Order not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -472,13 +472,13 @@ export const farmerHandlers = [
       !(order.status === 'ACCEPTED' && isOverdue(order))
     ) {
       return HttpResponse.json(
-        errorEnvelope('Không thể chuyển trạng thái', 'INVALID_STATUS_TRANSITION'),
+        errorEnvelope('Invalid status transition', 'INVALID_STATUS_TRANSITION'),
         { status: 400 },
       );
     }
     if (Date.now() < new Date(order.pickup_end_at).getTime()) {
       return HttpResponse.json(
-        errorEnvelope('Chưa hết khung giờ nhận', 'PICKUP_NOT_ENDED'),
+        errorEnvelope('Pickup window has not ended', 'PICKUP_NOT_ENDED'),
         { status: 400 },
       );
     }
@@ -488,7 +488,7 @@ export const farmerHandlers = [
       allowed_actions: [],
     });
     replaceOrder(next);
-    return HttpResponse.json(envelope(toFarmerDetail(next), 'Đã đánh no-show'));
+    return HttpResponse.json(envelope(toFarmerDetail(next), 'Marked as no-show'));
   }),
 
   http.get('/api/picking-list/', ({ request }) => {
@@ -565,7 +565,7 @@ export const farmerHandlers = [
     }
     const product = farmerProducts.find((p) => p.id === Number(params.id));
     if (!product) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy sản phẩm', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Product not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -581,7 +581,7 @@ export const farmerHandlers = [
     }
     if (user.farmer_status !== 'APPROVED') {
       return HttpResponse.json(
-        errorEnvelope('Hồ sơ chưa được duyệt', 'FARMER_NOT_APPROVED'),
+        errorEnvelope('Profile not approved', 'FARMER_NOT_APPROVED'),
         { status: 403 },
       );
     }
@@ -618,7 +618,7 @@ export const farmerHandlers = [
       updated_at: now,
     };
     setFarmerProducts([product, ...farmerProducts]);
-    return HttpResponse.json(envelope(product, 'Đã tạo sản phẩm'), { status: 201 });
+    return HttpResponse.json(envelope(product, 'Product created'), { status: 201 });
   }),
 
   http.patch('/api/products/:id/', async ({ params, request }) => {
@@ -630,7 +630,7 @@ export const farmerHandlers = [
     }
     const idx = farmerProducts.findIndex((p) => p.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy sản phẩm', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Product not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -666,7 +666,7 @@ export const farmerHandlers = [
     const copy = [...farmerProducts];
     copy[idx] = next;
     setFarmerProducts(copy);
-    return HttpResponse.json(envelope(next, 'Đã cập nhật sản phẩm'));
+    return HttpResponse.json(envelope(next, 'Product updated'));
   }),
 
   http.post('/api/products/:id/mark-sold-out/', ({ params, request }) => {
@@ -678,7 +678,7 @@ export const farmerHandlers = [
     }
     const idx = farmerProducts.findIndex((p) => p.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy sản phẩm', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Product not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -691,7 +691,7 @@ export const farmerHandlers = [
     const copy = [...farmerProducts];
     copy[idx] = next;
     setFarmerProducts(copy);
-    return HttpResponse.json(envelope(next, 'Đã báo hết hàng'));
+    return HttpResponse.json(envelope(next, 'Marked out of stock'));
   }),
 
   http.post('/api/products/:id/archive/', ({ params, request }) => {
@@ -703,7 +703,7 @@ export const farmerHandlers = [
     }
     const idx = farmerProducts.findIndex((p) => p.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy sản phẩm', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Product not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -716,7 +716,7 @@ export const farmerHandlers = [
     const copy = [...farmerProducts];
     copy[idx] = next;
     setFarmerProducts(copy);
-    return HttpResponse.json(envelope(next, 'Đã lưu trữ sản phẩm'));
+    return HttpResponse.json(envelope(next, 'Product archived'));
   }),
 
   http.get('/api/weekly-template/preview/', ({ request }) => {
@@ -757,7 +757,7 @@ export const farmerHandlers = [
     const overdue = farmerOrderList(user.id).filter((o) => isOverdue(o));
     if (overdue.length > 0) {
       return HttpResponse.json(
-        errorEnvelope('Còn đơn quá hạn cần xử lý', 'OVERDUE_ORDERS_PENDING'),
+        errorEnvelope('Overdue orders still pending', 'OVERDUE_ORDERS_PENDING'),
         { status: 400 },
       );
     }
@@ -773,7 +773,7 @@ export const farmerHandlers = [
       });
     });
     setFarmerProducts(next);
-    return HttpResponse.json(envelope({ applied: true }, 'Đã áp dụng mẫu tồn kho tuần'));
+    return HttpResponse.json(envelope({ applied: true }, 'Weekly stock template applied'));
   }),
 
   http.get('/api/farmer-markets/', ({ request }) => {
@@ -798,13 +798,13 @@ export const farmerHandlers = [
       stall_label: string;
     };
     if (farmerMarkets.some((m) => m.market.id === body.market_id)) {
-      return HttpResponse.json(errorEnvelope('Đã tham gia chợ này', 'VALIDATION_ERROR'), {
+      return HttpResponse.json(errorEnvelope('Already joined this market', 'VALIDATION_ERROR'), {
         status: 400,
       });
     }
     const market = allMarkets.find((m) => m.id === body.market_id);
     if (!market) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy chợ', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Market not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -830,7 +830,7 @@ export const farmerHandlers = [
       open_order_count: 0,
     };
     setFarmerMarkets([...farmerMarkets, membership]);
-    return HttpResponse.json(envelope(membership, 'Đã thêm chợ'), { status: 201 });
+    return HttpResponse.json(envelope(membership, 'Market added'), { status: 201 });
   }),
 
   http.patch('/api/farmer-markets/:farmerMarketId/', async ({ params, request }) => {
@@ -842,7 +842,7 @@ export const farmerHandlers = [
     }
     const idx = farmerMarkets.findIndex((m) => m.id === Number(params.farmerMarketId));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy chợ', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Market not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -854,7 +854,7 @@ export const farmerHandlers = [
     const copy = [...farmerMarkets];
     copy[idx] = next;
     setFarmerMarkets(copy);
-    return HttpResponse.json(envelope(next, 'Đã cập nhật chợ'));
+    return HttpResponse.json(envelope(next, 'Market updated'));
   }),
 
   http.delete('/api/farmer-markets/:farmerMarketId/', ({ params, request }) => {
@@ -865,7 +865,7 @@ export const farmerHandlers = [
       });
     }
     setFarmerMarkets(farmerMarkets.filter((m) => m.id !== Number(params.farmerMarketId)));
-    return HttpResponse.json(envelope(null, 'Đã rời chợ'));
+    return HttpResponse.json(envelope(null, 'Left market'));
   }),
 
   http.post('/api/pickup-slots/', async ({ request }) => {
@@ -883,7 +883,7 @@ export const farmerHandlers = [
     };
     const idx = farmerMarkets.findIndex((m) => m.id === body.farmer_market_id);
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy chợ', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Market not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -898,7 +898,7 @@ export const farmerHandlers = [
     const copy = [...farmerMarkets];
     copy[idx] = next;
     setFarmerMarkets(copy);
-    return HttpResponse.json(envelope(slot, 'Đã thêm khung giờ'), { status: 201 });
+    return HttpResponse.json(envelope(slot, 'Time slot added'), { status: 201 });
   }),
 
   http.patch('/api/pickup-slots/:slotId/', async ({ params, request }) => {
@@ -912,7 +912,7 @@ export const farmerHandlers = [
     const body = (await request.json()) as Partial<PickupSlot>;
     const idx = farmerMarkets.findIndex((m) => m.slots.some((s) => s.id === slotId));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy chợ', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Market not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -923,7 +923,7 @@ export const farmerHandlers = [
     copy[idx] = next;
     setFarmerMarkets(copy);
     const slot = slots.find((s) => s.id === slotId);
-    return HttpResponse.json(envelope(slot, 'Đã cập nhật khung giờ'));
+    return HttpResponse.json(envelope(slot, 'Time slot updated'));
   }),
 
   http.delete('/api/pickup-slots/:slotId/', ({ params, request }) => {
@@ -936,7 +936,7 @@ export const farmerHandlers = [
     const slotId = Number(params.slotId);
     const idx = farmerMarkets.findIndex((m) => m.slots.some((s) => s.id === slotId));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy khung giờ', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Time slot not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -948,7 +948,7 @@ export const farmerHandlers = [
     const copy = [...farmerMarkets];
     copy[idx] = next;
     setFarmerMarkets(copy);
-    return HttpResponse.json(envelope(null, 'Đã xóa khung giờ'));
+    return HttpResponse.json(envelope(null, 'Time slot deleted'));
   }),
 
   http.get('/api/farmer-profiles/me/', ({ request }) => {
@@ -971,7 +971,7 @@ export const farmerHandlers = [
     const body = (await request.json()) as Partial<typeof farmerProfile>;
     const next = { ...farmerProfile, ...body, email: farmerProfile.email };
     setFarmerProfile(next);
-    return HttpResponse.json(envelope(next, 'Đã cập nhật hồ sơ quầy'));
+    return HttpResponse.json(envelope(next, 'Stall profile updated'));
   }),
 
   http.get('/api/reviews/', ({ request }) => {
@@ -1006,24 +1006,24 @@ export const farmerHandlers = [
     const reply = body.reply?.trim() ?? '';
     if (reply.length < 1 || reply.length > 500) {
       return HttpResponse.json(
-        errorEnvelope('Phản hồi 1–500 ký tự', 'VALIDATION_ERROR'),
+        errorEnvelope('Reply must be 1–500 characters', 'VALIDATION_ERROR'),
         { status: 400 },
       );
     }
     const existing = farmerReviews.find((r) => r.id === Number(params.id));
     if (!existing) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy đánh giá', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Review not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
     if (existing.reply) {
       return HttpResponse.json(
-        errorEnvelope('Đã phản hồi đánh giá này', 'REPLY_ALREADY_EXISTS'),
+        errorEnvelope('Already replied to this review', 'REPLY_ALREADY_EXISTS'),
         { status: 400 },
       );
     }
     const updated = replyFarmerReview(Number(params.id), reply);
-    return HttpResponse.json(envelope(updated, 'Đã gửi phản hồi'));
+    return HttpResponse.json(envelope(updated, 'Reply sent'));
   }),
 
   http.get('/api/__farmer_only/notifications/', ({ request }) => {

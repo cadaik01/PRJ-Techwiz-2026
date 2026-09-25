@@ -36,7 +36,16 @@
 }
 
 .order-review-page__product-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .order-review-page__product-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .order-review-page__product-list > .order-review-page__section-title {
+    grid-column: 1 / -1;
+  }
 }

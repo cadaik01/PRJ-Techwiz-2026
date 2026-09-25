@@ -35,8 +35,8 @@ export default function AdminAuditLogsPage() {
   return (
     <div className="admin-audit-logs-page">
       <PageHeader
-        title="Audit log"
-        description="Theo dõi thao tác quản trị trên hệ thống."
+        title="Audit trail"
+        description="A chronological log of admin actions across the platform."
       />
 
       <form
@@ -47,44 +47,46 @@ export default function AdminAuditLogsPage() {
         }}
       >
         <Input
-          placeholder="Action (vd FARMER_APPROVE)"
+          label="Action (e.g. FARMER_APPROVE)"
           value={action}
           onChange={(e) => setAction(e.target.value)}
           className="page-primitive__input-narrow"
         />
         <Input
-          placeholder="Email actor"
+          label="Email actor"
           value={user}
           onChange={(e) => setUser(e.target.value)}
           className="page-primitive__input-narrow"
         />
         <Input
           type="date"
+          label="From"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
           className="page-primitive__input-auto"
         />
         <Input
           type="date"
+          label="To"
           value={to}
           onChange={(e) => setTo(e.target.value)}
           className="page-primitive__input-auto"
         />
         <Button type="submit" size="sm">
-          Lọc
+          Filter
         </Button>
       </form>
 
       {query.isLoading ? (
         <PageSkeleton />
       ) : !query.data?.results.length ? (
-        <EmptyState title="Không có log" />
+        <EmptyState title="No audit entries yet" />
       ) : (
         <div className="page-primitive__table-wrap">
           <table className="page-primitive__table page-primitive__table-min-720">
             <thead className="page-primitive__table-head">
               <tr>
-                <th className="page-primitive__table-th">Thời gian</th>
+                <th className="page-primitive__table-th">Time</th>
                 <th className="page-primitive__table-th">Action</th>
                 <th className="page-primitive__table-th">Actor</th>
                 <th className="page-primitive__table-th">Target</th>
@@ -106,7 +108,7 @@ export default function AdminAuditLogsPage() {
                   </td>
                   <td className="page-primitive__table-td">
                     <Button size="sm" variant="outline" onClick={() => setSelected(log)}>
-                      Chi tiết
+                      Details
                     </Button>
                   </td>
                 </tr>
@@ -124,7 +126,7 @@ export default function AdminAuditLogsPage() {
       >
         <SheetContent className="page-primitive__sheet-md">
           <SheetHeader>
-            <SheetTitle>Chi tiết audit</SheetTitle>
+            <SheetTitle>Audit details</SheetTitle>
           </SheetHeader>
           {selected ? (
             <pre className="page-primitive__pre-box">

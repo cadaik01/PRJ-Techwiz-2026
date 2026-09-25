@@ -53,7 +53,7 @@ export default function OrderSuccessPage() {
   );
 
   useEffect(() => {
-    document.title = 'Đặt hàng thành công · MarketLink';
+    document.title = 'Pre-order confirmed · MarketLink';
   }, []);
 
   return (
@@ -74,8 +74,8 @@ export default function OrderSuccessPage() {
         <CheckCircle2 className="order-success-page__hero-icon" />
         <PageHeader
           className="order-success-page__header"
-          title="Đặt hàng thành công!"
-          description={`${orders.length} đơn đã được tạo. Thanh toán khi bạn nhận hàng tại quầy.`}
+          title="Pre-order confirmed"
+          description={`${orders.length} order${orders.length === 1 ? '' : 's'} ready. Pay when you collect at the stall.`}
         />
       </div>
 
@@ -103,10 +103,10 @@ export default function OrderSuccessPage() {
 
       <div className="order-success-page__actions page-primitive__max-w-2xl page-primitive__justify-center-row">
         <Button asChild variant="outline">
-          <Link to="/app/orders">Xem đơn hàng</Link>
+          <Link to="/app/orders">View my orders</Link>
         </Button>
         <Button asChild>
-          <Link to="/products">Tiếp tục mua</Link>
+          <Link to="/products">Keep shopping</Link>
         </Button>
       </div>
     </div>

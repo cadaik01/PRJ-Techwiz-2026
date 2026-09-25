@@ -110,6 +110,8 @@ export const catalogHandlers = [
     }
     if (ordering === 'distance' && hasCoords) {
       list = [...list].sort((a, b) => (a.distance_km ?? 999) - (b.distance_km ?? 999));
+    } else if (ordering === 'name_desc') {
+      list = [...list].sort((a, b) => b.name.localeCompare(a.name));
     } else {
       list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     }
@@ -194,6 +196,8 @@ export const catalogHandlers = [
       );
     } else if (ordering === 'distance' && hasCoords) {
       list = [...list].sort((a, b) => (a.distance_km ?? 999) - (b.distance_km ?? 999));
+    } else if (ordering === 'name_desc') {
+      list = [...list].sort((a, b) => b.stall_name.localeCompare(a.stall_name));
     } else {
       list = [...list].sort((a, b) => a.stall_name.localeCompare(b.stall_name));
     }
@@ -337,7 +341,7 @@ export const catalogHandlers = [
     const last = body.messages?.[body.messages.length - 1]?.content ?? '';
     return HttpResponse.json(
       envelope({
-        reply: `Mock AI: mình gợi ý bạn thử tìm "${last || 'rau củ'}" trên chợ gần nhất.`,
+        reply: `Mock AI: try searching for "${last || 'vegetables'}" at the nearest market.`,
         tools_used: ['search_products'],
       }),
     );

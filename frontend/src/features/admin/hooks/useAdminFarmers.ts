@@ -50,7 +50,7 @@ export function useApproveFarmer() {
   return useMutation({
     mutationFn: adminApi.approveFarmer,
     onSuccess: () => {
-      toast.success('Đã duyệt');
+      toast.success('Stall approved');
       invalidateFarmers(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -63,7 +63,7 @@ export function useRejectFarmer() {
     mutationFn: ({ id, reason }: { id: number; reason: string }) =>
       adminApi.rejectFarmer(id, reason),
     onSuccess: () => {
-      toast.success('Đã từ chối');
+      toast.success('Application declined');
       invalidateFarmers(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -76,7 +76,7 @@ export function useSuspendFarmer() {
     mutationFn: ({ id, reason }: { id: number; reason: string }) =>
       adminApi.suspendFarmer(id, reason),
     onSuccess: () => {
-      toast.success('Đã tạm khóa');
+      toast.success('Stall suspended');
       invalidateFarmers(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -88,7 +88,7 @@ export function useReinstateFarmer() {
   return useMutation({
     mutationFn: adminApi.reinstateFarmer,
     onSuccess: () => {
-      toast.success('Đã khôi phục');
+      toast.success('Stall restored');
       invalidateFarmers(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),

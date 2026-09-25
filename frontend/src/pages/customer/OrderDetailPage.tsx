@@ -35,8 +35,8 @@ export default function OrderDetailPage() {
   if (orderQuery.isError || !orderQuery.data) {
     return (
       <EmptyState
-        title="Không tìm thấy đơn"
-        actionLabel="Thử lại"
+        title="This order could not be found"
+        actionLabel="Try again"
         onAction={() => orderQuery.refetch()}
       />
     );
@@ -61,7 +61,7 @@ export default function OrderDetailPage() {
 
       <div className="order-detail-page__grid">
         <div className="order-detail-page__panel">
-          <h2 className="order-detail-page__panel-title">Nhận hàng</h2>
+          <h2 className="order-detail-page__panel-title">Pickup details</h2>
           {order.stall_label ? (
             <p className="order-detail-page__stall">{order.stall_label}</p>
           ) : null}
@@ -76,7 +76,7 @@ export default function OrderDetailPage() {
           <Countdown
             className="order-detail-page__countdown order-detail-page__countdown--tight"
             targetIso={order.pickup_start_at}
-            label="Giờ nhận"
+            label="Pickup time"
           />
           <Button
             asChild
@@ -92,7 +92,7 @@ export default function OrderDetailPage() {
               target="_blank"
               rel="noreferrer"
             >
-              <ExternalLink className="order-detail-page__directions-icon" /> Chỉ đường
+              <ExternalLink className="order-detail-page__directions-icon" /> Directions
             </a>
           </Button>
         </div>
@@ -100,12 +100,14 @@ export default function OrderDetailPage() {
         <div className="order-detail-page__panel order-detail-page__qr-panel">
           <img src={qrUrl} alt={`QR ${orderLabel}`} className="order-detail-page__qr" />
           <p className="order-detail-page__qr-label">{orderLabel}</p>
-          <p className="order-detail-page__qr-hint">Đưa mã này khi nhận tại quầy</p>
+          <p className="order-detail-page__qr-hint">
+            Show this code at the stall when you collect
+          </p>
         </div>
       </div>
 
       <div className="order-detail-page__panel">
-        <h2 className="order-detail-page__panel-title">Sản phẩm</h2>
+        <h2 className="order-detail-page__panel-title">Items</h2>
         <ul className="order-detail-page__items">
           {order.items.map((item) => (
             <li key={item.id} className="order-detail-page__item-row">
@@ -118,42 +120,42 @@ export default function OrderDetailPage() {
         </ul>
         <p className="order-detail-page__total">{formatVnd(order.total_amount)}</p>
         {order.note ? (
-          <p className="order-detail-page__note">Ghi chú: {order.note}</p>
+          <p className="order-detail-page__note">Note: {order.note}</p>
         ) : null}
       </div>
 
       <div className="order-detail-page__actions">
         {canEdit ? (
           <Button asChild variant="secondary">
-            <Link to={`/app/orders/${order.id}/edit`}>Sửa đơn</Link>
+            <Link to={`/app/orders/${order.id}/edit`}>Edit order</Link>
           </Button>
         ) : null}
         {canCancel ? (
           <Button variant="destructive" onClick={() => setCancelOpen(true)}>
-            Hủy đơn
+            Cancel order
           </Button>
         ) : null}
         {canReview ? (
           <Button asChild>
-            <Link to={`/app/orders/${order.id}/review`}>Đánh giá</Link>
+            <Link to={`/app/orders/${order.id}/review`}>Review</Link>
           </Button>
         ) : null}
         <Button variant="outline" onClick={() => navigate('/app/orders')}>
-          Danh sách đơn
+          Order list
         </Button>
       </div>
 
       <ConfirmDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
-        title="Hủy đơn hàng"
-        description="Nhập lý do hủy (tối đa 500 ký tự)."
-        confirmLabel="Xác nhận hủy"
+        title="Cancel this pre-order"
+        description="Tell us why you are cancelling (up to 500 characters)."
+        confirmLabel="Confirm cancel"
         destructive
         loading={cancelMutation.isPending}
         onConfirm={() => {
           if (!reason.trim() || reason.length > 500) {
-            toast.error('Lý do hủy không hợp lệ');
+            toast.error('Invalid cancellation reason');
             return;
           }
           cancelMutation.mutate(
@@ -175,7 +177,7 @@ export default function OrderDetailPage() {
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           maxLength={500}
-          placeholder="Ví dụ: Đổi lịch cá nhân…"
+          placeholder="e.g. Schedule conflict…"
         />
       </ConfirmDialog>
     </div>

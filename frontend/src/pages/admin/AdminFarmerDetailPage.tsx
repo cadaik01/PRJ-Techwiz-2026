@@ -4,10 +4,11 @@ import { useAdminFarmer } from '@/features/admin/hooks/useAdminFarmers';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { PageHeader } from '@/components/common/PageHeader';
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
+import { PriceTag } from '@/components/common/PriceTag';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { formatDateTime, formatVnd } from '@/utils/formatters';
+import { formatDateTime } from '@/utils/formatters';
 
 import './AdminFarmerDetailPage.css';
 
@@ -20,8 +21,8 @@ export default function AdminFarmerDetailPage() {
   if (query.isError || !query.data) {
     return (
       <EmptyState
-        title="Không tìm thấy nông dân"
-        actionLabel="Thử lại"
+        title="Stall not found"
+        actionLabel="Try again"
         onAction={() => query.refetch()}
       />
     );
@@ -36,7 +37,7 @@ export default function AdminFarmerDetailPage() {
         description={f.email}
         actions={
           <Button asChild variant="outline">
-            <Link to="/admin/farmers">← Danh sách</Link>
+            <Link to="/admin/farmers">← Back to list</Link>
           </Button>
         }
       />
@@ -51,7 +52,7 @@ export default function AdminFarmerDetailPage() {
       <div className="page-primitive__stat-grid-3">
         <Card>
           <CardHeader className="page-primitive__card-header-tight">
-            <CardTitle className="page-primitive__card-title-muted">Tổng đơn</CardTitle>
+            <CardTitle className="page-primitive__card-title-muted">Total orders</CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__stat-value">
             {f.order_stats.total}
@@ -59,7 +60,7 @@ export default function AdminFarmerDetailPage() {
         </Card>
         <Card>
           <CardHeader className="page-primitive__card-header-tight">
-            <CardTitle className="page-primitive__card-title-muted">Hoàn thành</CardTitle>
+            <CardTitle className="page-primitive__card-title-muted">Completed</CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__stat-value">
             {f.order_stats.completed}
@@ -75,45 +76,47 @@ export default function AdminFarmerDetailPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Hồ sơ</CardTitle>
-        </CardHeader>
-        <CardContent className="admin-farmer-detail-page__profile-body">
-          <p>{f.description}</p>
-          <p>SĐT: {f.phone ?? '—'}</p>
-          <p>
-            Chợ:{' '}
-            {f.markets.length
-              ? f.markets.map((m) => `${m.market_name} (${m.stall_label})`).join(', ')
-              : 'Chưa gắn chợ'}
-          </p>
-        </CardContent>
-      </Card>
+      <div className="page-primitive__grid-2-md">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile</CardTitle>
+          </CardHeader>
+          <CardContent className="admin-farmer-detail-page__profile-body">
+            <p>{f.description}</p>
+            <p>Phone: {f.phone ?? '—'}</p>
+            <p>
+              Market:{' '}
+              {f.markets.length
+                ? f.markets.map((m) => `${m.market_name} (${m.stall_label})`).join(', ')
+                : 'No market assigned'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Products ({f.products.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="admin-farmer-detail-page__products">
+            {f.products.length === 0 ? (
+              <p className="page-primitive__muted-sm">No produce listed yet.</p>
+            ) : (
+              f.products.map((p) => (
+                <div key={p.id} className="page-primitive__product-row">
+                  <span>{p.name}</span>
+                  <span>
+                    <PriceTag amount={p.price} /> · stock {p.stock_quantity}
+                  </span>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Sản phẩm ({f.products.length})</CardTitle>
-        </CardHeader>
-        <CardContent className="admin-farmer-detail-page__products">
-          {f.products.length === 0 ? (
-            <p className="page-primitive__muted-sm">Chưa có sản phẩm.</p>
-          ) : (
-            f.products.map((p) => (
-              <div key={p.id} className="page-primitive__product-row">
-                <span>{p.name}</span>
-                <span>
-                  {formatVnd(p.price)} · tồn {p.stock_quantity}
-                </span>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Lịch sử trạng thái</CardTitle>
+          <CardTitle>Status history</CardTitle>
         </CardHeader>
         <CardContent className="admin-farmer-detail-page__history">
           {f.status_history.map((h, index) => (

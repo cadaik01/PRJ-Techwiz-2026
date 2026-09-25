@@ -37,13 +37,13 @@ L.Icon.Default.mergeOptions({
 });
 
 const DAYS: Array<{ value: DayOfWeek; label: string }> = [
-  { value: 1, label: 'T2' },
-  { value: 2, label: 'T3' },
-  { value: 3, label: 'T4' },
-  { value: 4, label: 'T5' },
-  { value: 5, label: 'T6' },
-  { value: 6, label: 'T7' },
-  { value: 7, label: 'CN' },
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+  { value: 7, label: 'Sun' },
 ];
 
 const DEFAULT_VALUES: MarketFormValues = {
@@ -119,8 +119,8 @@ export default function AdminMarketFormPage() {
   if (isEdit && (marketQuery.isError || !marketQuery.data)) {
     return (
       <EmptyState
-        title="Không tải được chợ"
-        actionLabel="Thử lại"
+        title="Market couldn't be loaded"
+        actionLabel="Try again"
         onAction={() => marketQuery.refetch()}
       />
     );
@@ -159,112 +159,124 @@ export default function AdminMarketFormPage() {
 
   return (
     <form className="admin-market-form-page" onSubmit={form.handleSubmit(onSubmit)}>
-      <PageHeader title={isEdit ? 'Sửa chợ' : 'Thêm chợ'} />
-      <div className="page-primitive__form-grid-2">
-        <div className="page-primitive__form-field page-primitive__form-span-2">
-          <Label htmlFor="name">Tên chợ</Label>
-          <Input id="name" {...form.register('name')} />
-          {form.formState.errors.name ? (
-            <p className="page-primitive__error">{form.formState.errors.name.message}</p>
-          ) : null}
-        </div>
-        <div className="page-primitive__form-field page-primitive__form-span-2">
-          <Label htmlFor="address">Địa chỉ</Label>
-          <Input id="address" {...form.register('address')} />
-          {form.formState.errors.address ? (
-            <p className="page-primitive__error">
-              {form.formState.errors.address.message}
-            </p>
-          ) : null}
-        </div>
-        <div className="page-primitive__form-field">
-          <Label htmlFor="open_time">Giờ mở</Label>
-          <Input id="open_time" type="time" {...form.register('open_time')} />
-          {form.formState.errors.open_time ? (
-            <p className="page-primitive__error">
-              {form.formState.errors.open_time.message}
-            </p>
-          ) : null}
-        </div>
-        <div className="page-primitive__form-field">
-          <Label htmlFor="close_time">Giờ đóng</Label>
-          <Input id="close_time" type="time" {...form.register('close_time')} />
-          {form.formState.errors.close_time ? (
-            <p className="page-primitive__error">
-              {form.formState.errors.close_time.message}
-            </p>
-          ) : null}
-        </div>
-      </div>
+      <PageHeader title={isEdit ? 'Edit market' : 'Add a market'} />
+      <div className="admin-market-form-page__body">
+        <div className="admin-market-form-page__fields">
+          <div className="page-primitive__form-grid-2">
+            <div className="page-primitive__form-field page-primitive__form-span-2">
+              <Input id="name" label="Market name" {...form.register('name')} />
+              {form.formState.errors.name ? (
+                <p className="page-primitive__error">{form.formState.errors.name.message}</p>
+              ) : null}
+            </div>
+            <div className="page-primitive__form-field page-primitive__form-span-2">
+              <Input id="address" label="Address" {...form.register('address')} />
+              {form.formState.errors.address ? (
+                <p className="page-primitive__error">
+                  {form.formState.errors.address.message}
+                </p>
+              ) : null}
+            </div>
+            <div className="page-primitive__form-field">
+              <Input
+                id="open_time"
+                type="time"
+                label="Open time"
+                {...form.register('open_time')}
+              />
+              {form.formState.errors.open_time ? (
+                <p className="page-primitive__error">
+                  {form.formState.errors.open_time.message}
+                </p>
+              ) : null}
+            </div>
+            <div className="page-primitive__form-field">
+              <Input
+                id="close_time"
+                type="time"
+                label="Close time"
+                {...form.register('close_time')}
+              />
+              {form.formState.errors.close_time ? (
+                <p className="page-primitive__error">
+                  {form.formState.errors.close_time.message}
+                </p>
+              ) : null}
+            </div>
+          </div>
 
-      <div>
-        <Label>Ngày họp chợ</Label>
-        <div className="admin-market-form-page__days">
-          {DAYS.map((day) => (
-            <button
-              key={day.value}
-              type="button"
-              onClick={() => toggleDay(day.value)}
-              className={
-                operatingDays.includes(day.value)
-                  ? 'admin-market-form-page__day admin-market-form-page__day--active'
-                  : 'admin-market-form-page__day'
-              }
+          <div>
+            <Label>Market days</Label>
+            <div className="admin-market-form-page__days">
+              {DAYS.map((day) => (
+                <button
+                  key={day.value}
+                  type="button"
+                  onClick={() => toggleDay(day.value)}
+                  className={
+                    operatingDays.includes(day.value)
+                      ? 'admin-market-form-page__day admin-market-form-page__day--active'
+                      : 'admin-market-form-page__day'
+                  }
+                >
+                  {day.label}
+                </button>
+              ))}
+            </div>
+            {form.formState.errors.operating_days ? (
+              <p className="page-primitive__error page-primitive__mt-2">
+                {form.formState.errors.operating_days.message}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="page-primitive__form-field">
+            <Label htmlFor="description">Description</Label>
+            <Textarea id="description" {...form.register('description')} />
+          </div>
+        </div>
+
+        <div className="admin-market-form-page__map">
+          <div className="page-primitive__map-box">
+            <MapContainer
+              center={[latitude, longitude]}
+              zoom={15}
+              className="page-primitive__map-fill"
             >
-              {day.label}
-            </button>
-          ))}
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <Marker
+                position={[latitude, longitude]}
+                draggable
+                eventHandlers={{
+                  dragend: (event) => {
+                    const point = readDragLatLng(event.target);
+                    if (!point) return;
+                    form.setValue('latitude', point.lat);
+                    form.setValue('longitude', point.lng);
+                  },
+                }}
+              />
+              <MapClick
+                onPick={(nextLatitude, nextLongitude) => {
+                  form.setValue('latitude', nextLatitude);
+                  form.setValue('longitude', nextLongitude);
+                }}
+              />
+            </MapContainer>
+          </div>
         </div>
-        {form.formState.errors.operating_days ? (
-          <p className="page-primitive__error page-primitive__mt-2">
-            {form.formState.errors.operating_days.message}
-          </p>
-        ) : null}
       </div>
 
-      <div className="page-primitive__form-field">
-        <Label htmlFor="description">Mô tả</Label>
-        <Textarea id="description" {...form.register('description')} />
-      </div>
-
-      <div className="page-primitive__map-box">
-        <MapContainer
-          center={[latitude, longitude]}
-          zoom={15}
-          className="page-primitive__map-fill"
-        >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <Marker
-            position={[latitude, longitude]}
-            draggable
-            eventHandlers={{
-              dragend: (event) => {
-                const point = readDragLatLng(event.target);
-                if (!point) return;
-                form.setValue('latitude', point.lat);
-                form.setValue('longitude', point.lng);
-              },
-            }}
-          />
-          <MapClick
-            onPick={(nextLatitude, nextLongitude) => {
-              form.setValue('latitude', nextLatitude);
-              form.setValue('longitude', nextLongitude);
-            }}
-          />
-        </MapContainer>
-      </div>
-
-      <div className="page-primitive__actions-row">
+      <div className="admin-market-form-page__actions">
         <Button
           type="button"
           variant="outline"
           onClick={() => navigate('/admin/markets')}
         >
-          Hủy
+          Cancel
         </Button>
         <Button type="submit" loading={save.isPending}>
-          Lưu
+          Save
         </Button>
       </div>
     </form>

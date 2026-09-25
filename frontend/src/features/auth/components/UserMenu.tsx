@@ -29,22 +29,22 @@ function initials(displayName: string, email: string) {
 function linksForRole(role: Role) {
   if (role === 'CUSTOMER') {
     return [
-      { to: '/app/profile', label: 'Hồ sơ', icon: UserRound },
-      { to: '/app/favorites', label: 'Yêu thích', icon: Heart },
-      { to: DASHBOARD_PATH.CUSTOMER, label: 'Trang của tôi', icon: LayoutDashboard },
-      { to: '/app/change-password', label: 'Đổi mật khẩu', icon: KeyRound },
+      { to: '/app/profile', label: 'Your profile', icon: UserRound },
+      { to: '/app/favorites', label: 'Saved favorites', icon: Heart },
+      { to: DASHBOARD_PATH.CUSTOMER, label: 'Your overview', icon: LayoutDashboard },
+      { to: '/app/change-password', label: 'Change password', icon: KeyRound },
     ] as const;
   }
   if (role === 'FARMER') {
     return [
-      { to: '/farmer/profile', label: 'Hồ sơ quầy', icon: UserRound },
-      { to: DASHBOARD_PATH.FARMER, label: 'Tổng quan', icon: LayoutDashboard },
-      { to: '/farmer/settings', label: 'Đổi mật khẩu', icon: KeyRound },
+      { to: '/farmer/profile', label: 'Stall profile', icon: UserRound },
+      { to: DASHBOARD_PATH.FARMER, label: 'Stall overview', icon: LayoutDashboard },
+      { to: '/farmer/settings', label: 'Change password', icon: KeyRound },
     ] as const;
   }
   return [
-    { to: DASHBOARD_PATH.ADMIN, label: 'Tổng quan', icon: LayoutDashboard },
-    { to: '/admin/settings', label: 'Đổi mật khẩu', icon: KeyRound },
+    { to: DASHBOARD_PATH.ADMIN, label: 'Admin overview', icon: LayoutDashboard },
+    { to: '/admin/settings', label: 'Change password', icon: KeyRound },
   ] as const;
 }
 
@@ -63,7 +63,7 @@ export function UserMenu() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Tài khoản"
+          aria-label="Account"
           className="user-menu__trigger"
         >
           <Avatar className="user-menu__avatar">
@@ -90,7 +90,7 @@ export function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem className="user-menu__logout" onSelect={() => logout()}>
           <LogOut className="user-menu__logout-icon" />
-          Đăng xuất
+          Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

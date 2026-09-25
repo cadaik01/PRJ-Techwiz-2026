@@ -32,7 +32,7 @@ export function DialogContent({
         {children}
         <DialogPrimitive.Close className="dialog__close">
           <X className="dialog__close-icon" />
-          <span className="sr-only">Đóng</span>
+          <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </DialogPortal>

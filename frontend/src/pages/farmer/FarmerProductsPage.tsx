@@ -11,10 +11,11 @@ import { EmptyState } from '@/components/feedback/EmptyState';
 import { PageHeader } from '@/components/common/PageHeader';
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
 import { QuantityStepper } from '@/components/common/QuantityStepper';
+import { LazyImage } from '@/components/common/LazyImage';
+import { PriceTag } from '@/components/common/PriceTag';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { formatVnd } from '@/utils/formatters';
 import type { ProductAvailability } from '@/types';
 
 import './FarmerProductsPage.css';
@@ -23,18 +24,18 @@ const STATE_OPTIONS: Array<{
   value: '' | 'in_stock' | 'out_of_stock' | 'unavailable' | 'hidden' | 'archived';
   label: string;
 }> = [
-  { value: '', label: 'Tất cả trạng thái' },
-  { value: 'in_stock', label: 'Còn hàng' },
-  { value: 'out_of_stock', label: 'Hết hàng' },
-  { value: 'unavailable', label: 'Không bán' },
-  { value: 'hidden', label: 'Bị ẩn' },
-  { value: 'archived', label: 'Lưu trữ' },
+  { value: '', label: 'All statuses' },
+  { value: 'in_stock', label: 'In stock' },
+  { value: 'out_of_stock', label: 'Out of stock' },
+  { value: 'unavailable', label: 'Unavailable' },
+  { value: 'hidden', label: 'Hidden' },
+  { value: 'archived', label: 'Archived' },
 ];
 
 const AVAILABILITY_LABEL: Record<ProductAvailability, string> = {
-  IN_STOCK: 'Còn hàng',
-  OUT_OF_STOCK: 'Hết hàng',
-  UNAVAILABLE: 'Không bán',
+  IN_STOCK: 'In stock',
+  OUT_OF_STOCK: 'Out of stock',
+  UNAVAILABLE: 'Unavailable',
 };
 
 export default function FarmerProductsPage() {
@@ -55,18 +56,18 @@ export default function FarmerProductsPage() {
   return (
     <div className="farmer-products-page">
       <PageHeader
-        title="Sản phẩm"
-        description="Quản lý tồn kho, trạng thái và báo hết hàng."
+        title="Your produce"
+        description="Keep stock fresh, update prices, and mark sold-out items."
         actions={
           <Button asChild data-write>
-            <Link to="/farmer/products/new">Thêm sản phẩm</Link>
+            <Link to="/farmer/products/new">Add produce</Link>
           </Button>
         }
       />
 
       <div className="page-primitive__actions-row">
         <Input
-          placeholder="Tìm sản phẩm"
+          label="Search products"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="page-primitive__input-narrow"
@@ -100,22 +101,25 @@ export default function FarmerProductsPage() {
         <PageSkeleton />
       ) : query.isError ? (
         <EmptyState
-          title="Không tải được sản phẩm"
-          actionLabel="Thử lại"
+          title="Products couldn't be loaded"
+          actionLabel="Try again"
           onAction={() => query.refetch()}
         />
       ) : !query.data?.results.length ? (
-        <EmptyState title="Chưa có sản phẩm" />
+        <EmptyState
+          title="No produce listed yet"
+          description="Add your first item so shoppers can pre-order from your stall."
+        />
       ) : (
         <div className="page-primitive__table-wrap">
           <table className="page-primitive__table page-primitive__table-min-720">
             <thead className="page-primitive__table-head">
               <tr>
-                <th className="page-primitive__table-th">Sản phẩm</th>
-                <th className="page-primitive__table-th">Giá</th>
-                <th className="page-primitive__table-th">Tồn kho</th>
-                <th className="page-primitive__table-th">Trạng thái</th>
-                <th className="page-primitive__table-th">Thao tác</th>
+                <th className="page-primitive__table-th">Product</th>
+                <th className="page-primitive__table-th">Price</th>
+                <th className="page-primitive__table-th">Stock</th>
+                <th className="page-primitive__table-th">Status</th>
+                <th className="page-primitive__table-th">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -124,7 +128,11 @@ export default function FarmerProductsPage() {
                   <td className="page-primitive__table-td">
                     <div className="page-primitive__row-inner">
                       {p.image ? (
-                        <img src={p.image} alt="" className="page-primitive__thumb-sm" />
+                        <LazyImage
+                          src={p.image}
+                          alt=""
+                          className="page-primitive__thumb-sm"
+                        />
                       ) : (
                         <div className="page-primitive__thumb-fallback" />
                       )}
@@ -140,7 +148,7 @@ export default function FarmerProductsPage() {
                     </div>
                   </td>
                   <td className="page-primitive__table-td">
-                    {formatVnd(p.price)}/{p.unit}
+                    <PriceTag amount={p.price} unit={p.unit} />
                   </td>
                   <td className="page-primitive__table-td">
                     <QuantityStepper
@@ -164,7 +172,7 @@ export default function FarmerProductsPage() {
                   <td className="page-primitive__table-td">
                     <div className="page-primitive__actions-row">
                       <Button asChild size="sm" variant="outline">
-                        <Link to={`/farmer/products/${p.id}/edit`}>Sửa</Link>
+                        <Link to={`/farmer/products/${p.id}/edit`}>Edit</Link>
                       </Button>
                       <Button
                         size="sm"
@@ -173,7 +181,7 @@ export default function FarmerProductsPage() {
                         loading={outMutation.isPending}
                         onClick={() => outMutation.mutate(p.id)}
                       >
-                        Báo hết
+                        Mark sold out
                       </Button>
                       <Button
                         size="sm"
@@ -182,7 +190,7 @@ export default function FarmerProductsPage() {
                         loading={archiveMutation.isPending}
                         onClick={() => archiveMutation.mutate(p.id)}
                       >
-                        Lưu trữ
+                        Archive
                       </Button>
                     </div>
                   </td>

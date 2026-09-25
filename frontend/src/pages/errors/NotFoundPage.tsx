@@ -8,12 +8,12 @@ export default function NotFoundPage() {
   return (
     <div className="not-found-page">
       <p className="not-found-page__code">404</p>
-      <h1 className="not-found-page__title">Không tìm thấy trang</h1>
+      <h1 className="not-found-page__title">We lost that page</h1>
       <p className="not-found-page__desc">
-        Đường dẫn không tồn tại hoặc đã bị di chuyển.
+        The link may be outdated, or the page may have moved.
       </p>
       <Button asChild>
-        <Link to="/">Về trang chủ</Link>
+        <Link to="/">Back to MarketLink home</Link>
       </Button>
     </div>
   );

@@ -1,17 +1,13 @@
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 
-import { usdToVnd, vndToUsd } from '@/utils/helpers/currency';
 import { moneyToNumber } from '@/types';
 
-export { usdToVnd, vndToUsd };
-
-/** Amounts are already converted to VND by the Axios response adapter. */
+/** Amounts from the API are USD. */
 export function formatMoney(amount: string | number): string {
-  return new Intl.NumberFormat('vi-VN', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
+    currency: 'USD',
   }).format(moneyToNumber(amount));
 }
 
@@ -21,15 +17,15 @@ export function formatVnd(amount: string | number): string {
 
 export function formatDateTime(value: string | Date): string {
   const date = typeof value === 'string' ? parseISO(value) : value;
-  return format(date, 'dd/MM/yyyy HH:mm', { locale: vi });
+  return format(date, 'dd/MM/yyyy HH:mm', { locale: enUS });
 }
 
 export function formatDate(value: string | Date): string {
   const date = typeof value === 'string' ? parseISO(value) : value;
-  return format(date, 'dd/MM/yyyy', { locale: vi });
+  return format(date, 'dd/MM/yyyy', { locale: enUS });
 }
 
 export function formatRelative(value: string | Date): string {
   const date = typeof value === 'string' ? parseISO(value) : value;
-  return formatDistanceToNow(date, { addSuffix: true, locale: vi });
+  return formatDistanceToNow(date, { addSuffix: true, locale: enUS });
 }

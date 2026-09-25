@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { PageHeader } from '@/components/common/PageHeader';
 import { QuantityStepper } from '@/components/common/QuantityStepper';
+import { LazyImage } from '@/components/common/LazyImage';
+import { PriceTag } from '@/components/common/PriceTag';
 import { Button } from '@/components/ui/Button';
 import { useCartProductRefresh } from '@/features/customer/hooks/useCheckout';
 import { useCustomerOrders } from '@/features/customer/hooks/useCustomerOrders';
@@ -78,11 +80,11 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="cart-page">
-        <PageHeader title="Giỏ hàng" />
+        <PageHeader title="Your cart" />
         <EmptyState
-          title="Giỏ hàng trống"
-          description="Thêm sản phẩm từ các quầy để đặt trước."
-          actionLabel="Mua sắm ngay"
+          title="Your cart is empty"
+          description="Browse stalls and reserve produce to get started."
+          actionLabel="Browse produce"
           onAction={() => {
             window.location.href = '/products';
           }}
@@ -94,11 +96,11 @@ export default function CartPage() {
   return (
     <div className="cart-page">
       <PageHeader
-        title="Giỏ hàng"
-        description="Mỗi nông dân sẽ tạo thành một đơn riêng khi checkout."
+        title="Your cart"
+        description="Items from each stall become a separate pre-order at checkout."
         actions={
           <Button variant="outline" size="sm" onClick={() => clear()}>
-            Xóa giỏ
+            Empty cart
           </Button>
         }
       />
@@ -109,14 +111,14 @@ export default function CartPage() {
           <div>
             {wouldExceedTotal ? (
               <p>
-                Bạn đang có {openCount} đơn mở. Thêm {farmerCount} đơn mới sẽ vượt giới
-                hạn {maxOpen} đơn mở.
+                You currently have {openCount} open orders. Adding {farmerCount} more would exceed the
+                limit of {maxOpen} open orders.
               </p>
             ) : null}
             {conflictingFarmers.length > 0 ? (
               <p className="cart-page__warn-note">
-                Đã có đơn mở với quầy này (tối đa {maxPerFarmer}/nông dân). Hãy hoàn thành
-                hoặc hủy đơn cũ trước.
+                You already have an open order with this stall (max {maxPerFarmer}/farmer). Complete
+                or cancel the existing order first.
               </p>
             ) : null}
           </div>
@@ -135,17 +137,21 @@ export default function CartPage() {
                 {farmerItems.map((item) => (
                   <li key={item.product_id} className="cart-page__item">
                     {item.image ? (
-                      <img src={item.image} alt="" className="cart-page__item-thumb" />
+                      <LazyImage
+                        src={item.image}
+                        alt=""
+                        className="cart-page__item-thumb"
+                      />
                     ) : (
                       <div className="cart-page__item-thumb--empty" />
                     )}
                     <div className="cart-page__item-body">
                       <p className="cart-page__item-name">{item.name}</p>
                       <p className="cart-page__item-price">
-                        {formatVnd(item.price)}/{item.unit}
+                        <PriceTag amount={item.price} unit={item.unit} />
                       </p>
                       {!item.is_available ? (
-                        <p className="cart-page__item-unavailable">Ngừng bán</p>
+                        <p className="cart-page__item-unavailable">Unavailable</p>
                       ) : null}
                     </div>
                     <QuantityStepper
@@ -156,10 +162,10 @@ export default function CartPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label="Xóa"
+                      aria-label="Remove"
                       onClick={() => {
                         removeItem(item.product_id);
-                        toast.success('Đã xóa khỏi giỏ');
+                        toast.success('Removed from cart');
                       }}
                     >
                       <Trash2 className="cart-page__item-remove-icon" />
@@ -167,7 +173,7 @@ export default function CartPage() {
                   </li>
                 ))}
               </ul>
-              <p className="cart-page__subtotal">Tạm tính quầy: {formatVnd(subtotal)}</p>
+              <p className="cart-page__subtotal">Stall subtotal: {formatVnd(subtotal)}</p>
             </section>
           );
         })}
@@ -177,7 +183,7 @@ export default function CartPage() {
         <div className="cart-page__footer-row">
           <div>
             <p className="cart-page__footer-hint">
-              {farmerCount} đơn sẽ được tạo · Thanh toán khi nhận tại quầy
+              {farmerCount} order(s) will be created · Pay on pickup at the stall
             </p>
             <p className="cart-page__footer-total">{formatVnd(total)}</p>
           </div>
@@ -186,7 +192,7 @@ export default function CartPage() {
             size="lg"
             disabled={wouldExceedTotal || conflictingFarmers.length > 0}
           >
-            <Link to="/app/checkout">Tiến hành đặt hàng</Link>
+            <Link to="/app/checkout">Proceed to checkout</Link>
           </Button>
         </div>
       </div>

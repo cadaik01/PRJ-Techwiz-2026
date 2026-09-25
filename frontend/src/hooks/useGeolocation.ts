@@ -9,16 +9,16 @@ export function useGeolocation() {
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('Trình duyệt không hỗ trợ định vị');
+      toast.error('Geolocation is not supported by this browser');
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords(pos.coords.latitude, pos.coords.longitude);
-        toast.success('Đã lấy vị trí của bạn');
+        toast.success('Location updated');
       },
       () => {
-        toast.error('Không lấy được vị trí. Hãy cho phép truy cập vị trí.');
+        toast.error('Location unavailable — allow access in your browser settings.');
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );

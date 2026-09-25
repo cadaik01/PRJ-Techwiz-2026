@@ -42,7 +42,7 @@ export function useToggleAdminMarket() {
       return adminApi.deactivateMarket(id);
     },
     onSuccess: (_d, vars) => {
-      toast.success(vars.active ? 'Đã kích hoạt' : 'Đã ngừng chợ');
+      toast.success(vars.active ? 'Market activated' : 'Market deactivated');
       void invalidateMarkets(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -61,7 +61,7 @@ export function useSaveAdminMarket(marketId?: number) {
       return adminApi.createMarket(payload);
     },
     onSuccess: () => {
-      toast.success(isEdit ? 'Đã cập nhật chợ' : 'Đã tạo chợ');
+      toast.success(isEdit ? 'Market updated' : 'Market created');
       void invalidateMarkets(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),

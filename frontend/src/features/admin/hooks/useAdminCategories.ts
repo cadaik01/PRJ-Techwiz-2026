@@ -17,7 +17,7 @@ export function useReorderCategories() {
   return useMutation({
     mutationFn: (ids: number[]) => adminApi.reorderCategories(ids),
     onSuccess: () => {
-      toast.success('Đã cập nhật thứ tự');
+      toast.success('Category order saved');
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.ADMIN_CATEGORIES,
       });
@@ -35,7 +35,7 @@ export function useCreateCategory() {
       display_order?: number;
     }) => adminApi.createCategory(payload),
     onSuccess: () => {
-      toast.success('Đã thêm danh mục');
+      toast.success('Category added');
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.ADMIN_CATEGORIES,
       });
@@ -49,7 +49,7 @@ export function useDeleteCategory() {
   return useMutation({
     mutationFn: adminApi.deleteCategory,
     onSuccess: () => {
-      toast.success('Đã xóa');
+      toast.success('Category removed');
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.ADMIN_CATEGORIES,
       });

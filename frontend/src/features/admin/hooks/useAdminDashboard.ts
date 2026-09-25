@@ -17,7 +17,7 @@ export function useDashboardApproveFarmer() {
   return useMutation({
     mutationFn: adminApi.approveFarmer,
     onSuccess: () => {
-      toast.success('Đã duyệt nông dân');
+      toast.success('Stall approved');
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.ADMIN_DASHBOARD,
       });
@@ -33,9 +33,9 @@ export function useDashboardRejectFarmer() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      adminApi.rejectFarmer(id, 'Hồ sơ chưa đủ thông tin — vui lòng bổ sung.'),
+      adminApi.rejectFarmer(id, 'Profile incomplete — please provide more information.'),
     onSuccess: () => {
-      toast.success('Đã từ chối');
+      toast.success('Application declined');
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.ADMIN_DASHBOARD,
       });

@@ -4,8 +4,15 @@ import { toast } from 'sonner';
 
 import { authApi } from '@/features/auth/api/authApi';
 import { ApiError } from '@/lib/ApiError';
-import { QUERY_KEYS } from '@/config/constants';
+import { DASHBOARD_PATH, QUERY_KEYS } from '@/config/constants';
 import { useAuthStore } from '@/stores/auth.store';
+import type { Role } from '@/types';
+
+function homePathForRole(role: Role): string {
+  if (role === 'ADMIN') return DASHBOARD_PATH.ADMIN;
+  if (role === 'FARMER') return DASHBOARD_PATH.FARMER;
+  return DASHBOARD_PATH.CUSTOMER;
+}
 
 export function useAuth() {
   const queryClient = useQueryClient();
@@ -31,8 +38,8 @@ export function useAuth() {
         role: data.user.role,
       });
       queryClient.setQueryData(QUERY_KEYS.ME, data.user);
-      toast.success('Đăng nhập thành công');
-      navigate('/', { replace: true });
+      toast.success('Welcome back — you are signed in');
+      navigate(homePathForRole(data.user.role), { replace: true });
     },
     onError: (error) => {
       const apiError = ApiError.fromUnknown(error);
@@ -51,8 +58,8 @@ export function useAuth() {
         role: data.user.role,
       });
       queryClient.setQueryData(QUERY_KEYS.ME, data.user);
-      toast.success('Đăng nhập thành công');
-      navigate('/admin', { replace: true });
+      toast.success('Welcome back — you are signed in');
+      navigate(homePathForRole(data.user.role), { replace: true });
     },
     onError: (error) => {
       const apiError = ApiError.fromUnknown(error);
@@ -81,7 +88,7 @@ export function useAuth() {
   const changePasswordMutation = useMutation({
     mutationFn: authApi.changePassword,
     onSuccess: () => {
-      toast.success('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.');
+      toast.success('Password updated — please sign in again.');
       clearSession();
       queryClient.clear();
       navigate('/login', { replace: true });
@@ -103,8 +110,8 @@ export function useAuth() {
         role: data.user.role,
       });
       queryClient.setQueryData(QUERY_KEYS.ME, data.user);
-      toast.success('Đăng ký thành công');
-      navigate('/', { replace: true });
+      toast.success('Account created — welcome to MarketLink');
+      navigate(homePathForRole(data.user.role), { replace: true });
     },
     onError: (error) => {
       const apiError = ApiError.fromUnknown(error);
@@ -123,8 +130,8 @@ export function useAuth() {
         role: data.user.role,
       });
       queryClient.setQueryData(QUERY_KEYS.ME, data.user);
-      toast.success('Đăng ký thành công. Hồ sơ đang chờ duyệt.');
-      navigate('/farmer', { replace: true });
+      toast.success('Stall submitted — we will review it shortly.');
+      navigate(homePathForRole(data.user.role), { replace: true });
     },
     onError: (error) => {
       const apiError = ApiError.fromUnknown(error);

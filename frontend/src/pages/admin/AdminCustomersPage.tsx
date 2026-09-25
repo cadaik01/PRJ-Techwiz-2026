@@ -34,7 +34,9 @@ export default function AdminCustomersPage() {
   const openDeactivate = async (id: number) => {
     try {
       const impact = await fetchCustomerImpact(id);
-      setImpactText(`Ảnh hưởng: ${impact.open_order_count} đơn mở sẽ bị ảnh hưởng.`);
+      setImpactText(
+        `Impact: ${impact.open_order_count} open orders will be affected.`,
+      );
       setDeactivateId(id);
       setReason('');
     } catch (e) {
@@ -44,7 +46,10 @@ export default function AdminCustomersPage() {
 
   return (
     <div className="admin-customers-page">
-      <PageHeader title="Khách hàng" description="Khóa/mở khóa và theo dõi no-show." />
+      <PageHeader
+        title="Customers"
+        description="Lock or unlock accounts and monitor no-show history."
+      />
       <form
         className="page-primitive__actions-row"
         onSubmit={(e) => {
@@ -53,30 +58,30 @@ export default function AdminCustomersPage() {
         }}
       >
         <Input
-          placeholder="Tìm email / tên"
+          label="Search email / name"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="page-primitive__input-narrow"
         />
         <Button type="submit" size="sm">
-          Tìm
+          Search
         </Button>
       </form>
 
       {query.isLoading ? (
         <PageSkeleton />
       ) : !query.data?.results.length ? (
-        <EmptyState title="Không có khách hàng" />
+        <EmptyState title="No customers to show" />
       ) : (
         <div className="page-primitive__table-wrap">
           <table className="page-primitive__table page-primitive__table-min-720">
             <thead className="page-primitive__table-head">
               <tr>
-                <th className="page-primitive__table-th">Khách</th>
-                <th className="page-primitive__table-th">Đơn</th>
+                <th className="page-primitive__table-th">Customer</th>
+                <th className="page-primitive__table-th">Orders</th>
                 <th className="page-primitive__table-th">No-show</th>
-                <th className="page-primitive__table-th">Trạng thái</th>
-                <th className="page-primitive__table-th">Thao tác</th>
+                <th className="page-primitive__table-th">Status</th>
+                <th className="page-primitive__table-th">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -98,7 +103,7 @@ export default function AdminCustomersPage() {
                   </td>
                   <td className="page-primitive__table-td">
                     <Badge variant={c.is_active ? 'success' : 'danger'}>
-                      {c.is_active ? 'Hoạt động' : 'Đã khóa'}
+                      {c.is_active ? 'Active' : 'Locked'}
                     </Badge>
                   </td>
                   <td className="page-primitive__table-td">
@@ -108,11 +113,11 @@ export default function AdminCustomersPage() {
                         variant="destructive"
                         onClick={() => openDeactivate(c.id)}
                       >
-                        Khóa
+                        Lock
                       </Button>
                     ) : (
                       <Button size="sm" onClick={() => activate.mutate(c.id)}>
-                        Mở khóa
+                        Unlock
                       </Button>
                     )}
                   </td>
@@ -128,13 +133,13 @@ export default function AdminCustomersPage() {
         onOpenChange={(open) => {
           if (!open) setDeactivateId(null);
         }}
-        title="Khóa khách hàng"
+        title="Lock this customer"
         description={impactText}
         destructive
         loading={deactivate.isPending}
         onConfirm={() => {
           if (!deactivateId || reason.trim().length < 3) {
-            toast.error('Nhập lý do khóa');
+            toast.error('Add a lock reason');
             return;
           }
           deactivate.mutate(
@@ -149,7 +154,7 @@ export default function AdminCustomersPage() {
           className="admin-customers-page__dialog-field"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Lý do khóa…"
+          placeholder="Lock reason…"
         />
       </ConfirmDialog>
     </div>

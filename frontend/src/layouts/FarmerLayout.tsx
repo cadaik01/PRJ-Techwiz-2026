@@ -31,15 +31,15 @@ import { cn } from '@/lib/cn';
 import './FarmerLayout.css';
 
 const navItems = [
-  { to: '/farmer', label: 'Tổng quan', icon: LayoutDashboard, end: true },
-  { to: '/farmer/orders', label: 'Đơn hàng', icon: Package, end: false },
-  { to: '/farmer/products', label: 'Sản phẩm', icon: Boxes, end: false },
-  { to: '/farmer/stock-template', label: 'Mẫu tồn kho', icon: CalendarClock, end: false },
-  { to: '/farmer/markets', label: 'Chợ & khung giờ', icon: Store, end: false },
-  { to: '/farmer/reviews', label: 'Đánh giá', icon: MessageSquare, end: false },
-  { to: '/farmer/stats', label: 'Thống kê', icon: BarChart3, end: false },
-  { to: '/farmer/profile', label: 'Hồ sơ quầy', icon: UserRound, end: false },
-  { to: '/farmer/settings', label: 'Đổi mật khẩu', icon: Settings, end: false },
+  { to: '/farmer', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/farmer/orders', label: 'Orders', icon: Package, end: false },
+  { to: '/farmer/products', label: 'Products', icon: Boxes, end: false },
+  { to: '/farmer/stock-template', label: 'Stock template', icon: CalendarClock, end: false },
+  { to: '/farmer/markets', label: 'Markets & slots', icon: Store, end: false },
+  { to: '/farmer/reviews', label: 'Reviews', icon: MessageSquare, end: false },
+  { to: '/farmer/stats', label: 'Stats', icon: BarChart3, end: false },
+  { to: '/farmer/profile', label: 'Stall profile', icon: UserRound, end: false },
+  { to: '/farmer/settings', label: 'Change password', icon: Settings, end: false },
 ];
 
 function SideNav({ collapsed }: { collapsed: boolean }) {
@@ -75,7 +75,7 @@ export function FarmerLayout() {
   return (
     <div className="farmer-layout">
       <a href="#main-content" className="farmer-layout__skip-link">
-        Bỏ qua đến nội dung chính
+        Skip to main content
       </a>
       <aside
         className={cn(
@@ -88,13 +88,13 @@ export function FarmerLayout() {
         <div className="farmer-layout__sidebar-head">
           {!collapsed ? (
             <Link to="/farmer" className="farmer-layout__sidebar-brand">
-              Quầy nông dân
+              Stall workspace
             </Link>
           ) : null}
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Thu gọn sidebar"
+            aria-label="Collapse sidebar"
             onClick={() => setCollapsed(!collapsed)}
           >
             <Menu className="farmer-layout__nav-icon" />
@@ -108,18 +108,18 @@ export function FarmerLayout() {
           <div className="farmer-layout__header-mobile">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="Mở menu">
+                <Button variant="outline" size="icon" aria-label="Open menu">
                   <Menu className="farmer-layout__nav-icon" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="farmer-layout__sheet">
                 <SheetHeader className="farmer-layout__sheet-header">
-                  <SheetTitle>Menu nông dân</SheetTitle>
+                  <SheetTitle>Stall menu</SheetTitle>
                 </SheetHeader>
                 <SideNav collapsed={false} />
               </SheetContent>
             </Sheet>
-            <span className="farmer-layout__header-title">Quầy nông dân</span>
+            <span className="farmer-layout__header-title">Stall workspace</span>
           </div>
           <div className="farmer-layout__header-actions">
             <NotificationBell role="FARMER" listPath="/farmer/notifications" />

@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/feedback/EmptyState';
 import { PageHeader } from '@/components/common/PageHeader';
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
 import { QuantityStepper } from '@/components/common/QuantityStepper';
+import { PriceTag } from '@/components/common/PriceTag';
 import {
   TimeSlotPicker,
   type SelectedSlot,
@@ -19,7 +20,6 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { usePublicConfigData } from '@/features/catalog/hooks/usePublicConfig';
-import { formatVnd } from '@/utils/formatters';
 import type { OrderDetail, PickupOption } from '@/types';
 
 import './OrderEditPage.css';
@@ -40,8 +40,8 @@ export default function OrderEditPage() {
   if (orderQuery.isError || !orderQuery.data) {
     return (
       <EmptyState
-        title="Không tải được đơn"
-        actionLabel="Thử lại"
+        title="Order couldn't be loaded"
+        actionLabel="Try again"
         onAction={() => orderQuery.refetch()}
       />
     );
@@ -100,18 +100,18 @@ function OrderEditForm({
   return (
     <div className="order-edit-page">
       <PageHeader
-        title={`Sửa đơn #${order.id}`}
-        description="Chỉ sửa được trước cut-off."
+        title={`Edit order #${order.id}`}
+        description="Changes are allowed only before the stall cut-off time."
       />
 
       <div className="order-edit-page__quantities">
-        <h2 className="order-edit-page__block-title">Số lượng</h2>
+        <h2 className="order-edit-page__block-title">Quantities</h2>
         {order.items.map((item) => (
           <div key={item.product_id} className="order-edit-page__qty-row">
             <div>
               <p className="order-edit-page__item-name">{item.product_name}</p>
               <p className="order-edit-page__item-price">
-                {formatVnd(item.unit_price)}/{item.unit}
+                <PriceTag amount={item.unit_price} unit={item.unit} />
               </p>
             </div>
             <QuantityStepper
@@ -125,7 +125,7 @@ function OrderEditForm({
       </div>
 
       <div>
-        <h2 className="order-edit-page__slot-title">Khung giờ nhận</h2>
+        <h2 className="order-edit-page__slot-title">Pickup time</h2>
         {pickupOptions ? (
           <TimeSlotPicker
             options={pickupOptions}
@@ -139,18 +139,18 @@ function OrderEditForm({
       <Textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="Ghi chú"
+        placeholder="Note"
       />
 
       <div className="order-edit-page__actions">
         <Button variant="outline" onClick={onCancel}>
-          Hủy
+          Cancel
         </Button>
         <Button
           loading={saveMutation.isPending}
           onClick={() => {
             if (!slot) {
-              toast.error('Chọn khung giờ nhận');
+              toast.error('Select a pickup slot');
               return;
             }
             saveMutation.mutate(
@@ -172,7 +172,7 @@ function OrderEditForm({
                   const apiError = ApiError.fromUnknown(error);
                   toast.error(apiError.friendlyMessage);
                   if (apiError.code === 'RESOURCE_MODIFIED') {
-                    toast.info('Đơn vừa được cập nhật — đang tải lại…');
+                    toast.info('Order was just updated — reloading…');
                     onConflict();
                   }
                 },
@@ -180,7 +180,7 @@ function OrderEditForm({
             );
           }}
         >
-          Lưu thay đổi
+          Save changes
         </Button>
       </div>
     </div>

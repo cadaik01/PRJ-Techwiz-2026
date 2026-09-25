@@ -1,15 +1,15 @@
 import { z } from 'zod';
 
 export const productSchema = z.object({
-  name: z.string().min(2, 'Tên tối thiểu 2 ký tự'),
-  category_id: z.number().min(1, 'Chọn danh mục'),
-  price: z.string().min(1, 'Nhập giá'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  category_id: z.number().min(1, 'Select a category'),
+  price: z.string().min(1, 'Enter a price'),
   unit: z.enum(['KG', 'BUNCH', 'PIECE', 'PACK']),
   stock_quantity: z.number().min(0),
   weekly_default_quantity: z.number().min(0),
-  description: z.string().min(10, 'Mô tả tối thiểu 10 ký tự'),
+  description: z.string().min(10, 'Description must be at least 10 characters'),
   is_available: z.boolean(),
-  image: z.string().url('URL ảnh không hợp lệ'),
+  image: z.string().url('Invalid image URL'),
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;

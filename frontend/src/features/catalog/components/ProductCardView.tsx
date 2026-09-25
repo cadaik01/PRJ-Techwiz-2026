@@ -18,15 +18,15 @@ import './ProductCardView.css';
 
 function availabilityBadge(availability: ProductAvailability, stock: number) {
   if (availability === 'UNAVAILABLE') {
-    return { label: 'Không bán', variant: 'secondary' as const };
+    return { label: 'Unavailable', variant: 'secondary' as const };
   }
   if (availability === 'OUT_OF_STOCK') {
-    return { label: 'Hết hàng', variant: 'danger' as const };
+    return { label: 'Out of stock', variant: 'danger' as const };
   }
   if (stock <= 10) {
-    return { label: `Sắp hết · còn ${stock}`, variant: 'warning' as const };
+    return { label: `Low stock · ${stock} left`, variant: 'warning' as const };
   }
-  return { label: `Còn ${stock}`, variant: 'success' as const };
+  return { label: `${stock} left`, variant: 'success' as const };
 }
 
 export function ProductCardView({
@@ -58,7 +58,7 @@ export function ProductCardView({
               className="product-card__image"
             />
           ) : (
-            <div className="product-card__placeholder">Không có ảnh</div>
+            <div className="product-card__placeholder">No image</div>
           )}
           <div className="product-card__stock-badge">
             <Badge variant={stock.variant}>{stock.label}</Badge>
@@ -68,7 +68,7 @@ export function ProductCardView({
               active={favorited}
               onToggle={() => {
                 void toggleProduct(product.id).then(() => {
-                  toast.success(favorited ? 'Đã bỏ yêu thích' : 'Đã thêm yêu thích');
+                  toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
                 });
               }}
               className="product-card__favorite-btn"
@@ -102,11 +102,11 @@ export function ProductCardView({
               image: product.image,
               is_available: canAdd,
             });
-            toast.success('Đã thêm vào giỏ');
+            toast.success('Reserved for pickup');
           }}
         >
           <ShoppingCart className="product-card__cart-icon" />
-          Thêm vào giỏ
+          Reserve for pickup
         </Button>
       </div>
     </motion.article>

@@ -13,7 +13,7 @@ export function FavoriteButton({
   active,
   onToggle,
   className,
-  label = 'Yêu thích',
+  label = 'Favorites',
 }: {
   active: boolean;
   onToggle: () => void;
@@ -35,7 +35,7 @@ export function FavoriteButton({
         e.preventDefault();
         e.stopPropagation();
         if (!accessToken) {
-          toast.info('Đăng nhập để lưu yêu thích');
+          toast.info('Sign in to save your favorites');
           navigate('/login');
           return;
         }

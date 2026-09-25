@@ -1,8 +1,15 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
+import { DASHBOARD_PATH } from '@/config/constants';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { Role } from '@/types';
+
+function homePathForRole(role: Role): string {
+  if (role === 'ADMIN') return DASHBOARD_PATH.ADMIN;
+  if (role === 'FARMER') return DASHBOARD_PATH.FARMER;
+  return DASHBOARD_PATH.CUSTOMER;
+}
 
 export function GuestOnly() {
   const { isAuthenticated, user, isLoadingMe } = useAuth();
@@ -13,7 +20,9 @@ export function GuestOnly() {
   }
 
   if (isAuthenticated && user) {
-    return <Navigate to="/" replace state={{ from: location }} />;
+    return (
+      <Navigate to={homePathForRole(user.role)} replace state={{ from: location }} />
+    );
   }
 
   if (isAuthenticated && !user) {

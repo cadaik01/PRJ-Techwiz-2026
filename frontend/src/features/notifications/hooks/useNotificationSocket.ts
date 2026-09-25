@@ -90,8 +90,8 @@ export function useNotificationSocket(enabled: boolean) {
           const item: NotificationItem = {
             id: Date.now(),
             type: 'ORDER_PLACED',
-            title: 'Cập nhật đơn hàng',
-            message: 'Có thay đổi mới trên đơn của bạn (mock realtime).',
+            title: 'Order update',
+            message: 'There is a new change on your order (mock realtime).',
             target_url: null,
             is_read: false,
             read_at: null,

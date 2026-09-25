@@ -30,16 +30,16 @@ import { cn } from '@/lib/cn';
 import './AdminLayout.css';
 
 const navItems = [
-  { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true },
-  { to: '/admin/farmers', label: 'Nông dân', icon: Warehouse, end: false },
-  { to: '/admin/customers', label: 'Khách hàng', icon: Users, end: false },
-  { to: '/admin/markets', label: 'Chợ', icon: Store, end: false },
-  { to: '/admin/categories', label: 'Danh mục', icon: FolderTree, end: false },
-  { to: '/admin/moderation', label: 'Kiểm duyệt', icon: ShieldAlert, end: false },
-  { to: '/admin/reports', label: 'Báo cáo', icon: FileBarChart, end: false },
-  { to: '/admin/announcements', label: 'Thông báo', icon: Megaphone, end: false },
+  { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/admin/farmers', label: 'Farmers', icon: Warehouse, end: false },
+  { to: '/admin/customers', label: 'Customers', icon: Users, end: false },
+  { to: '/admin/markets', label: 'Markets', icon: Store, end: false },
+  { to: '/admin/categories', label: 'Categories', icon: FolderTree, end: false },
+  { to: '/admin/moderation', label: 'Moderation', icon: ShieldAlert, end: false },
+  { to: '/admin/reports', label: 'Reports', icon: FileBarChart, end: false },
+  { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, end: false },
   { to: '/admin/audit-logs', label: 'Audit log', icon: ScrollText, end: false },
-  { to: '/admin/settings', label: 'Cài đặt', icon: Settings, end: false },
+  { to: '/admin/settings', label: 'Settings', icon: Settings, end: false },
 ];
 
 function SideNav({ collapsed }: { collapsed: boolean }) {
@@ -74,7 +74,7 @@ export function AdminLayout() {
   return (
     <div className="admin-layout">
       <a href="#main-content" className="admin-layout__skip-link">
-        Bỏ qua đến nội dung chính
+        Skip to main content
       </a>
       <aside
         className={cn(
@@ -88,13 +88,13 @@ export function AdminLayout() {
           {!collapsed ? (
             <Link to="/admin" className="admin-layout__sidebar-brand">
               <ClipboardList className="admin-layout__sidebar-brand-icon" />
-              Admin
+              MarketLink Admin
             </Link>
           ) : null}
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Thu gọn sidebar"
+            aria-label="Collapse sidebar"
             onClick={() => setCollapsed(!collapsed)}
           >
             <Menu className="admin-layout__nav-icon" />
@@ -108,18 +108,18 @@ export function AdminLayout() {
           <div className="admin-layout__header-mobile">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="Mở menu">
+                <Button variant="outline" size="icon" aria-label="Open menu">
                   <Menu className="admin-layout__nav-icon" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="admin-layout__sheet">
                 <SheetHeader className="admin-layout__sheet-header">
-                  <SheetTitle>Menu quản trị</SheetTitle>
+                  <SheetTitle>Admin menu</SheetTitle>
                 </SheetHeader>
                 <SideNav collapsed={false} />
               </SheetContent>
             </Sheet>
-            <span className="admin-layout__header-title">Quản trị</span>
+            <span className="admin-layout__header-title">MarketLink Admin</span>
           </div>
           <div className="admin-layout__header-actions">
             <ThemeToggle />

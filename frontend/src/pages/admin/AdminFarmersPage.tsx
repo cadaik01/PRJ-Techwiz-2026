@@ -24,17 +24,17 @@ import type { FarmerStatus } from '@/types';
 import './AdminFarmersPage.css';
 
 const STATUS_OPTIONS: Array<{ value: FarmerStatus; label: string }> = [
-  { value: 'PENDING', label: 'Chờ duyệt' },
-  { value: 'APPROVED', label: 'Đã duyệt' },
-  { value: 'REJECTED', label: 'Từ chối' },
-  { value: 'SUSPENDED', label: 'Tạm khóa' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'REJECTED', label: 'Rejected' },
+  { value: 'SUSPENDED', label: 'Suspended' },
 ];
 
 function statusLabel(status: FarmerStatus) {
-  if (status === 'PENDING') return 'Chờ duyệt';
-  if (status === 'APPROVED') return 'Đã duyệt';
-  if (status === 'REJECTED') return 'Từ chối';
-  return 'Tạm khóa';
+  if (status === 'PENDING') return 'Pending';
+  if (status === 'APPROVED') return 'Approved';
+  if (status === 'REJECTED') return 'Rejected';
+  return 'Suspended';
 }
 
 function isStatus(v: string | null): v is FarmerStatus {
@@ -69,7 +69,7 @@ export default function AdminFarmersPage() {
     try {
       const impact = await fetchFarmerImpact(id);
       setImpactText(
-        `Ảnh hưởng: ${impact.open_order_count} đơn mở, ${impact.affected_customer_count} khách hàng.`,
+        `Impact: ${impact.open_order_count} open orders, ${impact.affected_customer_count} customers.`,
       );
       setSuspendId(id);
       setReason('');
@@ -81,8 +81,8 @@ export default function AdminFarmersPage() {
   return (
     <div className="admin-farmers-page">
       <PageHeader
-        title="Nông dân"
-        description="Duyệt, tạm khóa và khôi phục hồ sơ quầy."
+        title="Farmer stalls"
+        description="Approve new growers, suspend accounts, and restore access."
       />
 
       <form
@@ -97,7 +97,7 @@ export default function AdminFarmersPage() {
         }}
       >
         <Input
-          placeholder="Tìm quầy / email"
+          label="Search stall / email"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="page-primitive__input-narrow"
@@ -113,7 +113,7 @@ export default function AdminFarmersPage() {
             setPage(1);
           }}
         >
-          <option value="">Mọi trạng thái</option>
+          <option value="">All statuses</option>
           {STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -121,7 +121,7 @@ export default function AdminFarmersPage() {
           ))}
         </select>
         <Button type="submit" size="sm">
-          Lọc
+          Filter
         </Button>
       </form>
 
@@ -129,23 +129,23 @@ export default function AdminFarmersPage() {
         <PageSkeleton />
       ) : query.isError ? (
         <EmptyState
-          title="Không tải được danh sách"
-          actionLabel="Thử lại"
+          title="Stalls couldn't be loaded"
+          actionLabel="Try again"
           onAction={() => query.refetch()}
         />
       ) : !query.data?.results.length ? (
-        <EmptyState title="Không có nông dân" />
+        <EmptyState title="No farmer stalls yet" />
       ) : (
         <>
           <div className="page-primitive__table-wrap">
             <table className="page-primitive__table page-primitive__table-min-800">
               <thead className="page-primitive__table-head">
                 <tr>
-                  <th className="page-primitive__table-th">Quầy</th>
-                  <th className="page-primitive__table-th">Liên hệ</th>
-                  <th className="page-primitive__table-th">Trạng thái</th>
-                  <th className="page-primitive__table-th">Đơn mở</th>
-                  <th className="page-primitive__table-th">Thao tác</th>
+                  <th className="page-primitive__table-th">Stall</th>
+                  <th className="page-primitive__table-th">Contact</th>
+                  <th className="page-primitive__table-th">Status</th>
+                  <th className="page-primitive__table-th">Open orders</th>
+                  <th className="page-primitive__table-th">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,7 +173,7 @@ export default function AdminFarmersPage() {
                         {f.status === 'PENDING' ? (
                           <>
                             <Button size="sm" onClick={() => approve.mutate(f.id)}>
-                              Duyệt
+                              Approve
                             </Button>
                             <Button
                               size="sm"
@@ -183,7 +183,7 @@ export default function AdminFarmersPage() {
                                 setReason('');
                               }}
                             >
-                              Từ chối
+                              Reject
                             </Button>
                           </>
                         ) : null}
@@ -193,12 +193,12 @@ export default function AdminFarmersPage() {
                             variant="destructive"
                             onClick={() => openSuspend(f.id)}
                           >
-                            Tạm khóa
+                            Suspend
                           </Button>
                         ) : null}
                         {f.status === 'SUSPENDED' || f.status === 'REJECTED' ? (
                           <Button size="sm" onClick={() => reinstate.mutate(f.id)}>
-                            Khôi phục
+                            Restore
                           </Button>
                         ) : null}
                       </div>
@@ -210,7 +210,7 @@ export default function AdminFarmersPage() {
           </div>
           <div className="admin-farmers-page__pagination">
             <span>
-              Trang {query.data.page}/{query.data.total_pages} · {query.data.count} hồ sơ
+              Page {query.data.page}/{query.data.total_pages} · {query.data.count} profiles
             </span>
             <div className="page-primitive__actions-row">
               <Button
@@ -219,7 +219,7 @@ export default function AdminFarmersPage() {
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
               >
-                Trước
+                Previous
               </Button>
               <Button
                 size="sm"
@@ -227,7 +227,7 @@ export default function AdminFarmersPage() {
                 disabled={page >= query.data.total_pages}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Sau
+                Next
               </Button>
             </div>
           </div>
@@ -239,13 +239,13 @@ export default function AdminFarmersPage() {
         onOpenChange={(open) => {
           if (!open) setRejectId(null);
         }}
-        title="Từ chối hồ sơ"
-        description="Nhập lý do từ chối (tối thiểu 5 ký tự)."
+        title="Decline stall application"
+        description="Share a clear reason (at least 5 characters)."
         destructive
         loading={reject.isPending}
         onConfirm={() => {
           if (!rejectId || reason.trim().length < 5) {
-            toast.error('Lý do tối thiểu 5 ký tự');
+            toast.error('Reason must be at least 5 characters');
             return;
           }
           reject.mutate(
@@ -271,13 +271,13 @@ export default function AdminFarmersPage() {
         onOpenChange={(open) => {
           if (!open) setSuspendId(null);
         }}
-        title="Tạm khóa nông dân"
+        title="Suspend this stall"
         description={impactText}
         destructive
         loading={suspend.isPending}
         onConfirm={() => {
           if (!suspendId || reason.trim().length < 5) {
-            toast.error('Lý do tối thiểu 5 ký tự');
+            toast.error('Reason must be at least 5 characters');
             return;
           }
           suspend.mutate(
@@ -293,7 +293,7 @@ export default function AdminFarmersPage() {
       >
         <Textarea
           className="admin-farmers-page__dialog-field"
-          placeholder="Lý do tạm khóa…"
+          placeholder="Suspension reason…"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />

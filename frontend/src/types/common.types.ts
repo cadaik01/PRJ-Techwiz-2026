@@ -277,8 +277,8 @@ export interface AnnouncementAdmin extends Announcement {
 }
 
 export type ProductSort = 'newest' | 'price_asc' | 'price_desc' | 'rating';
-export type MarketSort = 'distance' | 'name';
-export type FarmerSort = 'rating' | 'in_stock' | 'distance' | 'name';
+export type MarketSort = 'distance' | 'name' | 'name_desc';
+export type FarmerSort = 'rating' | 'in_stock' | 'distance' | 'name' | 'name_desc';
 
 export interface OrderParty {
   id: number;

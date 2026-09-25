@@ -8,7 +8,6 @@ import {
   Leaf,
   LocateFixed,
   Milk,
-  Search,
   Wheat,
 } from 'lucide-react';
 
@@ -32,10 +31,22 @@ import './HomePage.css';
 const HERO_VIDEO = '/banner.mp4';
 
 const STEPS = [
-  { title: 'Chọn', desc: 'Tìm chợ, quầy và sản phẩm gần bạn' },
-  { title: 'Đặt trước', desc: 'Thêm vào giỏ và gửi pre-order' },
-  { title: 'Chọn giờ', desc: 'Chọn khung giờ nhận tại quầy' },
-  { title: 'Đến lấy', desc: 'Thanh toán khi nhận hàng tại quầy' },
+  {
+    title: 'Discover',
+    desc: 'Explore nearby markets, trusted stalls, and seasonal produce',
+  },
+  {
+    title: 'Pre-order',
+    desc: 'Reserve what you need — your selection is held at the stall',
+  },
+  {
+    title: 'Choose a slot',
+    desc: 'Pick a convenient pickup window that fits your day',
+  },
+  {
+    title: 'Collect & pay',
+    desc: 'Arrive on time, pay at the stall, and leave with peak-fresh produce',
+  },
 ] as const;
 
 function resolveCategoryIcon(icon: string | null) {
@@ -62,7 +73,7 @@ function SectionHeading({
   title,
   description,
   href,
-  linkLabel = 'Xem tất cả',
+  linkLabel = 'View all',
 }: {
   title: string;
   description: string;
@@ -121,17 +132,15 @@ export default function HomePage() {
 
         <div className="home-page__hero-inner">
           <div className="home-page__hero-copy">
-            <p className="home-page__brand">MarketLink</p>
-            <h1 className="home-page__tagline">
-              Nông sản tươi — đặt trước, nhận tại quầy
-            </h1>
+            <p className="home-page__eyebrow">MarketLink</p>
+            <h1 className="home-page__title">Local markets, reserved for you</h1>
             <p className="home-page__intro">
-              Kết nối bạn với phiên chợ địa phương. Không giao hàng — thanh toán khi đến
-              lấy.
+              Pre-order from trusted stalls, pick up on your schedule, and pay
+              when you collect — no delivery fees, just fresher produce.
             </p>
 
             <form
-              className="home-page__search-form"
+              className="home-page__search"
               onSubmit={(e) => {
                 e.preventDefault();
                 const term = q.trim();
@@ -142,45 +151,35 @@ export default function HomePage() {
                 navigate(`/products?q=${encodeURIComponent(term)}`);
               }}
             >
-              <div className="home-page__search-field">
-                <Search className="home-page__search-icon" aria-hidden />
-                <Input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Tìm sản phẩm, chợ hoặc quầy…"
-                  className="home-page__search-input"
-                  aria-label="Tìm kiếm"
-                />
-              </div>
+              <Input
+                id="home-search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                label="Search produce, stalls, or markets"
+                className="home-page__search-input"
+              />
               <Button
                 type="submit"
-                size="lg"
                 variant="accent"
                 className="home-page__search-submit"
               >
-                Tìm kiếm
+                Search
               </Button>
             </form>
 
             <div className="home-page__hero-actions">
               <Button
                 type="button"
-                size="lg"
                 variant="outline"
-                className="home-page__btn-locate"
+                className="home-page__hero-btn"
                 onClick={requestLocation}
               >
                 <LocateFixed className="home-page__icon-sm" aria-hidden />
-                Dùng vị trí của tôi
+                Use my location
               </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="ghost"
-                className="home-page__btn-markets"
-              >
+              <Button asChild variant="outline" className="home-page__hero-btn">
                 <Link to="/markets">
-                  Xem chợ gần đây
+                  Browse all markets
                   <ArrowRight className="home-page__icon-sm" aria-hidden />
                 </Link>
               </Button>
@@ -192,8 +191,10 @@ export default function HomePage() {
       <section className="home-page__categories">
         <div className="home-page__categories-inner">
           <div className="home-page__categories-head">
-            <h2 className="home-page__categories-title">Danh mục</h2>
-            <p className="home-page__categories-hint">Chọn nhanh theo loại nông sản</p>
+            <h2 className="home-page__categories-title">Shop by category</h2>
+            <p className="home-page__categories-hint">
+              From greens to dairy — find today's freshest picks
+            </p>
           </div>
           <div className="home-page__categories-scroll">
             {categoriesQuery.isLoading
@@ -221,13 +222,14 @@ export default function HomePage() {
 
       <section className="home-page__section">
         <SectionHeading
-          title="Chợ gần bạn"
+          title="Markets near you"
           description={
             lat != null
-              ? 'Sắp xếp theo khoảng cách từ vị trí hiện tại'
-              : 'Bật vị trí để ưu tiên chợ gần nhất'
+              ? 'Closest markets to where you are right now'
+              : 'Share your location to see the nearest markets first'
           }
           href="/markets"
+          linkLabel="See all markets"
         />
         {marketsQuery.isLoading ? (
           <div className="home-page__grid-markets">
@@ -237,8 +239,8 @@ export default function HomePage() {
           </div>
         ) : marketsQuery.isError ? (
           <EmptyState
-            title="Không tải được danh sách chợ"
-            actionLabel="Thử lại"
+            title="Markets couldn't be loaded"
+            actionLabel="Try again"
             onAction={() => marketsQuery.refetch()}
           />
         ) : (
@@ -253,9 +255,10 @@ export default function HomePage() {
       <section className="home-page__section--highlight">
         <div className="home-page__section-inner">
           <SectionHeading
-            title="Sản phẩm nổi bật"
-            description="Được đánh giá cao và còn hàng hôm nay"
+            title="Today's standouts"
+            description="Top-rated produce, ready to pre-order and pick up"
             href="/products"
+            linkLabel="Browse all produce"
           />
           {productsQuery.isLoading ? (
             <div className="home-page__grid-products">
@@ -265,8 +268,8 @@ export default function HomePage() {
             </div>
           ) : productsQuery.isError ? (
             <EmptyState
-              title="Không tải được sản phẩm"
-              actionLabel="Thử lại"
+              title="Products couldn't be loaded"
+              actionLabel="Try again"
               onAction={() => productsQuery.refetch()}
             />
           ) : (
@@ -281,9 +284,10 @@ export default function HomePage() {
 
       <section className="home-page__section">
         <SectionHeading
-          title="Nông dân được yêu thích"
-          description="Quầy có rating cao — quen mặt trước khi đặt"
+          title="Stalls worth knowing"
+          description="Meet highly rated farmers before you place your order"
           href="/farmers"
+          linkLabel="Browse all stalls"
         />
         {farmersQuery.isLoading ? (
           <div className="home-page__grid-farmers">
@@ -293,8 +297,8 @@ export default function HomePage() {
           </div>
         ) : farmersQuery.isError ? (
           <EmptyState
-            title="Không tải được danh sách nông dân"
-            actionLabel="Thử lại"
+            title="Stalls couldn't be loaded"
+            actionLabel="Try again"
             onAction={() => farmersQuery.refetch()}
           />
         ) : (
@@ -309,10 +313,11 @@ export default function HomePage() {
       <section className="home-page__how">
         <div className="home-page__how-inner">
           <div className="home-page__how-intro">
-            <p className="home-page__how-eyebrow">Cách hoạt động</p>
-            <h2 className="home-page__how-title">Bốn bước đến nông sản tươi</h2>
+            <p className="home-page__how-eyebrow">How MarketLink works</p>
+            <h2 className="home-page__how-title">From browse to bag in four steps</h2>
             <p className="home-page__how-desc">
-              Pre-order tại chợ — cầm túi đến đúng giờ, không chờ xếp hàng.
+              Reserve ahead, skip the guesswork, and walk out with produce
+              waiting for you.
             </p>
           </div>
 
@@ -336,14 +341,15 @@ export default function HomePage() {
         <div className="home-page__cta-blob-b" aria-hidden />
         <div className="home-page__cta-inner">
           <div className="home-page__cta-copy">
-            <p className="home-page__cta-title">Sẵn sàng cho phiên chợ hôm nay?</p>
+            <p className="home-page__cta-title">Your next market run starts here</p>
             <p className="home-page__cta-desc">
-              Duyệt chợ gần bạn, chọn quầy tin cậy và đặt trước trong vài phút.
+              Find a nearby market, choose a stall you trust, and lock in your
+              pre-order in minutes.
             </p>
           </div>
           <div className="home-page__cta-actions">
             <Button asChild size="lg" variant="accent" className="home-page__cta-btn">
-              <Link to="/markets">Khám phá chợ</Link>
+              <Link to="/markets">Explore markets</Link>
             </Button>
             <Button
               asChild
@@ -351,7 +357,7 @@ export default function HomePage() {
               variant="outline"
               className="home-page__cta-btn home-page__cta-outline"
             >
-              <Link to="/products">Xem sản phẩm</Link>
+              <Link to="/products">Shop produce</Link>
             </Button>
           </div>
         </div>

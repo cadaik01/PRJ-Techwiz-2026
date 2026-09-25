@@ -27,19 +27,23 @@ export default function FavoritesPage() {
 
   return (
     <div className="favorites-page">
-      <PageHeader title="Yêu thích" description="Nông dân, sản phẩm và chợ bạn đã lưu." />
+      <PageHeader
+        title="Saved favorites"
+        description="Stalls, produce, and markets you want to come back to."
+      />
       <Tabs defaultValue="farmers">
         <TabsList>
-          <TabsTrigger value="farmers">Nông dân ({farmerIds.length})</TabsTrigger>
-          <TabsTrigger value="products">Sản phẩm ({productIds.length})</TabsTrigger>
-          <TabsTrigger value="markets">Chợ ({marketIds.length})</TabsTrigger>
+          <TabsTrigger value="farmers">Stalls ({farmerIds.length})</TabsTrigger>
+          <TabsTrigger value="products">Produce ({productIds.length})</TabsTrigger>
+          <TabsTrigger value="markets">Markets ({marketIds.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="farmers" className="favorites-page__stack">
           {farmerIds.length === 0 ? (
             <EmptyState
-              title="Chưa có nông dân yêu thích"
-              actionLabel="Khám phá quầy"
+              title="No saved stalls yet"
+              description="Heart a stall while browsing to keep it here."
+              actionLabel="Explore stalls"
               onAction={() => navigate('/farmers')}
             />
           ) : farmersLoading ? (
@@ -51,7 +55,10 @@ export default function FavoritesPage() {
 
         <TabsContent value="products">
           {productIds.length === 0 ? (
-            <EmptyState title="Chưa có sản phẩm yêu thích" />
+            <EmptyState
+              title="No saved produce yet"
+              description="Save items you love so they are easy to find again."
+            />
           ) : productsLoading ? (
             <div className="favorites-page__grid favorites-page__grid--products">
               <Skeleton className="favorites-page__skeleton-product" />
@@ -67,7 +74,10 @@ export default function FavoritesPage() {
 
         <TabsContent value="markets" className="favorites-page__grid">
           {marketIds.length === 0 ? (
-            <EmptyState title="Chưa có chợ yêu thích" />
+            <EmptyState
+              title="No saved markets yet"
+              description="Favorite a market to pin it for your next visit."
+            />
           ) : (
             markets.map((m) => (m ? <MarketCard key={m.id} market={m} /> : null))
           )}
@@ -75,7 +85,7 @@ export default function FavoritesPage() {
       </Tabs>
 
       <Button asChild variant="link" className="favorites-page__explore">
-        <Link to="/products">Tiếp tục khám phá</Link>
+        <Link to="/products">Keep exploring produce</Link>
       </Button>
     </div>
   );

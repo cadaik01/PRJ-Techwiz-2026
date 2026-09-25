@@ -80,8 +80,8 @@ export const customerHandlers = [
       return forwardFarmer(request, '/api/__farmer_only/dashboard/');
     }
     if (user.role !== 'CUSTOMER') {
-      return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
-        status: 401,
+      return HttpResponse.json(errorEnvelope('Forbidden', 'FORBIDDEN'), {
+        status: 403,
       });
     }
     const open = customerOrders.filter((o) => isOpenStatus(o.status));

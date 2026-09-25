@@ -15,6 +15,12 @@
   }
 }
 
+@media (min-width: 1280px) {
+  .admin-markets-page__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 .admin-markets-page__card {
   border-radius: var(--radius-2xl);
   border: 1px solid var(--color-border);

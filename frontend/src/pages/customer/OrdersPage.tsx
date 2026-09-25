@@ -44,15 +44,18 @@ export default function OrdersPage() {
 
   return (
     <div className="orders-page">
-      <PageHeader title="Đơn hàng" description="Theo dõi đơn mở và lịch sử đặt trước." />
+      <PageHeader
+        title="Your orders"
+        description="Follow open pre-orders and revisit past pickups."
+      />
 
       <Tabs
         value={tab}
         onValueChange={(v) => setTab(v === 'history' ? 'history' : 'open')}
       >
         <TabsList>
-          <TabsTrigger value="open">Đang mở</TabsTrigger>
-          <TabsTrigger value="history">Lịch sử</TabsTrigger>
+          <TabsTrigger value="open">Open</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
         <div className="orders-page__filters">
@@ -76,27 +79,30 @@ export default function OrdersPage() {
               }
             }}
           >
-            <option value="">Tất cả trạng thái</option>
-            <option value="PLACED">Đã đặt</option>
-            <option value="ACCEPTED">Đã xác nhận</option>
-            <option value="READY_FOR_PICKUP">Sẵn sàng lấy</option>
-            <option value="COMPLETED">Hoàn thành</option>
-            <option value="CANCELLED">Đã hủy</option>
-            <option value="DECLINED">Từ chối</option>
-            <option value="EXPIRED">Hết hạn</option>
-            <option value="NO_SHOW">Không đến lấy</option>
+            <option value="">All statuses</option>
+            <option value="PLACED">Placed</option>
+            <option value="ACCEPTED">Accepted</option>
+            <option value="READY_FOR_PICKUP">Ready for pickup</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
+            <option value="DECLINED">Declined</option>
+            <option value="EXPIRED">Expired</option>
+            <option value="NO_SHOW">No-show</option>
           </select>
         </div>
 
         <TabsContent value={tab} className="orders-page__list">
           {ordersQuery.isError ? (
             <EmptyState
-              title="Không tải được đơn"
-              actionLabel="Thử lại"
+              title="Orders couldn't be loaded"
+              actionLabel="Try again"
               onAction={() => ordersQuery.refetch()}
             />
           ) : !ordersQuery.data?.results.length ? (
-            <EmptyState title="Chưa có đơn nào" />
+            <EmptyState
+              title="No orders here yet"
+              description="When you place a pre-order, it will show up in this list."
+            />
           ) : (
             ordersQuery.data.results.map((order) => (
               <OrderCard
@@ -116,16 +122,16 @@ export default function OrdersPage() {
       <Dialog open={Boolean(preview)} onOpenChange={(open) => !open && setPreview(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Đặt lại đơn</DialogTitle>
+            <DialogTitle>Order again</DialogTitle>
             <DialogDescription>
-              Các sản phẩm còn bán sẽ được thêm vào giỏ. Mục không khả dụng sẽ bị bỏ qua.
+              In-stock items go back into your cart. Anything unavailable is skipped.
             </DialogDescription>
           </DialogHeader>
           {preview ? (
             <div className="orders-page__preview">
               <div>
                 <p className="orders-page__preview-title">
-                  Thêm vào giỏ ({preview.items.length})
+                  Ready to reserve ({preview.items.length})
                 </p>
                 <ul className="orders-page__preview-list">
                   {preview.items.map((item) => (
@@ -138,7 +144,7 @@ export default function OrdersPage() {
               {preview.skipped.length > 0 ? (
                 <div>
                   <p className="orders-page__preview-title orders-page__preview-title--danger">
-                    Bỏ qua ({preview.skipped.length})
+                    Unavailable ({preview.skipped.length})
                   </p>
                   <ul className="orders-page__preview-list">
                     {preview.skipped.map((item) => (
@@ -169,10 +175,10 @@ export default function OrdersPage() {
                   }
                   setPreview(null);
                   void invalidateOrdersList(queryClient);
-                  toast.success('Đã thêm sản phẩm vào giỏ');
+                  toast.success('Items added to your cart');
                 }}
               >
-                Thêm vào giỏ
+                Add to cart
               </Button>
             </div>
           ) : null}

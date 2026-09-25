@@ -6,7 +6,6 @@ import { ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
 import {
   registerCustomerSchema,
   registerFarmerSchema,
@@ -19,38 +18,6 @@ import { cn } from '@/lib/cn';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
 import './RegisterForms.css';
-
-function passwordStrength(password: string): { score: number; label: string } {
-  let score = 0;
-  if (password.length >= 8) score += 1;
-  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score += 1;
-  if (/\d/.test(password)) score += 1;
-  if (/[^A-Za-z0-9]/.test(password)) score += 1;
-  const labels = ['Yếu', 'Trung bình', 'Khá', 'Mạnh'];
-  return { score, label: labels[Math.max(0, score - 1)] ?? 'Yếu' };
-}
-
-function strengthBarModifier(score: number) {
-  if (score <= 1) return 'password-strength__bar--weak';
-  if (score === 2) return 'password-strength__bar--fair';
-  if (score === 3) return 'password-strength__bar--good';
-  return 'password-strength__bar--strong';
-}
-
-function PasswordStrengthMeter({ password }: { password: string }) {
-  const strength = passwordStrength(password);
-
-  return (
-    <div className="password-strength">
-      <div className="password-strength__track">
-        <div
-          className={cn('password-strength__bar', strengthBarModifier(strength.score))}
-        />
-      </div>
-      <p className="password-strength__label">Độ mạnh: {strength.label}</p>
-    </div>
-  );
-}
 
 function AuthFooter({
   prompt,
@@ -76,24 +43,22 @@ export function RegisterCustomerForm() {
   const {
     register,
     handleSubmit,
-    watch,
     setError,
     formState: { errors },
   } = useForm<RegisterCustomerValues>({
     resolver: zodResolver(registerCustomerSchema),
   });
-  const password = watch('password') ?? '';
 
   return (
     <div className="register-form">
       <div>
-        <p className="register-form__intro-eyebrow">Tài khoản khách hàng</p>
-        <h1 className="register-form__title">Tạo tài khoản</h1>
+        <p className="register-form__intro-eyebrow">Join as a shopper</p>
+        <h1 className="register-form__title">Create your account</h1>
         <p className="register-form__subtitle">
-          Đặt trước nông sản và nhận tại quầy trong vài phút.
+          Reserve produce from local stalls and pick up when it suits you.
         </p>
         <Link to="/register/farmer" className="register-form__alt-link">
-          Bạn là nông dân? Đăng ký quầy
+          Selling at a market? Register your stall
           <ArrowRight className="register-form__alt-link-icon" />
         </Link>
       </div>
@@ -109,10 +74,9 @@ export function RegisterCustomerForm() {
         })}
       >
         <div className="register-form__field">
-          <Label htmlFor="full_name">Họ và tên</Label>
           <Input
             id="full_name"
-            className="register-form__input"
+            label="Full name"
             {...register('full_name')}
           />
           {errors.full_name ? (
@@ -120,11 +84,10 @@ export function RegisterCustomerForm() {
           ) : null}
         </div>
         <div className="register-form__field">
-          <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
-            className="register-form__input"
+            label="Email"
             {...register('email')}
           />
           {errors.email ? (
@@ -132,43 +95,41 @@ export function RegisterCustomerForm() {
           ) : null}
         </div>
         <div className="register-form__field">
-          <Label htmlFor="phone">Số điện thoại</Label>
           <Input
             id="phone"
-            className="register-form__input"
+            label="Phone number"
             {...register('phone')}
-            placeholder="09xxxxxxxx"
           />
           {errors.phone ? (
             <p className="register-form__error">{errors.phone.message}</p>
           ) : null}
         </div>
         <div className="register-form__field">
-          <Label htmlFor="address">Địa chỉ</Label>
-          <Input id="address" className="register-form__input" {...register('address')} />
+          <Input
+            id="address"
+            label="Address"
+            {...register('address')}
+          />
           {errors.address ? (
             <p className="register-form__error">{errors.address.message}</p>
           ) : null}
         </div>
         <div className="register-form__field">
-          <Label htmlFor="password">Mật khẩu</Label>
           <Input
             id="password"
             type="password"
-            className="register-form__input"
+            label="Password"
             {...register('password')}
           />
-          <PasswordStrengthMeter password={password} />
           {errors.password ? (
             <p className="register-form__error">{errors.password.message}</p>
           ) : null}
         </div>
         <div className="register-form__field">
-          <Label htmlFor="confirm_password">Xác nhận mật khẩu</Label>
           <Input
             id="confirm_password"
             type="password"
-            className="register-form__input"
+            label="Confirm password"
             {...register('confirm_password')}
           />
           {errors.confirm_password ? (
@@ -181,11 +142,11 @@ export function RegisterCustomerForm() {
           className="register-form__submit"
           loading={registerCustomerPending}
         >
-          Tạo tài khoản
+          Create my account
         </Button>
       </form>
 
-      <AuthFooter prompt="Đã có tài khoản?" linkTo="/login" linkLabel="Đăng nhập" />
+      <AuthFooter prompt="Already shopping with us?" linkTo="/login" linkLabel="Sign in" />
     </div>
   );
 }
@@ -197,32 +158,31 @@ export function RegisterFarmerForm() {
     register,
     handleSubmit,
     trigger,
-    watch,
     setError,
     formState: { errors },
   } = useForm<RegisterFarmerValues>({
     resolver: zodResolver(registerFarmerSchema),
   });
-  const password = watch('password') ?? '';
 
   return (
     <div className="register-form">
       <div>
-        <p className="register-form__intro-eyebrow">Tài khoản nông dân</p>
-        <h1 className="register-form__title">Đăng ký quầy</h1>
+        <p className="register-form__intro-eyebrow">Join as a grower</p>
+        <h1 className="register-form__title">Open your stall</h1>
         <p className="register-form__subtitle">
-          Hồ sơ sẽ chờ quản trị duyệt trước khi bán trên MarketLink.
+          Set up your profile — once approved, customers can pre-order from you
+          on MarketLink.
         </p>
         <Link to="/register" className="register-form__alt-link">
-          Đăng ký khách hàng thay thế
+          Looking to shop instead? Create a customer account
           <ArrowRight className="register-form__alt-link-icon" />
         </Link>
       </div>
 
       <div className="register-form__steps">
         <div className="register-form__steps-meta">
-          <span>Bước {step}/2</span>
-          <span>{step === 1 ? 'Thông tin tài khoản' : 'Thông tin quầy'}</span>
+          <span>Step {step}/2</span>
+          <span>{step === 1 ? 'Account details' : 'Stall details'}</span>
         </div>
         <div className="register-form__steps-bars">
           <div className={cn('register-form__steps-bar', step >= 1 && 'is-active')} />
@@ -243,11 +203,10 @@ export function RegisterFarmerForm() {
         {step === 1 ? (
           <>
             <div className="register-form__field">
-              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                className="register-form__input"
+                label="Email"
                 {...register('email')}
               />
               {errors.email ? (
@@ -255,31 +214,31 @@ export function RegisterFarmerForm() {
               ) : null}
             </div>
             <div className="register-form__field">
-              <Label htmlFor="phone">Số điện thoại</Label>
-              <Input id="phone" className="register-form__input" {...register('phone')} />
+              <Input
+                id="phone"
+                label="Phone number"
+                {...register('phone')}
+              />
               {errors.phone ? (
                 <p className="register-form__error">{errors.phone.message}</p>
               ) : null}
             </div>
             <div className="register-form__field">
-              <Label htmlFor="password">Mật khẩu</Label>
               <Input
                 id="password"
                 type="password"
-                className="register-form__input"
+                label="Password"
                 {...register('password')}
               />
-              <PasswordStrengthMeter password={password} />
               {errors.password ? (
                 <p className="register-form__error">{errors.password.message}</p>
               ) : null}
             </div>
             <div className="register-form__field">
-              <Label htmlFor="confirm_password">Xác nhận mật khẩu</Label>
               <Input
                 id="confirm_password"
                 type="password"
-                className="register-form__input"
+                label="Confirm password"
                 {...register('confirm_password')}
               />
               {errors.confirm_password ? (
@@ -300,17 +259,16 @@ export function RegisterFarmerForm() {
                 if (ok) setStep(2);
               }}
             >
-              Tiếp tục
+              Continue
               <ArrowRight className="register-form__continue-icon" />
             </Button>
           </>
         ) : (
           <>
             <div className="register-form__field">
-              <Label htmlFor="stall_name">Tên quầy</Label>
               <Input
                 id="stall_name"
-                className="register-form__input"
+                label="Stall name"
                 {...register('stall_name')}
               />
               {errors.stall_name ? (
@@ -318,10 +276,9 @@ export function RegisterFarmerForm() {
               ) : null}
             </div>
             <div className="register-form__field">
-              <Label htmlFor="contact_person">Người liên hệ</Label>
               <Input
                 id="contact_person"
-                className="register-form__input"
+                label="Contact person"
                 {...register('contact_person')}
               />
               {errors.contact_person ? (
@@ -329,10 +286,9 @@ export function RegisterFarmerForm() {
               ) : null}
             </div>
             <div className="register-form__field">
-              <Label htmlFor="address">Địa chỉ</Label>
               <Input
                 id="address"
-                className="register-form__input"
+                label="Address"
                 {...register('address')}
               />
               {errors.address ? (
@@ -347,7 +303,7 @@ export function RegisterFarmerForm() {
                 className="register-form__submit"
                 onClick={() => setStep(1)}
               >
-                Quay lại
+                Back
               </Button>
               <Button
                 type="submit"
@@ -355,14 +311,14 @@ export function RegisterFarmerForm() {
                 className="register-form__submit"
                 loading={registerFarmerPending}
               >
-                Gửi hồ sơ
+                Submit for review
               </Button>
             </div>
           </>
         )}
       </form>
 
-      <AuthFooter prompt="Đã có tài khoản?" linkTo="/login" linkLabel="Đăng nhập" />
+      <AuthFooter prompt="Already have a stall account?" linkTo="/login" linkLabel="Sign in" />
     </div>
   );
 }

@@ -30,7 +30,7 @@ export function NotificationBell({
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Thông báo"
+          aria-label="Notifications"
           className="notification-bell__trigger"
         >
           <Bell className="notification-bell__icon" />
@@ -41,20 +41,20 @@ export function NotificationBell({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="notification-bell__content">
         <DropdownMenuLabel className="notification-bell__header">
-          <span>Thông báo</span>
+          <span>Notifications</span>
           {unread > 0 ? (
             <button
               type="button"
               className="notification-bell__mark-read"
               onClick={() => markAll.mutate()}
             >
-              Đánh dấu đã đọc
+              Mark as read
             </button>
           ) : null}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {latest.length === 0 ? (
-          <p className="notification-bell__empty">Chưa có thông báo</p>
+          <p className="notification-bell__empty">No notifications yet</p>
         ) : (
           latest.map((item) => (
             <DropdownMenuItem
@@ -80,7 +80,7 @@ export function NotificationBell({
                   className="notification-bell__item-link"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  Xem chi tiết
+                  View details
                 </Link>
               ) : null}
             </DropdownMenuItem>
@@ -89,7 +89,7 @@ export function NotificationBell({
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link to={listPath} className="notification-bell__view-all">
-            Xem tất cả
+            View all
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>

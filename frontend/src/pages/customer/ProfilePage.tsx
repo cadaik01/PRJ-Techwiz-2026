@@ -19,7 +19,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
 import './ProfilePage.css';
@@ -50,8 +49,8 @@ export default function ProfilePage() {
   if (profileQuery.isError || !profileQuery.data) {
     return (
       <EmptyState
-        title="Không tải được hồ sơ"
-        actionLabel="Thử lại"
+        title="Profile couldn't be loaded"
+        actionLabel="Try again"
         onAction={() => profileQuery.refetch()}
       />
     );
@@ -62,11 +61,11 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <PageHeader
-        title="Hồ sơ cá nhân"
-        description="Cập nhật họ tên, số điện thoại và địa chỉ liên hệ."
+        title="Your profile"
+        description="Keep your name, phone, and address up to date for pickups."
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link to="/app/change-password">Đổi mật khẩu</Link>
+            <Link to="/app/change-password">Change password</Link>
           </Button>
         }
       />
@@ -100,8 +99,12 @@ export default function ProfilePage() {
             )}
           >
             <div className="profile-page__field">
-              <Label htmlFor="full_name">Họ và tên</Label>
-              <Input id="full_name" autoComplete="name" {...form.register('full_name')} />
+              <Input
+                id="full_name"
+                label="Full name"
+                autoComplete="name"
+                {...form.register('full_name')}
+              />
               {form.formState.errors.full_name ? (
                 <p className="profile-page__error">
                   {form.formState.errors.full_name.message}
@@ -109,12 +112,11 @@ export default function ProfilePage() {
               ) : null}
             </div>
             <div className="profile-page__field">
-              <Label htmlFor="phone">Số điện thoại</Label>
               <Input
                 id="phone"
                 type="tel"
+                label="Phone number"
                 autoComplete="tel"
-                placeholder="0901234567"
                 {...form.register('phone')}
               />
               {form.formState.errors.phone ? (
@@ -123,10 +125,10 @@ export default function ProfilePage() {
                 </p>
               ) : null}
             </div>
-            <div className="profile-page__field">
-              <Label htmlFor="address">Địa chỉ</Label>
+            <div className="profile-page__field profile-page__field--full">
               <Input
                 id="address"
+                label="Address"
                 autoComplete="street-address"
                 {...form.register('address')}
               />
@@ -136,9 +138,11 @@ export default function ProfilePage() {
                 </p>
               ) : null}
             </div>
-            <Button type="submit" loading={mutation.isPending}>
-              Lưu hồ sơ
-            </Button>
+            <div className="profile-page__actions">
+              <Button type="submit" loading={mutation.isPending}>
+                Save profile
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

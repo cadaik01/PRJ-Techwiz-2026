@@ -34,7 +34,7 @@ export function useDeactivateCustomer() {
     mutationFn: ({ id, reason }: { id: number; reason: string }) =>
       adminApi.deactivateCustomer(id, reason),
     onSuccess: () => {
-      toast.success('Đã khóa tài khoản');
+      toast.success('Account locked');
       void invalidateCustomers(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -46,7 +46,7 @@ export function useActivateCustomer() {
   return useMutation({
     mutationFn: (id: number) => adminApi.activateCustomer(id),
     onSuccess: () => {
-      toast.success('Đã mở khóa');
+      toast.success('Account unlocked');
       void invalidateCustomers(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),

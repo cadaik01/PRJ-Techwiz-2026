@@ -111,7 +111,7 @@ export const adminHandlers = [
     }
     const farmer = adminFarmers.find((f) => f.id === Number(params.id));
     if (!farmer) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -126,7 +126,7 @@ export const adminHandlers = [
     }
     const farmer = adminFarmers.find((f) => f.id === Number(params.id));
     if (!farmer) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -154,7 +154,7 @@ export const adminHandlers = [
     }
     const idx = adminFarmers.findIndex((f) => f.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -173,7 +173,7 @@ export const adminHandlers = [
       request_id: null,
       details: { stall_name: next.stall_name },
     });
-    return HttpResponse.json(envelope(toFarmerSummary(next), 'Đã duyệt nông dân'));
+    return HttpResponse.json(envelope(toFarmerSummary(next), 'Farmer approved'));
   }),
 
   http.post('/api/admin/farmers/:id/reject/', async ({ params, request }) => {
@@ -184,7 +184,7 @@ export const adminHandlers = [
     }
     const idx = adminFarmers.findIndex((f) => f.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -192,7 +192,7 @@ export const adminHandlers = [
     const reason = body.reason?.trim() ?? '';
     if (reason.length < 5) {
       return HttpResponse.json(
-        errorEnvelope('Lý do tối thiểu 5 ký tự', 'VALIDATION_ERROR'),
+        errorEnvelope('Reason must be at least 5 characters', 'VALIDATION_ERROR'),
         { status: 400 },
       );
     }
@@ -211,7 +211,7 @@ export const adminHandlers = [
       request_id: null,
       details: { reason },
     });
-    return HttpResponse.json(envelope(toFarmerSummary(next), 'Đã từ chối'));
+    return HttpResponse.json(envelope(toFarmerSummary(next), 'Rejected'));
   }),
 
   http.post('/api/admin/farmers/:id/suspend/', async ({ params, request }) => {
@@ -222,7 +222,7 @@ export const adminHandlers = [
     }
     const idx = adminFarmers.findIndex((f) => f.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -230,7 +230,7 @@ export const adminHandlers = [
     const reason = body.reason?.trim() ?? '';
     if (reason.length < 5) {
       return HttpResponse.json(
-        errorEnvelope('Lý do tối thiểu 5 ký tự', 'VALIDATION_ERROR'),
+        errorEnvelope('Reason must be at least 5 characters', 'VALIDATION_ERROR'),
         { status: 400 },
       );
     }
@@ -249,7 +249,7 @@ export const adminHandlers = [
       request_id: null,
       details: { reason },
     });
-    return HttpResponse.json(envelope(toFarmerSummary(next), 'Đã tạm khóa'));
+    return HttpResponse.json(envelope(toFarmerSummary(next), 'Suspended'));
   }),
 
   http.post('/api/admin/farmers/:id/reinstate/', ({ params, request }) => {
@@ -260,11 +260,11 @@ export const adminHandlers = [
     }
     const idx = adminFarmers.findIndex((f) => f.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
-    const next = pushFarmerHistory(adminFarmers[idx], 'APPROVED', 'Khôi phục');
+    const next = pushFarmerHistory(adminFarmers[idx], 'APPROVED', 'Restore');
     const copy = [...adminFarmers];
     copy[idx] = next;
     setAdminFarmers(copy);
@@ -279,7 +279,7 @@ export const adminHandlers = [
       request_id: null,
       details: {},
     });
-    return HttpResponse.json(envelope(toFarmerSummary(next), 'Đã khôi phục'));
+    return HttpResponse.json(envelope(toFarmerSummary(next), 'Restored'));
   }),
 
   http.get('/api/admin/customers/', ({ request }) => {
@@ -309,7 +309,7 @@ export const adminHandlers = [
     }
     const customer = adminCustomers.find((c) => c.id === Number(params.id));
     if (!customer) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -328,7 +328,7 @@ export const adminHandlers = [
     }
     const idx = adminCustomers.findIndex((c) => c.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -350,7 +350,7 @@ export const adminHandlers = [
       details: { reason: body.reason ?? null },
     });
     return HttpResponse.json(
-      envelope({ ...next, affected_orders }, 'Đã vô hiệu hóa tài khoản'),
+      envelope({ ...next, affected_orders }, 'Account deactivated'),
     );
   }),
 
@@ -362,7 +362,7 @@ export const adminHandlers = [
     }
     const idx = adminCustomers.findIndex((c) => c.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -381,7 +381,7 @@ export const adminHandlers = [
       request_id: null,
       details: {},
     });
-    return HttpResponse.json(envelope(next, 'Đã kích hoạt lại'));
+    return HttpResponse.json(envelope(next, 'Reactivated'));
   }),
 
   http.get('/api/admin/markets/', ({ request }) => {
@@ -401,7 +401,7 @@ export const adminHandlers = [
     }
     const market = adminMarkets.find((m) => m.id === Number(params.id));
     if (!market) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -449,7 +449,7 @@ export const adminHandlers = [
       request_id: null,
       details: { name: market.name },
     });
-    return HttpResponse.json(envelope(market, 'Đã tạo chợ'), { status: 201 });
+    return HttpResponse.json(envelope(market, 'Market created'), { status: 201 });
   }),
 
   http.patch('/api/admin/markets/:id/', async ({ params, request }) => {
@@ -460,7 +460,7 @@ export const adminHandlers = [
     }
     const idx = adminMarkets.findIndex((m) => m.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -469,7 +469,7 @@ export const adminHandlers = [
     const copy = [...adminMarkets];
     copy[idx] = next;
     setAdminMarkets(copy);
-    return HttpResponse.json(envelope(next, 'Đã cập nhật chợ'));
+    return HttpResponse.json(envelope(next, 'Market updated'));
   }),
 
   http.post('/api/admin/markets/:id/activate/', ({ params, request }) => {
@@ -480,7 +480,7 @@ export const adminHandlers = [
     }
     const idx = adminMarkets.findIndex((m) => m.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -488,7 +488,7 @@ export const adminHandlers = [
     const copy = [...adminMarkets];
     copy[idx] = next;
     setAdminMarkets(copy);
-    return HttpResponse.json(envelope(next, 'Đã kích hoạt chợ'));
+    return HttpResponse.json(envelope(next, 'Market activated'));
   }),
 
   http.post('/api/admin/markets/:id/deactivate/', ({ params, request }) => {
@@ -499,7 +499,7 @@ export const adminHandlers = [
     }
     const idx = adminMarkets.findIndex((m) => m.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -518,7 +518,7 @@ export const adminHandlers = [
       request_id: null,
       details: { name: next.name },
     });
-    return HttpResponse.json(envelope(next, 'Đã ngừng chợ'));
+    return HttpResponse.json(envelope(next, 'Market deactivated'));
   }),
 
   http.get('/api/admin/categories/', ({ request }) => {
@@ -550,7 +550,7 @@ export const adminHandlers = [
       product_count: 0,
     };
     setAdminCategories([...adminCategories, cat]);
-    return HttpResponse.json(envelope(cat, 'Đã tạo danh mục'), { status: 201 });
+    return HttpResponse.json(envelope(cat, 'Category created'), { status: 201 });
   }),
 
   http.patch('/api/admin/categories/reorder/', async ({ request }) => {
@@ -569,7 +569,7 @@ export const adminHandlers = [
       })
       .filter((c): c is (typeof adminCategories)[number] => Boolean(c));
     setAdminCategories(next);
-    return HttpResponse.json(envelope(next, 'Đã sắp xếp danh mục'));
+    return HttpResponse.json(envelope(next, 'Categories reordered'));
   }),
 
   http.patch('/api/admin/categories/:id/', async ({ params, request }) => {
@@ -580,7 +580,7 @@ export const adminHandlers = [
     }
     const idx = adminCategories.findIndex((c) => c.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -598,7 +598,7 @@ export const adminHandlers = [
     const copy = [...adminCategories];
     copy[idx] = next;
     setAdminCategories(copy);
-    return HttpResponse.json(envelope(next, 'Đã cập nhật'));
+    return HttpResponse.json(envelope(next, 'Updated'));
   }),
 
   http.delete('/api/admin/categories/:id/', ({ params, request }) => {
@@ -609,18 +609,18 @@ export const adminHandlers = [
     }
     const cat = adminCategories.find((c) => c.id === Number(params.id));
     if (!cat) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
     if (cat.product_count > 0) {
       return HttpResponse.json(
-        errorEnvelope('Danh mục đang được sử dụng', 'RESOURCE_IN_USE'),
+        errorEnvelope('Category is in use', 'RESOURCE_IN_USE'),
         { status: 400 },
       );
     }
     setAdminCategories(adminCategories.filter((c) => c.id !== Number(params.id)));
-    return HttpResponse.json(envelope(null, 'Đã xóa danh mục'));
+    return HttpResponse.json(envelope(null, 'Category deleted'));
   }),
 
   http.get('/api/admin/moderation/products/', ({ request }) => {
@@ -640,14 +640,14 @@ export const adminHandlers = [
     }
     const idx = moderationProducts.findIndex((p) => p.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
     const body = (await request.json()) as { reason?: string };
     const reason = body.reason?.trim() ?? '';
     if (reason.length < 3) {
-      return HttpResponse.json(errorEnvelope('Nhập lý do ẩn', 'VALIDATION_ERROR'), {
+      return HttpResponse.json(errorEnvelope('Enter a hide reason', 'VALIDATION_ERROR'), {
         status: 400,
       });
     }
@@ -659,7 +659,7 @@ export const adminHandlers = [
     const copy = [...moderationProducts];
     copy[idx] = next;
     setModerationProducts(copy);
-    return HttpResponse.json(envelope(next, 'Đã ẩn sản phẩm'));
+    return HttpResponse.json(envelope(next, 'Product hidden'));
   }),
 
   http.post('/api/admin/moderation/products/:id/restore/', ({ params, request }) => {
@@ -670,7 +670,7 @@ export const adminHandlers = [
     }
     const idx = moderationProducts.findIndex((p) => p.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -682,7 +682,7 @@ export const adminHandlers = [
     const copy = [...moderationProducts];
     copy[idx] = next;
     setModerationProducts(copy);
-    return HttpResponse.json(envelope(next, 'Đã khôi phục'));
+    return HttpResponse.json(envelope(next, 'Restored'));
   }),
 
   http.get('/api/admin/moderation/reviews/', ({ request }) => {
@@ -702,14 +702,14 @@ export const adminHandlers = [
     }
     const idx = moderationReviews.findIndex((r) => r.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
     const body = (await request.json()) as { reason?: string };
     const reason = body.reason?.trim() ?? '';
     if (reason.length < 3) {
-      return HttpResponse.json(errorEnvelope('Nhập lý do ẩn', 'VALIDATION_ERROR'), {
+      return HttpResponse.json(errorEnvelope('Enter a hide reason', 'VALIDATION_ERROR'), {
         status: 400,
       });
     }
@@ -721,7 +721,7 @@ export const adminHandlers = [
     const copy = [...moderationReviews];
     copy[idx] = next;
     setModerationReviews(copy);
-    return HttpResponse.json(envelope(next, 'Đã ẩn đánh giá'));
+    return HttpResponse.json(envelope(next, 'Review hidden'));
   }),
 
   http.post('/api/admin/moderation/reviews/:id/restore/', ({ params, request }) => {
@@ -732,7 +732,7 @@ export const adminHandlers = [
     }
     const idx = moderationReviews.findIndex((r) => r.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -744,7 +744,7 @@ export const adminHandlers = [
     const copy = [...moderationReviews];
     copy[idx] = next;
     setModerationReviews(copy);
-    return HttpResponse.json(envelope(next, 'Đã khôi phục'));
+    return HttpResponse.json(envelope(next, 'Restored'));
   }),
 
   http.get('/api/admin/reports/', ({ request }) => {
@@ -893,7 +893,7 @@ export const adminHandlers = [
       updated_at: now,
     };
     setAdminAnnouncements([item, ...adminAnnouncements]);
-    return HttpResponse.json(envelope(item, 'Đã tạo thông báo'), { status: 201 });
+    return HttpResponse.json(envelope(item, 'Announcement created'), { status: 201 });
   }),
 
   http.patch('/api/admin/announcements/:id/', async ({ params, request }) => {
@@ -904,7 +904,7 @@ export const adminHandlers = [
     }
     const idx = adminAnnouncements.findIndex((a) => a.id === Number(params.id));
     if (idx < 0) {
-      return HttpResponse.json(errorEnvelope('Không tìm thấy', 'NOT_FOUND'), {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
         status: 404,
       });
     }
@@ -913,7 +913,7 @@ export const adminHandlers = [
     const copy = [...adminAnnouncements];
     copy[idx] = next;
     setAdminAnnouncements(copy);
-    return HttpResponse.json(envelope(next, 'Đã cập nhật'));
+    return HttpResponse.json(envelope(next, 'Updated'));
   }),
 
   http.delete('/api/admin/announcements/:id/', ({ params, request }) => {
@@ -923,7 +923,7 @@ export const adminHandlers = [
       });
     }
     setAdminAnnouncements(adminAnnouncements.filter((a) => a.id !== Number(params.id)));
-    return HttpResponse.json(envelope(null, 'Đã xóa'));
+    return HttpResponse.json(envelope(null, 'Deleted'));
   }),
 
   http.get('/api/admin/audit-logs/', ({ request }) => {

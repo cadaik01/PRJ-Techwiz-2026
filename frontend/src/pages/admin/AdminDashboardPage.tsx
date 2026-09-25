@@ -37,8 +37,8 @@ export default function AdminDashboardPage() {
   if (query.isError || !query.data) {
     return (
       <EmptyState
-        title="Không tải được tổng quan"
-        actionLabel="Thử lại"
+        title="Overview couldn't be loaded"
+        actionLabel="Try again"
         onAction={() => query.refetch()}
       />
     );
@@ -46,18 +46,18 @@ export default function AdminDashboardPage() {
 
   const data = query.data;
   const cards = [
-    { label: 'Nông dân', value: data.farmer_count },
-    { label: 'Chờ duyệt', value: data.pending_farmer_count },
-    { label: 'Khách hàng', value: data.customer_count },
-    { label: 'Chợ hoạt động', value: data.active_market_count },
-    { label: 'Đơn hôm nay', value: data.order_count_today },
+    { label: 'Stalls', value: data.farmer_count },
+    { label: 'Pending', value: data.pending_farmer_count },
+    { label: 'Shoppers', value: data.customer_count },
+    { label: 'Active markets', value: data.active_market_count },
+    { label: 'Orders today', value: data.order_count_today },
   ];
 
   return (
     <div className="admin-dashboard-page">
       <PageHeader
-        title="Tổng quan hệ thống"
-        description="Theo dõi nông dân, chợ, đơn hàng và kiểm duyệt."
+        title="Platform overview"
+        description="Monitor stalls, markets, orders, and content that needs attention."
       />
 
       <div className="page-primitive__stat-grid-5">
@@ -78,7 +78,7 @@ export default function AdminDashboardPage() {
       <div className="page-primitive__charts-row">
         <Card>
           <CardHeader>
-            <CardTitle>Đơn 30 ngày</CardTitle>
+            <CardTitle>Orders · last 30 days</CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__chart-h">
             <ResponsiveContainer width="100%" height="100%">
@@ -95,7 +95,7 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Đơn theo trạng thái</CardTitle>
+            <CardTitle>Orders by status</CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__chart-h">
             <ResponsiveContainer width="100%" height="100%">
@@ -124,14 +124,14 @@ export default function AdminDashboardPage() {
 
       <Card>
         <CardHeader className="page-primitive__card-header-row">
-          <CardTitle>Nông dân chờ duyệt</CardTitle>
+          <CardTitle>Stalls awaiting approval</CardTitle>
           <Button asChild size="sm" variant="outline">
-            <Link to="/admin/farmers?status=PENDING">Xem tất cả</Link>
+            <Link to="/admin/farmers?status=PENDING">View all</Link>
           </Button>
         </CardHeader>
         <CardContent className="admin-dashboard-page__pending-list">
           {data.pending_farmers.length === 0 ? (
-            <p className="page-primitive__muted-sm">Không có hồ sơ chờ duyệt.</p>
+            <p className="page-primitive__muted-sm">No pending profiles.</p>
           ) : (
             data.pending_farmers.map((f) => (
               <div key={f.id} className="page-primitive__row-card">
@@ -147,7 +147,7 @@ export default function AdminDashboardPage() {
                     loading={approve.isPending}
                     onClick={() => approve.mutate(f.id)}
                   >
-                    Duyệt
+                    Approve
                   </Button>
                   <Button
                     size="sm"
@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
                     loading={reject.isPending}
                     onClick={() => reject.mutate(f.id)}
                   >
-                    Từ chối
+                    Reject
                   </Button>
                 </div>
               </div>

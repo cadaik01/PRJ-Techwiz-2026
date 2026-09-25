@@ -8,10 +8,12 @@ export default function ForbiddenPage() {
   return (
     <div className="forbidden-page">
       <p className="forbidden-page__code">403</p>
-      <h1 className="forbidden-page__title">Không có quyền truy cập</h1>
-      <p className="forbidden-page__desc">Bạn không được phép vào trang này.</p>
+      <h1 className="forbidden-page__title">You do not have access</h1>
+      <p className="forbidden-page__desc">
+        This area is limited to another account type or permission level.
+      </p>
       <Button asChild>
-        <Link to="/">Về trang chủ</Link>
+        <Link to="/">Back to MarketLink home</Link>
       </Button>
     </div>
   );

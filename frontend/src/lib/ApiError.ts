@@ -32,6 +32,6 @@ export class ApiError extends Error {
     if (error instanceof Error) {
       return new ApiError({ status: 0, message: error.message });
     }
-    return new ApiError({ status: 0, message: 'Đã xảy ra lỗi không xác định' });
+    return new ApiError({ status: 0, message: 'An unknown error occurred' });
   }
 }

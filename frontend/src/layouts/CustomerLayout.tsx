@@ -8,11 +8,11 @@ import { cn } from '@/lib/cn';
 import './CustomerLayout.css';
 
 const tabs = [
-  { to: '/app', label: 'Trang chủ', icon: Home, end: true },
-  { to: '/markets', label: 'Chợ', icon: Store, end: false },
-  { to: '/app/cart', label: 'Giỏ', icon: ShoppingCart, end: false },
-  { to: '/app/orders', label: 'Đơn', icon: Package, end: false },
-  { to: '/app/profile', label: 'Tôi', icon: UserRound, end: false },
+  { to: '/app', label: 'Home', icon: Home, end: true },
+  { to: '/markets', label: 'Markets', icon: Store, end: false },
+  { to: '/app/cart', label: 'Cart', icon: ShoppingCart, end: false },
+  { to: '/app/orders', label: 'Orders', icon: Package, end: false },
+  { to: '/app/profile', label: 'Me', icon: UserRound, end: false },
 ];
 
 export function CustomerLayout() {
@@ -23,7 +23,7 @@ export function CustomerLayout() {
     <div className="customer-layout">
       <div className="customer-layout__content">
         <p className="customer-layout__greeting">
-          Xin chào,{' '}
+          Welcome back,{' '}
           <span className="customer-layout__greeting-name">
             {user?.display_name || user?.email}
           </span>
@@ -31,7 +31,7 @@ export function CustomerLayout() {
         <Outlet />
       </div>
 
-      <nav className="glass customer-layout__tab-bar" aria-label="Điều hướng chính">
+      <nav className="glass customer-layout__tab-bar" aria-label="Main navigation">
         <ul className="customer-layout__tab-list">
           {tabs.map((tab) => (
             <li key={tab.to}>

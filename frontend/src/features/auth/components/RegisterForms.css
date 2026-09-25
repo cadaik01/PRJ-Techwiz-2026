@@ -99,10 +99,6 @@
   gap: var(--space-2);
 }
 
-.register-form__input {
-  height: 3rem;
-}
-
 .register-form__error {
   font-size: var(--text-sm);
   color: var(--color-danger);
@@ -150,47 +146,4 @@
 
 .dark .register-form__footer-link {
   color: var(--color-primary-300);
-}
-
-.password-strength {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.password-strength__track {
-  height: 0.375rem;
-  overflow: hidden;
-  border-radius: var(--radius-full);
-  background-color: var(--color-muted);
-}
-
-.password-strength__bar {
-  height: 100%;
-  transition: width 300ms var(--ease-out);
-}
-
-.password-strength__bar--weak {
-  width: 25%;
-  background-color: var(--color-danger);
-}
-
-.password-strength__bar--fair {
-  width: 50%;
-  background-color: var(--color-warning);
-}
-
-.password-strength__bar--good {
-  width: 75%;
-  background-color: var(--color-primary-500);
-}
-
-.password-strength__bar--strong {
-  width: 100%;
-  background-color: var(--color-primary-600);
-}
-
-.password-strength__label {
-  font-size: var(--text-xs);
-  color: var(--color-muted-foreground);
 }

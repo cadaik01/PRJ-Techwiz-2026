@@ -31,7 +31,10 @@ export default function FarmerReviewsPage() {
 
   return (
     <div className="farmer-reviews-page">
-      <PageHeader title="Đánh giá" description="Phản hồi đánh giá về quầy và sản phẩm." />
+      <PageHeader
+        title="Customer reviews"
+        description="Respond to feedback about your stall and produce."
+      />
 
       <div className="page-primitive__actions-row">
         <select
@@ -42,19 +45,19 @@ export default function FarmerReviewsPage() {
             if (v === 'ALL' || v === 'FARMER' || v === 'PRODUCT') setTargetType(v);
           }}
         >
-          <option value="ALL">Tất cả</option>
-          <option value="FARMER">Quầy</option>
-          <option value="PRODUCT">Sản phẩm</option>
+          <option value="ALL">All</option>
+          <option value="FARMER">Stall</option>
+          <option value="PRODUCT">Product</option>
         </select>
         <select
           className="page-primitive__select"
           value={rating}
           onChange={(e) => setRating(e.target.value)}
         >
-          <option value="">Mọi sao</option>
+          <option value="">Any stars</option>
           {[5, 4, 3, 2, 1].map((n) => (
             <option key={n} value={String(n)}>
-              {n} sao
+              {n} stars
             </option>
           ))}
         </select>
@@ -63,9 +66,9 @@ export default function FarmerReviewsPage() {
           value={replied}
           onChange={(e) => setReplied(e.target.value)}
         >
-          <option value="">Mọi phản hồi</option>
-          <option value="false">Chưa trả lời</option>
-          <option value="true">Đã trả lời</option>
+          <option value="">Any reply</option>
+          <option value="false">Unreplied</option>
+          <option value="true">Replied</option>
         </select>
       </div>
 
@@ -73,12 +76,15 @@ export default function FarmerReviewsPage() {
         <PageSkeleton />
       ) : query.isError ? (
         <EmptyState
-          title="Không tải được đánh giá"
-          actionLabel="Thử lại"
+          title="Reviews couldn't be loaded"
+          actionLabel="Try again"
           onAction={() => query.refetch()}
         />
       ) : !query.data?.results.length ? (
-        <EmptyState title="Chưa có đánh giá" />
+        <EmptyState
+          title="No reviews yet"
+          description="When shoppers rate a pickup, their feedback will appear here."
+        />
       ) : (
         <ul className="farmer-reviews-page__list">
           {query.data.results.map((review) => (
@@ -90,8 +96,8 @@ export default function FarmerReviewsPage() {
                   </p>
                   <p className="page-primitive__muted-xs">
                     {review.type === 'PRODUCT'
-                      ? (review.product?.name ?? 'Sản phẩm')
-                      : 'Đánh giá quầy'}{' '}
+                      ? (review.product?.name ?? 'Product')
+                      : 'Stall review'}{' '}
                     · {formatRelative(review.created_at)}
                   </p>
                 </div>
@@ -102,13 +108,13 @@ export default function FarmerReviewsPage() {
               </p>
               {review.reply ? (
                 <div className="page-primitive__reply-box page-primitive__mt-3">
-                  <p className="page-primitive__font-medium">Phản hồi của bạn</p>
+                  <p className="page-primitive__font-medium">Your reply</p>
                   <p className="page-primitive__muted-sm">{review.reply}</p>
                 </div>
               ) : (
                 <div className="farmer-reviews-page__reply-form">
                   <Textarea
-                    placeholder="Viết phản hồi (1–500 ký tự)"
+                    placeholder="Write a reply (1–500 characters)"
                     value={drafts[review.id] ?? ''}
                     onChange={(e) =>
                       setDrafts((prev) => ({
@@ -124,13 +130,13 @@ export default function FarmerReviewsPage() {
                     onClick={() => {
                       const reply = (drafts[review.id] ?? '').trim();
                       if (!reply) {
-                        toast.error('Nhập nội dung phản hồi');
+                        toast.error('Write a short reply first');
                         return;
                       }
                       replyMutation.mutate({ id: review.id, reply });
                     }}
                   >
-                    Gửi phản hồi
+                    Send reply
                   </Button>
                 </div>
               )}

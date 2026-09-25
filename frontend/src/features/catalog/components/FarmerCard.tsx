@@ -38,7 +38,7 @@ export function FarmerCard({
               active={favorited}
               onToggle={() => {
                 void toggleFarmer(farmer.id).then(() => {
-                  toast.success(favorited ? 'Đã bỏ yêu thích' : 'Đã thêm yêu thích');
+                  toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
                 });
               }}
             />
@@ -46,7 +46,7 @@ export function FarmerCard({
           <div className="farmer-card__stats">
             <RatingStars value={farmer.rating_avg ?? 0} count={farmer.rating_count} />
             <span className="farmer-card__stat">
-              {farmer.in_stock_product_count} sản phẩm còn hàng
+              {farmer.in_stock_product_count} products in stock
             </span>
             {farmer.distance_km !== null ? (
               <span className="farmer-card__stat">

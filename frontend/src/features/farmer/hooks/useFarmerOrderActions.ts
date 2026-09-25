@@ -40,14 +40,14 @@ export function useFarmerOrderActions(
       const action = payload.action;
       toast.success(
         action === 'ACCEPT'
-          ? 'Đã xác nhận đơn'
+          ? 'Pre-order accepted'
           : action === 'DECLINE'
-            ? 'Đã từ chối đơn'
+            ? 'Pre-order declined'
             : action === 'READY'
-              ? 'Đã sẵn sàng lấy'
+              ? 'Marked ready for pickup'
               : action === 'COMPLETE'
-                ? 'Đã hoàn thành'
-                : 'Đã đánh no-show',
+                ? 'Pickup completed'
+                : 'Marked as no-show',
       );
       invalidate();
     },

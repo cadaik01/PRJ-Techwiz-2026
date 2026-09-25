@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/feedback/EmptyState';
 import { OrderTimeline } from '@/features/customer/components/OrderTimeline';
 import { PageHeader } from '@/components/common/PageHeader';
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
+import { PriceTag } from '@/components/common/PriceTag';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { FarmerOrderActions } from '@/features/farmer/components/FarmerOrderActions';
 import { Button } from '@/components/ui/Button';
@@ -21,8 +22,8 @@ export default function FarmerOrderDetailPage() {
   if (query.isError || !query.data) {
     return (
       <EmptyState
-        title="Không tìm thấy đơn"
-        actionLabel="Thử lại"
+        title="This order could not be found"
+        actionLabel="Try again"
         onAction={() => query.refetch()}
       />
     );
@@ -45,7 +46,7 @@ export default function FarmerOrderDetailPage() {
       <div className="page-primitive__grid-2-md">
         <div className="page-primitive__panel">
           <h2 className="page-primitive__heading farmer-order-detail__heading">
-            Nhận hàng
+            Pickup
           </h2>
           <p className="page-primitive__muted-sm">{order.market.name}</p>
           <p className="page-primitive__muted-sm">{order.stall_label}</p>
@@ -56,7 +57,7 @@ export default function FarmerOrderDetailPage() {
           <Countdown
             className="farmer-order-detail__countdown"
             targetIso={order.pickup_start_at}
-            label="Đến giờ nhận"
+            label="Until pickup"
           />
           <Countdown
             className="farmer-order-detail__countdown--sm"
@@ -66,9 +67,9 @@ export default function FarmerOrderDetailPage() {
         </div>
         <div className="page-primitive__panel">
           <h2 className="page-primitive__heading farmer-order-detail__heading">
-            Ghi chú
+            Note
           </h2>
-          <p className="page-primitive__muted-sm">{order.note || 'Không có ghi chú'}</p>
+          <p className="page-primitive__muted-sm">{order.note || 'No note from customer'}</p>
         </div>
       </div>
 
@@ -79,7 +80,7 @@ export default function FarmerOrderDetailPage() {
               <div>
                 <p className="farmer-order-detail__item-name">{item.product_name}</p>
                 <p className="page-primitive__muted-sm">
-                  {item.quantity} × {formatVnd(item.unit_price)}/{item.unit}
+                  {item.quantity} × <PriceTag amount={item.unit_price} unit={item.unit} />
                 </p>
               </div>
               <p className="farmer-order-detail__item-total">
@@ -89,13 +90,13 @@ export default function FarmerOrderDetailPage() {
           ))}
         </ul>
         <div className="farmer-order-detail__total">
-          <span>Tổng</span>
+          <span>Total</span>
           <span>{formatVnd(order.total_amount)}</span>
         </div>
       </div>
 
       <Button asChild variant="outline">
-        <Link to="/farmer/orders">← Danh sách đơn</Link>
+        <Link to="/farmer/orders">← Order list</Link>
       </Button>
     </div>
   );

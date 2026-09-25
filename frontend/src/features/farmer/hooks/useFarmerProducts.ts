@@ -49,7 +49,7 @@ export function useSaveFarmerProduct(productId?: number) {
       return farmerApi.createProduct(values);
     },
     onSuccess: () => {
-      toast.success(isEdit ? 'Đã cập nhật sản phẩm' : 'Đã tạo sản phẩm');
+      toast.success(isEdit ? 'Produce updated' : 'Produce listed');
       void invalidateMyProducts(queryClient);
     },
   });
@@ -61,7 +61,7 @@ export function useUpdateFarmerStock() {
     mutationFn: ({ id, stock_quantity }: { id: number; stock_quantity: number }) =>
       farmerApi.updateProduct(id, { stock_quantity }),
     onSuccess: () => {
-      toast.success('Đã cập nhật tồn kho');
+      toast.success('Stock updated');
       void invalidateMyProducts(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -73,7 +73,7 @@ export function useMarkSoldOut() {
   return useMutation({
     mutationFn: farmerApi.markSoldOut,
     onSuccess: () => {
-      toast.success('Đã báo hết hàng');
+      toast.success('Marked as sold out');
       void invalidateMyProducts(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -85,7 +85,7 @@ export function useArchiveProduct() {
   return useMutation({
     mutationFn: farmerApi.archiveProduct,
     onSuccess: () => {
-      toast.success('Đã lưu trữ sản phẩm');
+      toast.success('Item archived');
       void invalidateMyProducts(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -104,7 +104,7 @@ export function useApplyStockTemplate() {
   return useMutation({
     mutationFn: farmerApi.applyStockTemplate,
     onSuccess: () => {
-      toast.success('Đã áp dụng mẫu tồn kho tuần');
+      toast.success('Weekly stock reset applied');
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.FARMER_STOCK_PREVIEW,
       });

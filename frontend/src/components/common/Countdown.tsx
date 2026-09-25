@@ -5,16 +5,16 @@ import { cn } from '@/lib/cn';
 import './Countdown.css';
 
 function formatRemaining(ms: number) {
-  if (ms <= 0) return 'Đã hết hạn';
+  if (ms <= 0) return 'Expired';
   const totalSec = Math.floor(ms / 1000);
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
   if (h > 48) {
     const days = Math.floor(h / 24);
-    return `Còn ${days} ngày ${h % 24} giờ`;
+    return `${days}d ${h % 24}h left`;
   }
-  return `Còn ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} left`;
 }
 
 export function Countdown({

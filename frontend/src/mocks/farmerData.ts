@@ -129,7 +129,7 @@ export function setFarmerMarkets(next: FarmerMarketMembership[]) {
 
 export let farmerProfile: FarmerProfile = {
   id: DEMO_FARMER_ID,
-  stall_name: seedFarmer?.stall_name ?? 'Quầy nông dân',
+  stall_name: seedFarmer?.stall_name ?? 'Farmer stall',
   image: seedFarmer?.image ?? null,
   rating_avg: seedFarmer?.rating_avg ?? null,
   rating_count: seedFarmer?.rating_count ?? 0,
@@ -139,9 +139,9 @@ export let farmerProfile: FarmerProfile = {
   upcoming_closures: seedFarmer?.upcoming_closures ?? [],
   distance_km: seedFarmer?.distance_km ?? null,
   is_favorite: seedFarmer?.is_favorite ?? null,
-  contact_person: seedFarmer?.contact_person ?? 'Lan Hương',
+  contact_person: seedFarmer?.contact_person ?? 'Lan Huong',
   phone: seedFarmer?.phone ?? '0912345678',
-  address: seedFarmer?.address ?? 'Đà Lạt, Lâm Đồng',
+  address: seedFarmer?.address ?? 'Da Lat, Lam Dong',
   description: seedFarmer?.description ?? null,
   latitude: seedFarmer?.latitude ?? null,
   longitude: seedFarmer?.longitude ?? null,
@@ -184,8 +184,8 @@ export const farmerNotifications: NotificationItem[] = [
   {
     id: 101,
     type: 'ORDER_PLACED',
-    title: 'Đơn mới #6',
-    message: 'Đỗ Thanh Tùng vừa đặt 3 sản phẩm — chờ xác nhận.',
+    title: 'New order #6',
+    message: 'Do Thanh Tung placed 3 products — awaiting confirmation.',
     target_url: '/farmer/orders/6',
     is_read: false,
     read_at: null,
@@ -194,8 +194,8 @@ export const farmerNotifications: NotificationItem[] = [
   {
     id: 102,
     type: 'ORDER_MODIFIED',
-    title: 'Đơn #8 quá hạn',
-    message: 'Khách chưa đến lấy trong khung giờ. Hãy hoàn thành hoặc đánh no-show.',
+    title: 'Order #8 overdue',
+    message: 'Customer did not pick up within the window. Complete the order or mark no-show.',
     target_url: '/farmer/orders/8',
     is_read: false,
     read_at: null,
@@ -204,7 +204,7 @@ export const farmerNotifications: NotificationItem[] = [
 ];
 
 export function categoryName(id: number) {
-  return categories.find((c) => c.id === id)?.name ?? 'Khác';
+  return categories.find((c) => c.id === id)?.name ?? 'Other';
 }
 
 export function createEmptySlot(day_of_week: DayOfWeek): PickupSlot {

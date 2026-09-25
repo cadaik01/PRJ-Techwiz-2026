@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { FavoriteButton } from '@/features/customer/components/FavoriteButton';
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
+import { LazyImage } from '@/components/common/LazyImage';
 import { PriceTag } from '@/components/common/PriceTag';
 import { QuantityStepper } from '@/components/common/QuantityStepper';
 import { RatingStars } from '@/components/common/RatingStars';
@@ -59,8 +60,8 @@ export default function ProductDetailPage() {
     return (
       <div className="product-detail-page__empty-wrap">
         <EmptyState
-          title="Không tìm thấy sản phẩm"
-          actionLabel="Thử lại"
+          title="This product is unavailable"
+          actionLabel="Try again"
           onAction={() => productQuery.refetch()}
         />
       </div>
@@ -72,12 +73,12 @@ export default function ProductDetailPage() {
   const canAdd = product.availability === 'IN_STOCK' && product.stock_quantity > 0;
   const stockLabel =
     product.availability === 'UNAVAILABLE'
-      ? 'Không bán'
+      ? 'Unavailable'
       : product.availability === 'OUT_OF_STOCK'
-        ? 'Hết hàng'
+        ? 'Out of stock'
         : product.stock_quantity <= 10
-          ? `Sắp hết · còn ${product.stock_quantity}`
-          : `Còn ${product.stock_quantity}`;
+          ? `Low stock · ${product.stock_quantity} left`
+          : `${product.stock_quantity} in stock`;
 
   return (
     <div className="product-detail-page">
@@ -85,13 +86,13 @@ export default function ProductDetailPage() {
         <div>
           <div className="product-detail-page__media">
             {product.image ? (
-              <img
+              <LazyImage
                 src={product.image}
                 alt={product.name}
                 className="product-detail-page__media-img"
               />
             ) : (
-              <div className="product-detail-page__media-placeholder">Không có ảnh</div>
+              <div className="product-detail-page__media-placeholder">Photo coming soon</div>
             )}
           </div>
         </div>
@@ -113,7 +114,7 @@ export default function ProductDetailPage() {
               active={favorited}
               onToggle={() => {
                 toggleProduct(product.id);
-                toast.success(favorited ? 'Đã bỏ yêu thích' : 'Đã thêm yêu thích');
+                toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
               }}
             />
           </div>
@@ -137,7 +138,7 @@ export default function ProductDetailPage() {
           <p className="product-detail-page__desc">{product.description}</p>
 
           <div className="product-detail-page__stall-box">
-            <p className="product-detail-page__stall-label">Quầy bán</p>
+            <p className="product-detail-page__stall-label">From the stall</p>
             <Link
               to={`/farmers/${product.farmer.id}`}
               className="product-detail-page__stall-link"
@@ -146,7 +147,7 @@ export default function ProductDetailPage() {
             </Link>
             {product.markets[0] ? (
               <p className="product-detail-page__market-note">
-                Tại {product.markets[0].market_name}
+                At {product.markets[0].market_name}
               </p>
             ) : null}
           </div>
@@ -172,11 +173,11 @@ export default function ProductDetailPage() {
                   image: product.image,
                   is_available: canAdd,
                 });
-                toast.success(`Đã thêm ${qty} ${product.unit} vào giỏ`);
+                toast.success(`Reserved ${qty} ${product.unit} for pickup`);
               }}
             >
               <ShoppingCart className="product-detail-page__cart-icon" aria-hidden />
-              Thêm vào giỏ
+              Reserve for pickup
             </Button>
           </div>
         </div>
@@ -185,7 +186,7 @@ export default function ProductDetailPage() {
       <div className="product-detail-page__reviews-layout">
         <Card className="product-detail-page__rating-card">
           <CardHeader>
-            <CardTitle>Phân bố đánh giá</CardTitle>
+            <CardTitle>How shoppers rated it</CardTitle>
           </CardHeader>
           <CardContent className="product-detail-page__card-content--stack">
             {ratingQuery.data
@@ -216,7 +217,7 @@ export default function ProductDetailPage() {
 
         <Card className="product-detail-page__comments-card">
           <CardHeader>
-            <CardTitle>Nhận xét</CardTitle>
+            <CardTitle>What shoppers say</CardTitle>
           </CardHeader>
           <CardContent className="product-detail-page__comments-stack">
             {reviewsQuery.data?.results.length ? (
@@ -234,14 +235,16 @@ export default function ProductDetailPage() {
                   </p>
                   {review.reply ? (
                     <div className="product-detail-page__reply">
-                      <p className="product-detail-page__reply-title">Phản hồi từ quầy</p>
+                      <p className="product-detail-page__reply-title">Reply from the stall</p>
                       <p className="product-detail-page__reply-body">{review.reply}</p>
                     </div>
                   ) : null}
                 </div>
               ))
             ) : (
-              <p className="product-detail-page__no-comments">Chưa có nhận xét.</p>
+              <p className="product-detail-page__no-comments">
+                No reviews yet — be the first to share how it tasted.
+              </p>
             )}
           </CardContent>
         </Card>
@@ -249,7 +252,7 @@ export default function ProductDetailPage() {
 
       {related.length > 0 ? (
         <section className="product-detail-page__related">
-          <h2 className="product-detail-page__related-title">Sản phẩm liên quan</h2>
+          <h2 className="product-detail-page__related-title">You may also like</h2>
           <div className="product-detail-page__related-grid">
             {related.map((p) => (
               <ProductCardView key={p.id} product={p} />

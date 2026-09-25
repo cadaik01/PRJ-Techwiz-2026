@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { FavoriteButton } from '@/features/customer/components/FavoriteButton';
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
+import { LazyImage } from '@/components/common/LazyImage';
 import { RatingStars } from '@/components/common/RatingStars';
 import { ProductCardView } from '@/features/catalog/components/ProductCardView';
 import {
@@ -42,8 +43,8 @@ export default function FarmerDetailPage() {
     return (
       <div className="farmer-detail-page__empty-wrap">
         <EmptyState
-          title="Không tìm thấy quầy"
-          actionLabel="Thử lại"
+          title="This stall could not be found"
+          actionLabel="Try again"
           onAction={() => farmerQuery.refetch()}
         />
       </div>
@@ -58,7 +59,11 @@ export default function FarmerDetailPage() {
     <div className="farmer-detail-page">
       <div className="farmer-detail-page__cover">
         {farmer.image ? (
-          <img src={farmer.image} alt="" className="farmer-detail-page__cover-img" />
+          <LazyImage
+            src={farmer.image}
+            alt=""
+            className="farmer-detail-page__cover-img"
+          />
         ) : null}
         <div className="farmer-detail-page__cover-gradient" aria-hidden />
       </div>
@@ -72,7 +77,7 @@ export default function FarmerDetailPage() {
                 {farmer.stall_name.slice(0, 2)}
               </AvatarFallback>
             </Avatar>
-            <div>
+            <div className="farmer-detail-page__profile-copy">
               <h1 className="farmer-detail-page__name">{farmer.stall_name}</h1>
               <p className="farmer-detail-page__contact">{farmer.contact_person}</p>
               <div className="farmer-detail-page__rating-wrap">
@@ -88,7 +93,7 @@ export default function FarmerDetailPage() {
             active={favorited}
             onToggle={() => {
               toggleFarmer(farmer.id);
-              toast.success(favorited ? 'Đã bỏ yêu thích' : 'Đã thêm yêu thích');
+              toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
             }}
             className="farmer-detail-page__fav"
           />
@@ -104,10 +109,10 @@ export default function FarmerDetailPage() {
 
         <Tabs defaultValue="products" className="farmer-detail-page__tabs">
           <TabsList>
-            <TabsTrigger value="products">Sản phẩm</TabsTrigger>
-            <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
-            <TabsTrigger value="about">Giới thiệu</TabsTrigger>
-            <TabsTrigger value="schedule">Lịch nhận hàng</TabsTrigger>
+            <TabsTrigger value="products">On the stall</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsTrigger value="about">About the stall</TabsTrigger>
+            <TabsTrigger value="schedule">Pickup times</TabsTrigger>
           </TabsList>
 
           <TabsContent value="products">
@@ -124,7 +129,7 @@ export default function FarmerDetailPage() {
                 ))}
               </div>
             ) : (
-              <EmptyState title="Chưa có sản phẩm" />
+              <EmptyState title="Nothing listed yet — check back soon" />
             )}
           </TabsContent>
 
@@ -143,14 +148,16 @@ export default function FarmerDetailPage() {
                 </p>
                 {review.reply ? (
                   <div className="farmer-detail-page__reply">
-                    <p className="farmer-detail-page__reply-title">Phản hồi quầy</p>
+                    <p className="farmer-detail-page__reply-title">Reply from the stall</p>
                     <p className="farmer-detail-page__reply-body">{review.reply}</p>
                   </div>
                 ) : null}
               </div>
             ))}
             {!reviewsQuery.data?.results.length ? (
-              <p className="farmer-detail-page__no-reviews">Chưa có đánh giá.</p>
+              <p className="farmer-detail-page__no-reviews">
+                No reviews yet — be the first to share your experience.
+              </p>
             ) : null}
           </TabsContent>
 
@@ -159,7 +166,7 @@ export default function FarmerDetailPage() {
               <p className="farmer-detail-page__bio">{farmer.description}</p>
               {farmer.phone ? (
                 <p className="farmer-detail-page__phone">
-                  Liên hệ:{' '}
+                  Phone:{' '}
                   <a
                     className="farmer-detail-page__phone-link"
                     href={`tel:${farmer.phone}`}
@@ -206,7 +213,7 @@ export default function FarmerDetailPage() {
                         className="farmer-detail-page__directions-icon"
                         aria-hidden
                       />
-                      Chỉ đường đến quầy
+                      Get directions to the stall
                     </a>
                   </Button>
                 </>
@@ -255,13 +262,12 @@ export default function FarmerDetailPage() {
                 </div>
               ))}
               {!pickupQuery.data?.length ? (
-                <EmptyState title="Chưa cấu hình khung giờ nhận hàng" />
+                <EmptyState title="Pickup times are not set yet" />
               ) : null}
             </div>
           </TabsContent>
         </Tabs>
       </div>
-      <div className="farmer-detail-page__spacer" />
     </div>
   );
 }

@@ -18,9 +18,9 @@ export default function NotificationsPage() {
   if (query.isError) {
     return (
       <EmptyState
-        title="Không tải được thông báo"
+        title="Notifications couldn't be loaded"
         description={ApiError.fromUnknown(query.error).friendlyMessage}
-        actionLabel="Thử lại"
+        actionLabel="Try again"
         onAction={() => void query.refetch()}
       />
     );
@@ -29,8 +29,12 @@ export default function NotificationsPage() {
   return (
     <div className="notifications-page">
       <PageHeader
-        title="Thông báo"
-        description={`${unread} chưa đọc`}
+        title="Your notifications"
+        description={
+          unread > 0
+            ? `${unread} unread update${unread === 1 ? '' : 's'}`
+            : 'You are all caught up'
+        }
         actions={
           <Button
             size="sm"
@@ -38,13 +42,16 @@ export default function NotificationsPage() {
             loading={markAll.isPending}
             onClick={() => markAll.mutate()}
           >
-            Đánh dấu đã đọc tất cả
+            Mark all as read
           </Button>
         }
       />
 
       {!results.length ? (
-        <EmptyState title="Chưa có thông báo" />
+        <EmptyState
+          title="No notifications yet"
+          description="Order updates and stall messages will appear here."
+        />
       ) : (
         <ul className="notifications-page__list">
           {results.map((item) => (
@@ -76,7 +83,7 @@ export default function NotificationsPage() {
                     className="notifications-page__item-link"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    Xem chi tiết →
+                    View details →
                   </Link>
                 ) : null}
               </button>

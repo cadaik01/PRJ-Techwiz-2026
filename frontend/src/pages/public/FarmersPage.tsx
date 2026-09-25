@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
 
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { FarmerCard } from '@/features/catalog/components/FarmerCard';
@@ -16,7 +15,8 @@ function parseFarmerSort(value: string): FarmerSort {
     value === 'rating' ||
     value === 'in_stock' ||
     value === 'distance' ||
-    value === 'name'
+    value === 'name' ||
+    value === 'name_desc'
   ) {
     return value;
   }
@@ -43,12 +43,12 @@ export default function FarmersPage() {
       <section className="farmers-page__hero">
         <div className="farmers-page__hero-inner">
           <div className="farmers-page__hero-copy">
-            <p className="farmers-page__eyebrow">Quầy nông dân</p>
-            <h1 className="farmers-page__title">Nông dân / Quầy</h1>
+            <p className="farmers-page__eyebrow">Meet the growers</p>
+            <h1 className="farmers-page__title">Farmer stalls</h1>
             <p className="farmers-page__subtitle">
               {lat != null
-                ? 'Đang ưu tiên quầy gần vị trí của bạn'
-                : 'Tìm theo tên quầy, hoặc lọc theo đánh giá và tồn kho'}
+                ? 'Showing stalls closest to you first'
+                : 'Discover trusted stalls by name, rating, or stock'}
             </p>
           </div>
         </div>
@@ -56,34 +56,33 @@ export default function FarmersPage() {
 
       <div className="farmers-page__body">
         <div className="farmers-page__toolbar">
-          <div className="farmers-page__search-wrap">
-            <Search className="farmers-page__search-icon" aria-hidden />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Tìm theo tên quầy…"
-              className="farmers-page__search-input"
-              aria-label="Tìm quầy"
-            />
-          </div>
+          <div className="farmers-page__search-row">
+            <div className="farmers-page__search-wrap">
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                label="Search by stall name"
+                className="farmers-page__search-input"
+              />
+            </div>
 
-          <div className="farmers-page__sort-row">
             <select
               className="farmers-page__select"
               value={sort}
               onChange={(e) => setSort(parseFarmerSort(e.target.value))}
-              aria-label="Sắp xếp"
+              aria-label="Sort stalls"
             >
-              <option value="rating">Đánh giá cao</option>
-              <option value="in_stock">Còn nhiều hàng</option>
-              <option value="distance">Gần nhất</option>
-              <option value="name">Tên A–Z</option>
+              <option value="rating">Top rated</option>
+              <option value="in_stock">Best stocked</option>
+              <option value="distance">Nearest first</option>
+              <option value="name">Name A–Z</option>
+              <option value="name_desc">Name Z–A</option>
             </select>
           </div>
         </div>
 
         {!query.isLoading && !query.isError && farmers.length > 0 ? (
-          <p className="farmers-page__count">{farmers.length} quầy</p>
+          <p className="farmers-page__count">{farmers.length} stalls</p>
         ) : null}
 
         {query.isLoading ? (
@@ -94,14 +93,14 @@ export default function FarmersPage() {
           </div>
         ) : query.isError ? (
           <EmptyState
-            title="Không tải được danh sách"
-            actionLabel="Thử lại"
+            title="Stalls couldn't be loaded"
+            actionLabel="Try again"
             onAction={() => query.refetch()}
           />
         ) : farmers.length === 0 ? (
           <EmptyState
-            title="Không có quầy phù hợp"
-            description="Thử đổi bộ lọc hoặc từ khóa."
+            title="No stalls match your search"
+            description="Try another name, or clear filters to see everyone."
           />
         ) : (
           <div className="farmers-page__grid">

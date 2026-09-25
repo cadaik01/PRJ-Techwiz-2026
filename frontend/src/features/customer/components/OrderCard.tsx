@@ -31,9 +31,9 @@ export function OrderCard({
             {order.farmer.stall_name} · {order.market.name}
           </p>
           <p className="order-card__pickup">
-            Nhận {formatDateTime(order.pickup_start_at)}
+            Pickup {formatDateTime(order.pickup_start_at)}
             {order.stall_label ? ` · ${order.stall_label}` : ''}
-            {order.is_overdue ? ' · Quá hạn' : ''}
+            {order.is_overdue ? ' · Overdue' : ''}
           </p>
         </div>
         <StatusBadge status={order.status} />
@@ -41,27 +41,27 @@ export function OrderCard({
       <div className="order-card__foot">
         <div>
           <p className="order-card__amount">{formatVnd(order.total_amount)}</p>
-          <p className="order-card__item-count">{order.item_count} sản phẩm</p>
+          <p className="order-card__item-count">{order.item_count} products</p>
           {isOpen ? (
             <Countdown
               className="order-card__countdown"
               targetIso={order.pickup_start_at}
-              label="Đến giờ nhận"
+              label="Until pickup"
             />
           ) : null}
         </div>
         <div className="order-card__actions">
           <Button asChild size="sm" variant="outline">
-            <Link to={`/app/orders/${order.id}`}>Chi tiết</Link>
+            <Link to={`/app/orders/${order.id}`}>Details</Link>
           </Button>
           {onReorder ? (
             <Button size="sm" variant="secondary" onClick={() => onReorder(order.id)}>
-              Đặt lại
+              Reorder
             </Button>
           ) : null}
           {canReview ? (
             <Button asChild size="sm">
-              <Link to={`/app/orders/${order.id}/review`}>Đánh giá</Link>
+              <Link to={`/app/orders/${order.id}/review`}>Review</Link>
             </Button>
           ) : null}
         </div>

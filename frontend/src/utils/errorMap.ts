@@ -5,107 +5,107 @@ export type ErrorAction = {
 
 const ERROR_MAP: Record<string, ErrorAction> = {
   INSUFFICIENT_STOCK: {
-    title: 'Không đủ tồn kho',
-    suggestion: 'Giảm số lượng hoặc chọn sản phẩm khác.',
+    title: 'Insufficient stock',
+    suggestion: 'Reduce the quantity or choose another product.',
   },
   OPEN_ORDER_LIMIT_EXCEEDED: {
-    title: 'Đã vượt giới hạn đơn mở',
-    suggestion: 'Hoàn thành hoặc hủy đơn đang mở trước khi đặt thêm.',
+    title: 'Open order limit exceeded',
+    suggestion: 'Complete or cancel open orders before placing another.',
   },
   SLOT_NOT_AVAILABLE: {
-    title: 'Khung giờ nhận hàng không còn trống',
-    suggestion: 'Chọn khung giờ khác.',
+    title: 'Pickup slot is no longer available',
+    suggestion: 'Choose another pickup slot.',
   },
   PRODUCT_NOT_AVAILABLE: {
-    title: 'Sản phẩm không còn bán',
-    suggestion: 'Xóa sản phẩm khỏi giỏ và chọn món khác.',
+    title: 'Product is no longer available',
+    suggestion: 'Remove it from your cart and choose something else.',
   },
   CUTOFF_PASSED: {
-    title: 'Đã quá thời hạn đặt/sửa đơn',
-    suggestion: 'Không thể thay đổi đơn sau cut-off.',
+    title: 'Order cut-off has passed',
+    suggestion: 'Orders cannot be changed after cut-off.',
   },
   IDEMPOTENCY_IN_PROGRESS: {
-    title: 'Đơn đang được xử lý',
-    suggestion: 'Vui lòng đợi vài giây rồi thử lại.',
+    title: 'Order is being processed',
+    suggestion: 'Please wait a few seconds and try again.',
   },
   RESOURCE_MODIFIED: {
-    title: 'Đơn vừa được cập nhật',
-    suggestion: 'Tải lại đơn để xem phiên bản mới nhất.',
+    title: 'Order was just updated',
+    suggestion: 'Reload the order to see the latest version.',
   },
   INVALID_STATUS_TRANSITION: {
-    title: 'Không thể chuyển trạng thái này',
-    suggestion: 'Kiểm tra trạng thái hiện tại của đơn.',
+    title: 'This status change is not allowed',
+    suggestion: "Check the order's current status.",
   },
   PICKUP_ALREADY_STARTED: {
-    title: 'Đã tới giờ nhận hàng',
-    suggestion: 'Không thể hủy/sửa sau khi bắt đầu khung giờ nhận.',
+    title: 'Pickup time has started',
+    suggestion: 'Orders cannot be cancelled or edited after the pickup slot starts.',
   },
   FARMER_SUSPENDED: {
-    title: 'Tài khoản nông dân đang bị tạm khóa',
+    title: 'Farmer account is temporarily suspended',
   },
   FARMER_NOT_APPROVED: {
-    title: 'Hồ sơ nông dân chưa được duyệt',
+    title: 'Farmer profile is not approved yet',
   },
   CUTOFF_NOT_REACHED: {
-    title: 'Chưa tới cut-off',
-    suggestion: 'Chờ đến cut-off trước khi đánh dấu sẵn sàng.',
+    title: 'Cut-off has not been reached',
+    suggestion: 'Wait until cut-off before marking ready.',
   },
   PICKUP_NOT_ENDED: {
-    title: 'Chưa hết khung giờ nhận hàng',
-    suggestion: 'Hoàn thành/no-show sau khi kết thúc slot.',
+    title: 'Pickup slot has not ended',
+    suggestion: 'Complete or mark no-show after the slot ends.',
   },
   REVIEW_NOT_ALLOWED: {
-    title: 'Chưa thể đánh giá',
-    suggestion: 'Chỉ đánh giá sau khi đơn hoàn thành.',
+    title: 'Review not allowed yet',
+    suggestion: 'You can only review after the order is completed.',
   },
   REPLY_ALREADY_EXISTS: {
-    title: 'Đã phản hồi đánh giá này',
+    title: 'This review has already been replied to',
   },
   RESOURCE_IN_USE: {
-    title: 'Tài nguyên đang được sử dụng',
-    suggestion: 'Không thể xóa khi còn liên kết dữ liệu.',
+    title: 'Resource is in use',
+    suggestion: 'Cannot delete while related data still exists.',
   },
   EMAIL_EXISTS: {
-    title: 'Email đã được đăng ký',
-    suggestion: 'Đăng nhập hoặc dùng email khác.',
+    title: 'Email is already registered',
+    suggestion: 'Sign in or use a different email.',
   },
   INVALID_CREDENTIALS: {
-    title: 'Email hoặc mật khẩu không đúng',
+    title: 'Incorrect email or password',
   },
   ACCOUNT_LOCKED: {
-    title: 'Tài khoản đã bị khóa',
-    suggestion: 'Liên hệ quản trị viên để được hỗ trợ.',
+    title: 'Account is locked',
+    suggestion: 'Contact an administrator for help.',
   },
   TOKEN_INVALID: {
-    title: 'Phiên đăng nhập hết hạn',
-    suggestion: 'Vui lòng đăng nhập lại.',
+    title: 'Session expired',
+    suggestion: 'Please sign in again.',
   },
   VALIDATION_ERROR: {
-    title: 'Dữ liệu không hợp lệ',
-    suggestion: 'Kiểm tra lại các trường đánh dấu lỗi.',
+    title: 'Invalid data',
+    suggestion: 'Check the fields marked with errors.',
   },
   CONFLICT_RETRY: {
-    title: 'Xung đột dữ liệu',
-    suggestion: 'Tải lại và thử lại thao tác.',
+    title: 'Data conflict',
+    suggestion: 'Reload and try the action again.',
   },
   OVERDUE_ORDERS_PENDING: {
-    title: 'Còn đơn quá hạn',
-    suggestion: 'Xử lý hết đơn quá hạn trước khi áp dụng mẫu tồn kho tuần.',
+    title: 'Overdue orders remaining',
+    suggestion: 'Resolve all overdue orders before applying the weekly stock template.',
   },
   AI_UNAVAILABLE: {
-    title: 'Trợ lý AI tạm thời không khả dụng',
-    suggestion: 'Vui lòng thử lại sau ít phút.',
+    title: 'AI assistant is temporarily unavailable',
+    suggestion: 'Please try again in a few minutes.',
   },
 };
 
 export function mapErrorCode(code: string | undefined | null): ErrorAction {
   if (!code) {
-    return { title: 'Đã xảy ra lỗi', suggestion: 'Vui lòng thử lại.' };
+    return { title: 'Something went wrong', suggestion: 'Please try again.' };
   }
   return (
     ERROR_MAP[code] ?? {
-      title: 'Đã xảy ra lỗi',
-      suggestion: 'Vui lòng thử lại.',
+      title: 'Something went wrong',
+      suggestion: 'Please try again.',
     }
   );
 }

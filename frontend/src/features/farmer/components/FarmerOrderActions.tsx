@@ -72,24 +72,24 @@ export function FarmerOrderActions({ order, size = 'sm' }: Props) {
   return (
     <>
       <div className="farmer-order-actions">
-        {renderBtn('ACCEPT', 'Xác nhận', 'default')}
-        {renderBtn('DECLINE', 'Từ chối', 'destructive')}
-        {renderBtn('READY', 'Sẵn sàng', 'accent')}
-        {renderBtn('COMPLETE', 'Hoàn thành', 'default')}
+        {renderBtn('ACCEPT', 'Accept', 'default')}
+        {renderBtn('DECLINE', 'Decline', 'destructive')}
+        {renderBtn('READY', 'Ready', 'accent')}
+        {renderBtn('COMPLETE', 'Complete', 'default')}
         {renderBtn('NO_SHOW', 'No-show', 'outline')}
       </div>
 
       <ConfirmDialog
         open={declineOpen}
         onOpenChange={setDeclineOpen}
-        title="Từ chối đơn"
-        description="Nhập lý do từ chối (5–500 ký tự)."
-        confirmLabel="Từ chối"
+        title="Decline order"
+        description="Tell the shopper why (5–500 characters)."
+        confirmLabel="Decline"
         destructive
         loading={run.isPending}
         onConfirm={() => {
           if (reason.trim().length < 5) {
-            toast.error('Lý do tối thiểu 5 ký tự');
+            toast.error('Reason must be at least 5 characters');
             return;
           }
           mutate('DECLINE');
@@ -98,7 +98,7 @@ export function FarmerOrderActions({ order, size = 'sm' }: Props) {
         <Textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Lý do từ chối…"
+          placeholder="Reason for declining…"
           className="farmer-order-actions__reason"
         />
       </ConfirmDialog>
@@ -110,12 +110,12 @@ export function FarmerOrderActions({ order, size = 'sm' }: Props) {
         }}
         title={
           confirmAction === 'ACCEPT'
-            ? 'Xác nhận đơn này?'
+            ? 'Accept this pre-order?'
             : confirmAction === 'READY'
-              ? 'Đánh dấu sẵn sàng lấy?'
+              ? 'Mark ready for pickup?'
               : confirmAction === 'COMPLETE'
-                ? 'Hoàn thành đơn?'
-                : 'Đánh no-show?'
+                ? 'Mark this pickup as complete?'
+                : 'Mark customer as no-show?'
         }
         loading={run.isPending}
         destructive={confirmAction === 'NO_SHOW'}

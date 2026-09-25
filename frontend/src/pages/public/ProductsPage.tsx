@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ProductCardView } from '@/features/catalog/components/ProductCardView';
@@ -98,7 +98,7 @@ export default function ProductsPage() {
   if (marketId) {
     const name =
       marketsQuery.data?.results.find((m) => String(m.id) === marketId)?.name ??
-      'Chợ đã chọn';
+      'Selected market';
     chips.push({
       key: 'market',
       label: name,
@@ -116,7 +116,7 @@ export default function ProductsPage() {
   if (inStock) {
     chips.push({
       key: 'stock',
-      label: 'Còn hàng',
+      label: 'In stock',
       clear: () => updateParam('in_stock', null),
     });
   }
@@ -126,11 +126,11 @@ export default function ProductsPage() {
       <section className="products-page__hero">
         <div className="products-page__hero-inner">
           <div className="products-page__hero-copy">
-            <p className="products-page__eyebrow">Nông sản phiên chợ</p>
-            <h1 className="products-page__title">Sản phẩm</h1>
+            <p className="products-page__eyebrow">Fresh from the stall</p>
+            <h1 className="products-page__title">Market produce</h1>
             <p className="products-page__subtitle">
-              Lọc theo danh mục, giá, chợ và tình trạng còn hàng — đặt trước, nhận tại
-              quầy.
+              Filter by category, price, market, or stock — then pre-order and
+              pick up when it suits you.
             </p>
           </div>
         </div>
@@ -140,12 +140,11 @@ export default function ProductsPage() {
         <div className="products-page__layout">
           <aside className="products-page__sidebar">
             <div>
-              <p className="products-page__filter-label">Tìm kiếm</p>
+              <p className="products-page__filter-label">Search</p>
               <div className="products-page__search-wrap">
-                <Search className="products-page__search-icon" aria-hidden />
                 <Input
                   defaultValue={q}
-                  placeholder="Tên sản phẩm…"
+                  label="Search by product name"
                   className="products-page__search-input"
                   onKeyDown={(e) => {
                     if (e.key !== 'Enter') return;
@@ -156,7 +155,7 @@ export default function ProductsPage() {
             </div>
 
             <div>
-              <p className="products-page__filter-label">Danh mục</p>
+              <p className="products-page__filter-label">Categories</p>
               <div className="products-page__category-list">
                 {categoriesQuery.data?.map((cat) => {
                   const checked = categoryIds.includes(String(cat.id));
@@ -183,22 +182,20 @@ export default function ProductsPage() {
             </div>
 
             <div>
-              <p className="products-page__filter-label">Khoảng giá (₫)</p>
+              <p className="products-page__filter-label">Price range ($)</p>
               <div className="products-page__price-row">
                 <Input
                   type="number"
-                  placeholder="Từ"
+                  label="Min"
                   defaultValue={minPrice ?? ''}
-                  className="products-page__price-input"
                   onBlur={(e) =>
                     updateParam('price_min', e.target.value ? e.target.value : null)
                   }
                 />
                 <Input
                   type="number"
-                  placeholder="Đến"
+                  label="Max"
                   defaultValue={maxPrice ?? ''}
-                  className="products-page__price-input"
                   onBlur={(e) =>
                     updateParam('price_max', e.target.value ? e.target.value : null)
                   }
@@ -207,13 +204,13 @@ export default function ProductsPage() {
             </div>
 
             <div>
-              <p className="products-page__filter-label">Chợ</p>
+              <p className="products-page__filter-label">Market</p>
               <select
                 className="products-page__select"
                 value={marketId ?? ''}
                 onChange={(e) => updateParam('market_id', e.target.value || null)}
               >
-                <option value="">Tất cả chợ</option>
+                <option value="">All markets</option>
                 {marketsQuery.data?.results.map((m) => (
                   <option key={m.id} value={String(m.id)}>
                     {m.name}
@@ -237,11 +234,11 @@ export default function ProductsPage() {
                   updateParam('in_stock', e.target.checked ? 'true' : null)
                 }
               />
-              Chỉ còn hàng
+              In stock only
             </label>
 
             <div>
-              <p className="products-page__filter-label">Sắp xếp</p>
+              <p className="products-page__filter-label">Sort by</p>
               <select
                 className="products-page__select"
                 value={sort}
@@ -249,10 +246,10 @@ export default function ProductsPage() {
                   updateParam('ordering', parseProductSort(e.target.value))
                 }
               >
-                <option value="newest">Mới nhất</option>
-                <option value="price_asc">Giá tăng dần</option>
-                <option value="price_desc">Giá giảm dần</option>
-                <option value="rating">Đánh giá cao</option>
+                <option value="newest">Newest arrivals</option>
+                <option value="price_asc">Price: low to high</option>
+                <option value="price_desc">Price: high to low</option>
+                <option value="rating">Top rated</option>
               </select>
             </div>
           </aside>
@@ -282,14 +279,14 @@ export default function ProductsPage() {
               </div>
             ) : productsQuery.isError ? (
               <EmptyState
-                title="Không tải được sản phẩm"
-                actionLabel="Thử lại"
+                title="Products couldn't be loaded"
+                actionLabel="Try again"
                 onAction={() => productsQuery.refetch()}
               />
             ) : items.length === 0 ? (
               <EmptyState
-                title="Không có sản phẩm phù hợp"
-                description="Thử đổi bộ lọc hoặc từ khóa tìm kiếm."
+                title="No produce matches your filters"
+                description="Widen the price range, clear a category, or try a different search."
               />
             ) : (
               <>
@@ -307,10 +304,10 @@ export default function ProductsPage() {
                       loading={productsQuery.isFetchingNextPage}
                       onClick={() => productsQuery.fetchNextPage()}
                     >
-                      Tải thêm
+                      Show more produce
                     </Button>
                   ) : (
-                    <p className="products-page__end-note">Đã hết danh sách</p>
+                    <p className="products-page__end-note">You have reached the end</p>
                   )}
                 </div>
               </>

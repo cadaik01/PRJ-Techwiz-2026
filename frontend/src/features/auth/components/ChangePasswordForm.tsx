@@ -3,7 +3,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import {
   changePasswordSchema,
@@ -41,10 +40,10 @@ export function ChangePasswordForm() {
       })}
     >
       <div className="change-password-form__field">
-        <Label htmlFor="current_password">Mật khẩu hiện tại</Label>
         <Input
           id="current_password"
           type="password"
+          label="Current password"
           autoComplete="current-password"
           {...register('current_password')}
         />
@@ -53,10 +52,10 @@ export function ChangePasswordForm() {
         ) : null}
       </div>
       <div className="change-password-form__field">
-        <Label htmlFor="new_password">Mật khẩu mới</Label>
         <Input
           id="new_password"
           type="password"
+          label="New password"
           autoComplete="new-password"
           {...register('new_password')}
         />
@@ -65,10 +64,10 @@ export function ChangePasswordForm() {
         ) : null}
       </div>
       <div className="change-password-form__field">
-        <Label htmlFor="confirm_password">Xác nhận mật khẩu mới</Label>
         <Input
           id="confirm_password"
           type="password"
+          label="Confirm new password"
           autoComplete="new-password"
           {...register('confirm_password')}
         />
@@ -77,7 +76,7 @@ export function ChangePasswordForm() {
         ) : null}
       </div>
       <Button type="submit" loading={changePasswordPending}>
-        Đổi mật khẩu
+        Change password
       </Button>
     </form>
   );

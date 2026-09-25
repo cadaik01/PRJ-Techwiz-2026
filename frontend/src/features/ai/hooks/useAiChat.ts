@@ -23,7 +23,7 @@ function createMessage(role: ChatRole, content: string): UiChatMessage {
 const INITIAL_MESSAGES: UiChatMessage[] = [
   createMessage(
     'assistant',
-    'Xin chào! Mình có thể giúp tìm chợ, kiểm tra tồn hàng hoặc hướng dẫn nhận tại quầy.',
+    'Hi! I can help find markets, check stock, or guide you for stall pickup.',
   ),
 ];
 

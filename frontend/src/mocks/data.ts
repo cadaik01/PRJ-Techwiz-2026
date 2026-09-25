@@ -17,7 +17,7 @@ export const demoUsers: Record<string, DemoUser> = {
     email: 'customer@demo.vn',
     role: 'CUSTOMER',
     role_id: 3,
-    display_name: 'Minh Văn',
+    display_name: 'Minh Van',
     farmer_status: null,
     password: 'Demo1234',
   },
@@ -26,7 +26,7 @@ export const demoUsers: Record<string, DemoUser> = {
     email: 'farmer@demo.vn',
     role: 'FARMER',
     role_id: 2,
-    display_name: 'Shop Rau Đà Lạt',
+    display_name: 'Da Lat Greens Stall',
     farmer_status: 'APPROVED',
     password: 'Demo1234',
   },
@@ -271,16 +271,16 @@ export function registerUser(input: {
       password: input.password,
       full_name: input.full_name ?? input.email,
       phone: input.phone,
-      address: input.address ?? 'Việt Nam',
+      address: input.address ?? 'Vietnam',
     });
   }
   return registerFarmerUser({
     email: input.email,
     password: input.password,
-    stall_name: input.stall_name ?? 'Quầy mới',
-    contact_person: input.contact_person ?? input.full_name ?? 'Chủ quầy',
+    stall_name: input.stall_name ?? 'New stall',
+    contact_person: input.contact_person ?? input.full_name ?? 'Stall owner',
     phone: input.phone,
-    address: input.address ?? 'Việt Nam',
+    address: input.address ?? 'Vietnam',
   });
 }
 
@@ -290,7 +290,7 @@ export function getCustomerProfile(userId: number) {
   return {
     full_name: user.display_name,
     phone: '0901234567',
-    address: 'Quận 1, TP.HCM',
+    address: 'District 1, HCMC',
     email: user.email,
   };
 }

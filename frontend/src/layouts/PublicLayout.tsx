@@ -30,7 +30,7 @@ export function PublicLayout() {
   return (
     <div className="public-layout">
       <a href="#main-content" className="public-layout__skip-link">
-        Bỏ qua đến nội dung chính
+        Skip to main content
       </a>
 
       <header className="public-layout__header">
@@ -44,14 +44,14 @@ export function PublicLayout() {
             </span>
           </Link>
 
-          <nav className="public-layout__nav-desktop" aria-label="Điều hướng công khai">
+          <nav className="public-layout__nav-desktop" aria-label="Public navigation">
             <NavLink
               to="/markets"
               className={navLinkClass}
               onMouseEnter={prefetch.prefetchMarkets}
               onFocus={prefetch.prefetchMarkets}
             >
-              Chợ
+              Markets
             </NavLink>
             <NavLink
               to="/products"
@@ -59,7 +59,7 @@ export function PublicLayout() {
               onMouseEnter={prefetch.prefetchProducts}
               onFocus={prefetch.prefetchProducts}
             >
-              Sản phẩm
+              Produce
             </NavLink>
             <NavLink
               to="/farmers"
@@ -67,7 +67,7 @@ export function PublicLayout() {
               onMouseEnter={prefetch.prefetchFarmers}
               onFocus={prefetch.prefetchFarmers}
             >
-              Nông dân
+              Stalls
             </NavLink>
           </nav>
 
@@ -89,24 +89,24 @@ export function PublicLayout() {
                   size="sm"
                   className="public-layout__login-btn"
                 >
-                  <Link to="/login">Đăng nhập</Link>
+                  <Link to="/login">Sign in</Link>
                 </Button>
                 <Button asChild size="sm">
-                  <Link to="/register">Đăng ký</Link>
+                  <Link to="/register">Sign up</Link>
                 </Button>
               </>
             )}
           </div>
         </div>
 
-        <nav className="public-layout__nav-mobile" aria-label="Điều hướng công khai">
+        <nav className="public-layout__nav-mobile" aria-label="Public navigation">
           <NavLink
             to="/markets"
             className={navLinkClass}
             onMouseEnter={prefetch.prefetchMarkets}
             onFocus={prefetch.prefetchMarkets}
           >
-            Chợ
+            Markets
           </NavLink>
           <NavLink
             to="/products"
@@ -114,7 +114,7 @@ export function PublicLayout() {
             onMouseEnter={prefetch.prefetchProducts}
             onFocus={prefetch.prefetchProducts}
           >
-            Sản phẩm
+            Produce
           </NavLink>
           <NavLink
             to="/farmers"
@@ -122,7 +122,7 @@ export function PublicLayout() {
             onMouseEnter={prefetch.prefetchFarmers}
             onFocus={prefetch.prefetchFarmers}
           >
-            Nông dân
+            Stalls
           </NavLink>
         </nav>
       </header>
@@ -148,56 +148,56 @@ export function PublicLayout() {
                   </span>
                 </Link>
                 <p className="public-layout__footer-desc">
-                  Nông sản tươi từ phiên chợ địa phương — đặt trước, nhận tại quầy, thanh
-                  toán khi đến lấy.
+                  Local markets, reserved for you — pre-order from trusted stalls,
+                  pick up on your schedule, and pay when you collect.
                 </p>
               </div>
 
               <div>
-                <p className="public-layout__footer-heading">Khám phá</p>
+                <p className="public-layout__footer-heading">Explore</p>
                 <ul className="public-layout__footer-links">
                   <li>
                     <Link to="/markets" className={footerLinkClass}>
-                      Danh sách chợ
+                      Local markets
                     </Link>
                   </li>
                   <li>
                     <Link to="/products" className={footerLinkClass}>
-                      Sản phẩm
+                      Market produce
                     </Link>
                   </li>
                   <li>
                     <Link to="/farmers" className={footerLinkClass}>
-                      Nông dân / Quầy
+                      Farmer stalls
                     </Link>
                   </li>
                 </ul>
               </div>
 
               <div>
-                <p className="public-layout__footer-heading">Tài khoản</p>
+                <p className="public-layout__footer-heading">Account</p>
                 <ul className="public-layout__footer-links">
                   {accessToken ? (
                     <li>
                       <Link to={appHome} className={footerLinkClass}>
-                        Vào ứng dụng
+                        Go to dashboard
                       </Link>
                     </li>
                   ) : (
                     <>
                       <li>
                         <Link to="/login" className={footerLinkClass}>
-                          Đăng nhập
+                          Sign in
                         </Link>
                       </li>
                       <li>
                         <Link to="/register" className={footerLinkClass}>
-                          Đăng ký khách hàng
+                          Create customer account
                         </Link>
                       </li>
                       <li>
                         <Link to="/register/farmer" className={footerLinkClass}>
-                          Đăng ký nông dân
+                          Open a stall
                         </Link>
                       </li>
                     </>
@@ -208,7 +208,7 @@ export function PublicLayout() {
 
             <div className="public-layout__footer-bottom">
               <p>© {new Date().getFullYear()} MarketLink · eGreen Basket</p>
-              <p>Farm Fresh Just a Click Away</p>
+              <p>Farm fresh, just a click away</p>
             </div>
           </div>
         </footer>

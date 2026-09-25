@@ -59,7 +59,7 @@ export function MarketCard({
             active={favorited}
             onToggle={() => {
               void toggleMarket(market.id).then(() => {
-                toast.success(favorited ? 'Đã bỏ yêu thích' : 'Đã thêm yêu thích');
+                toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
               });
             }}
           />
@@ -72,7 +72,7 @@ export function MarketCard({
           ))}
         </div>
         <p className="market-card__meta">
-          {market.open_time}–{market.close_time} · {market.farmer_count} quầy
+          {market.open_time}–{market.close_time} · {market.farmer_count} stalls
         </p>
       </div>
     </article>

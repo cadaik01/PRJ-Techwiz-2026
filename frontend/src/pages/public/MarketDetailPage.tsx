@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/feedback/EmptyState';
 import { FavoriteButton } from '@/features/customer/components/FavoriteButton';
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
 import { FarmerCard } from '@/features/catalog/components/FarmerCard';
+import { LazyImage } from '@/components/common/LazyImage';
 import { useMarket, useMarketFarmers } from '@/features/catalog/hooks/useCatalog';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { googleMapsDirectionsUrl, WEEKDAY_LABELS } from '@/utils/helpers/geo';
@@ -33,8 +34,8 @@ export default function MarketDetailPage() {
     return (
       <div className="market-detail-page__empty-wrap">
         <EmptyState
-          title="Không tìm thấy chợ"
-          actionLabel="Thử lại"
+          title="This market could not be found"
+          actionLabel="Try again"
           onAction={() => marketQuery.refetch()}
         />
       </div>
@@ -48,8 +49,8 @@ export default function MarketDetailPage() {
   return (
     <div className="market-detail-page">
       <section className="market-detail-page__banner">
-        <img
-          src={market.image ?? ''}
+        <LazyImage
+          src={market.image}
           alt={market.name}
           className="market-detail-page__banner-img"
         />
@@ -59,7 +60,7 @@ export default function MarketDetailPage() {
         <div className="market-detail-page__banner-inner">
           <Link to="/markets" className="market-detail-page__back">
             <ArrowLeft className="market-detail-page__back-icon" aria-hidden />
-            Tất cả chợ
+            Back to markets
           </Link>
 
           <div className="market-detail-page__banner-head">
@@ -80,7 +81,7 @@ export default function MarketDetailPage() {
               className="market-detail-page__fav-btn"
               onToggle={() => {
                 toggleMarket(market.id);
-                toast.success(favorited ? 'Đã bỏ yêu thích' : 'Đã thêm yêu thích');
+                toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
               }}
             />
           </div>
@@ -101,19 +102,19 @@ export default function MarketDetailPage() {
           ) : null}
           <MetaChip
             icon={<Store strokeWidth={1.75} aria-hidden />}
-            label={`${market.farmer_count} quầy`}
+            label={`${market.farmer_count} stalls`}
           />
         </div>
 
         <div className="market-detail-page__split">
           <div className="market-detail-page__about">
             <div>
-              <h2 className="market-detail-page__section-title">Về phiên chợ</h2>
+              <h2 className="market-detail-page__section-title">About the market</h2>
               <p className="market-detail-page__description">{market.description}</p>
             </div>
 
             <div>
-              <p className="market-detail-page__days-label">Ngày họp chợ</p>
+              <p className="market-detail-page__days-label">Open on</p>
               <div className="market-detail-page__days">
                 {market.operating_days.map((d) => (
                   <Badge
@@ -135,7 +136,7 @@ export default function MarketDetailPage() {
                   rel="noreferrer"
                 >
                   <ExternalLink className="market-detail-page__action-icon" aria-hidden />
-                  Chỉ đường
+                  Get directions
                 </a>
               </Button>
               <Button
@@ -144,13 +145,13 @@ export default function MarketDetailPage() {
                 variant="secondary"
                 className="market-detail-page__btn-press"
               >
-                <Link to={`/products?market_id=${market.id}`}>Xem sản phẩm tại chợ</Link>
+                <Link to={`/products?market_id=${market.id}`}>Shop produce here</Link>
               </Button>
             </div>
           </div>
 
           <div className="market-detail-page__map-col">
-            <h2 className="market-detail-page__map-title">Bản đồ</h2>
+            <h2 className="market-detail-page__map-title">On the map</h2>
             <Suspense
               fallback={<Skeleton className="market-detail-page__map-skeleton" />}
             >
@@ -167,14 +168,14 @@ export default function MarketDetailPage() {
         <section className="market-detail-page__farmers">
           <div className="market-detail-page__farmers-head">
             <div>
-              <h2 className="market-detail-page__farmers-title">Nông dân tại chợ</h2>
+              <h2 className="market-detail-page__farmers-title">Stalls at this market</h2>
               <p className="market-detail-page__farmers-desc">
-                Các quầy đang bán tại {market.name}
+                Growers currently selling at {market.name}
               </p>
             </div>
             {farmersQuery.data ? (
               <p className="market-detail-page__farmers-count">
-                {farmersQuery.data.length} quầy
+                {farmersQuery.data.length} stalls
               </p>
             ) : null}
           </div>
@@ -187,19 +188,19 @@ export default function MarketDetailPage() {
             </div>
           ) : farmersQuery.isError ? (
             <EmptyState
-              title="Không tải được danh sách quầy"
-              actionLabel="Thử lại"
+              title="Stalls couldn't be loaded"
+              actionLabel="Try again"
               onAction={() => farmersQuery.refetch()}
             />
           ) : !farmersQuery.data?.length ? (
-            <EmptyState title="Chưa có nông dân tại chợ này" />
+            <EmptyState title="No stalls are listed at this market yet" />
           ) : (
             <div className="market-detail-page__farmers-grid">
               {farmersQuery.data.map((farmer) => (
                 <div key={farmer.id} className="market-detail-page__farmer-item">
                   <FarmerCard farmer={farmer} />
                   <p className="market-detail-page__stall-note">
-                    Quầy tại:{' '}
+                    Stall location:{' '}
                     <strong>
                       {farmer.markets
                         .map((m) => m.stall_label ?? m.market_name)

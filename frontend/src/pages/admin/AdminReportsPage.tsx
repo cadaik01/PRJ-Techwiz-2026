@@ -65,11 +65,11 @@ export default function AdminReportsPage() {
 
   const onApply = () => {
     if (daysDiff() > 366) {
-      toast.error('Khoảng ngày tối đa 366 ngày');
+      toast.error('Date range cannot exceed 366 days');
       return;
     }
     if (daysDiff() < 0) {
-      toast.error('Ngày kết thúc phải sau ngày bắt đầu');
+      toast.error('End date must be after start date');
       return;
     }
     setApplied({
@@ -93,7 +93,7 @@ export default function AdminReportsPage() {
       a.download = 'marketlink-report.xlsx';
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Đã xuất báo cáo');
+      toast.success('Report exported');
     } catch (e) {
       toast.error(ApiError.fromUnknown(e).friendlyMessage);
     } finally {
@@ -104,32 +104,30 @@ export default function AdminReportsPage() {
   return (
     <div className="admin-reports-page">
       <PageHeader
-        title="Báo cáo"
-        description="Thống kê đơn, doanh thu theo chợ và top nông dân."
+        title="Reports"
+        description="Order volume, revenue by market, and top-performing stalls."
         actions={
           <Button variant="outline" loading={exporting} onClick={() => void onExport()}>
-            Xuất Excel
+            Export Excel
           </Button>
         }
       />
 
       <div className="page-primitive__filters-bar">
         <div>
-          <Label className="page-primitive__label-xs">Từ ngày</Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <Input type="date" label="From" value={from} onChange={(e) => setFrom(e.target.value)} />
         </div>
         <div>
-          <Label className="page-primitive__label-xs">Đến ngày</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          <Input type="date" label="To" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
         <div>
-          <Label className="page-primitive__label-xs">Chợ</Label>
+          <Label className="page-primitive__label-xs">Market</Label>
           <select
             className="page-primitive__select"
             value={marketId}
             onChange={(e) => setMarketId(e.target.value)}
           >
-            <option value="">Tất cả chợ</option>
+            <option value="">All markets</option>
             {marketsQuery.data?.results.map((m) => (
               <option key={m.id} value={String(m.id)}>
                 {m.name}
@@ -137,15 +135,15 @@ export default function AdminReportsPage() {
             ))}
           </select>
         </div>
-        <Button onClick={onApply}>Áp dụng</Button>
+        <Button onClick={onApply}>Apply</Button>
       </div>
 
       {reportQuery.isLoading ? (
         <PageSkeleton />
       ) : reportQuery.isError || !reportQuery.data ? (
         <EmptyState
-          title="Không tải được báo cáo"
-          actionLabel="Thử lại"
+          title="Report couldn't be loaded"
+          actionLabel="Try again"
           onAction={() => reportQuery.refetch()}
         />
       ) : (
@@ -153,7 +151,7 @@ export default function AdminReportsPage() {
           <div className="page-primitive__grid-2-lg">
             <Card>
               <CardHeader>
-                <CardTitle>Đơn theo trạng thái</CardTitle>
+                <CardTitle>Orders by status</CardTitle>
               </CardHeader>
               <CardContent className="page-primitive__chart-card-body">
                 <ResponsiveContainer width="100%" height="100%">
@@ -169,7 +167,7 @@ export default function AdminReportsPage() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Doanh thu theo chợ</CardTitle>
+                <CardTitle>Revenue by market</CardTitle>
               </CardHeader>
               <CardContent className="page-primitive__chart-card-body">
                 <ResponsiveContainer width="100%" height="100%">
@@ -189,9 +187,9 @@ export default function AdminReportsPage() {
             <table className="page-primitive__table">
               <thead className="page-primitive__table-head">
                 <tr>
-                  <th className="page-primitive__table-th">Top nông dân</th>
-                  <th className="page-primitive__table-th">Số đơn</th>
-                  <th className="page-primitive__table-th">Doanh thu</th>
+                  <th className="page-primitive__table-th">Top farmers</th>
+                  <th className="page-primitive__table-th">Orders</th>
+                  <th className="page-primitive__table-th">Revenue</th>
                 </tr>
               </thead>
               <tbody>

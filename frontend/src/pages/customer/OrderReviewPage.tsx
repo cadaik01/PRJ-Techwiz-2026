@@ -26,7 +26,7 @@ function StarPicker({
         <button
           key={n}
           type="button"
-          aria-label={`${n} sao`}
+          aria-label={`${n} stars`}
           onClick={() => onChange(n)}
           className="order-review-page__star-btn"
         >
@@ -57,7 +57,7 @@ export default function OrderReviewPage() {
 
   if (orderQuery.isLoading) return <PageSkeleton />;
   if (orderQuery.isError || !orderQuery.data) {
-    return <EmptyState title="Không tải được đơn" />;
+    return <EmptyState title="Order couldn't be loaded" />;
   }
 
   const order = orderQuery.data;
@@ -74,8 +74,9 @@ export default function OrderReviewPage() {
   if (order.status !== 'COMPLETED' || !canReview || reviewState === null) {
     return (
       <EmptyState
-        title="Chưa thể đánh giá đơn này"
-        actionLabel="Về chi tiết đơn"
+        title="Reviews open after pickup"
+        description="Complete your collection first, then come back to rate the stall."
+        actionLabel="Back to order details"
         onAction={() => navigate(`/app/orders/${id}`)}
       />
     );
@@ -84,14 +85,14 @@ export default function OrderReviewPage() {
   return (
     <div className="order-review-page">
       <PageHeader
-        title={`Đánh giá #${order.id}`}
-        description="Chia sẻ trải nghiệm sau khi nhận hàng tại quầy."
+        title={`Review order #${order.id}`}
+        description="Tell others about the produce and your pickup experience."
       />
 
       {canReviewFarmer ? (
         <section className="page-primitive__panel">
           <h2 className="order-review-page__section-title">
-            Đánh giá quầy · {order.farmer.stall_name}
+            Stall review · {order.farmer.stall_name}
           </h2>
           <div className="page-primitive__mt-3">
             <StarPicker value={farmerRating} onChange={setFarmerRating} />
@@ -101,14 +102,14 @@ export default function OrderReviewPage() {
             maxLength={1000}
             value={farmerComment}
             onChange={(e) => setFarmerComment(e.target.value)}
-            placeholder="Nhận xét về quầy (≤ 1000 ký tự)"
+            placeholder="Comments about the stall (≤ 1000 characters)"
           />
         </section>
       ) : null}
 
       {reviewableItems.length > 0 ? (
         <section className="order-review-page__product-list">
-          <h2 className="order-review-page__section-title">Đánh giá sản phẩm</h2>
+          <h2 className="order-review-page__section-title">Rate each item</h2>
           {reviewableItems.map((item) => (
             <div key={item.id} className="page-primitive__panel">
               <p className="page-primitive__font-medium">{item.product_name}</p>
@@ -130,7 +131,7 @@ export default function OrderReviewPage() {
                     [item.id]: e.target.value,
                   }))
                 }
-                placeholder="Nhận xét sản phẩm"
+                placeholder="Product comments"
               />
             </div>
           ))}
@@ -160,7 +161,7 @@ export default function OrderReviewPage() {
           )
         }
       >
-        Gửi đánh giá
+        Submit review
       </Button>
     </div>
   );

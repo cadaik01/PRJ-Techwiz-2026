@@ -5,7 +5,6 @@ import { ArrowRight, ShieldCheck, Store, UserRound } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { loginSchema, type LoginFormValues } from '@/features/auth/schemas/auth.schemas';
 import { ApiError } from '@/lib/ApiError';
@@ -16,19 +15,19 @@ import './LoginForm.css';
 const DEMO_ACCOUNTS = [
   {
     email: 'customer@demo.vn',
-    label: 'Khách hàng',
+    label: 'Customer',
     password: 'Demo1234',
     icon: UserRound,
   },
   {
     email: 'farmer@demo.vn',
-    label: 'Nông dân',
+    label: 'Farmer',
     password: 'Demo1234',
     icon: Store,
   },
   {
     email: 'admin@demo.vn',
-    label: 'Quản trị',
+    label: 'Admin',
     password: 'Demo1234',
     icon: ShieldCheck,
   },
@@ -64,10 +63,11 @@ export function LoginForm() {
   return (
     <div className="login-form">
       <div>
-        <p className="login-form__intro-eyebrow">Chào mừng trở lại</p>
-        <h1 className="login-form__title">Đăng nhập</h1>
+        <p className="login-form__intro-eyebrow">Welcome back</p>
+        <h1 className="login-form__title">Sign in to MarketLink</h1>
         <p className="login-form__subtitle">
-          Tiếp tục đặt trước nông sản tại phiên chợ gần bạn.
+          Pick up where you left off — browse stalls, reserve produce, and collect
+          on your schedule.
         </p>
       </div>
 
@@ -78,13 +78,11 @@ export function LoginForm() {
         })}
       >
         <div className="login-form__field">
-          <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
+            label="Email"
             autoComplete="email"
-            placeholder="ban@email.com"
-            className="login-form__input"
             {...register('email')}
           />
           {errors.email ? (
@@ -92,13 +90,11 @@ export function LoginForm() {
           ) : null}
         </div>
         <div className="login-form__field">
-          <Label htmlFor="password">Mật khẩu</Label>
           <Input
             id="password"
             type="password"
+            label="Password"
             autoComplete="current-password"
-            placeholder="••••••••"
-            className="login-form__input"
             {...register('password')}
           />
           {errors.password ? (
@@ -106,14 +102,14 @@ export function LoginForm() {
           ) : null}
         </div>
         <Button type="submit" size="lg" className="login-form__submit" loading={pending}>
-          Đăng nhập
+          Sign in
         </Button>
       </form>
 
       <div className="login-form__demo">
         <div className="login-form__demo-divider">
           <span className="login-form__demo-line" />
-          <p className="login-form__demo-label">Đăng nhập nhanh demo</p>
+          <p className="login-form__demo-label">Try a demo account</p>
           <span className="login-form__demo-line" />
         </div>
         <div className="login-form__demo-list">
@@ -149,17 +145,17 @@ export function LoginForm() {
       </div>
 
       <div className="login-form__footer">
-        <p>Chưa có tài khoản?</p>
+        <p>New to MarketLink?</p>
         <div className="login-form__footer-links">
           <Link to="/register" className="login-form__footer-link">
-            Khách hàng
+            Shop as a customer
             <ArrowRight className="login-form__footer-link-icon" />
           </Link>
           <span className="login-form__footer-sep" aria-hidden>
             |
           </span>
           <Link to="/register/farmer" className="login-form__footer-link">
-            Nông dân
+            Sell as a farmer
             <ArrowRight className="login-form__footer-link-icon" />
           </Link>
         </div>

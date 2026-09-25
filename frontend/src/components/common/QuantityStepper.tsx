@@ -28,7 +28,7 @@ export function QuantityStepper({
         size="icon"
         className="quantity-stepper__btn"
         disabled={disabled || value <= min}
-        aria-label="Giảm số lượng"
+        aria-label="Decrease quantity"
         onClick={() => onChange(Math.max(min, value - 1))}
       >
         <Minus className="quantity-stepper__icon" />
@@ -40,7 +40,7 @@ export function QuantityStepper({
         size="icon"
         className="quantity-stepper__btn"
         disabled={disabled || value >= max}
-        aria-label="Tăng số lượng"
+        aria-label="Increase quantity"
         onClick={() => onChange(Math.min(max, value + 1))}
       >
         <Plus className="quantity-stepper__icon" />

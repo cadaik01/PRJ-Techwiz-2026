@@ -11,14 +11,14 @@ const dayOfWeekSchema = z.union([
 ]);
 
 export const marketSchema = z.object({
-  name: z.string().min(1, 'Nhập tên chợ'),
-  address: z.string().min(1, 'Nhập địa chỉ'),
+  name: z.string().min(1, 'Enter market name'),
+  address: z.string().min(1, 'Enter address'),
   latitude: z.number(),
   longitude: z.number(),
   image: z.string(),
-  open_time: z.string().min(1, 'Chọn giờ mở'),
-  close_time: z.string().min(1, 'Chọn giờ đóng'),
-  operating_days: z.array(dayOfWeekSchema).min(1, 'Chọn ít nhất một ngày'),
+  open_time: z.string().min(1, 'Select open time'),
+  close_time: z.string().min(1, 'Select close time'),
+  operating_days: z.array(dayOfWeekSchema).min(1, 'Select at least one day'),
   description: z.string(),
 });
 

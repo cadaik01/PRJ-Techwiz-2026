@@ -17,6 +17,7 @@ import {
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { PageHeader } from '@/components/common/PageHeader';
 import { PageSkeleton } from '@/components/feedback/PageSkeleton';
+import { LazyImage } from '@/components/common/LazyImage';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -81,7 +82,7 @@ export default function FarmerProductFormPage() {
     if (!file) return;
     const maxBytes = maxMb * 1024 * 1024;
     if (file.size > maxBytes) {
-      toast.error(`Ảnh vượt quá ${maxMb}MB`);
+      toast.error(`Image exceeds ${maxMb}MB`);
       return;
     }
     const reader = new FileReader();
@@ -98,8 +99,8 @@ export default function FarmerProductFormPage() {
   if (isEdit && (productQuery.isError || !productQuery.data)) {
     return (
       <EmptyState
-        title="Không tải được sản phẩm"
-        actionLabel="Thử lại"
+        title="Product couldn't be loaded"
+        actionLabel="Try again"
         onAction={() => productQuery.refetch()}
       />
     );
@@ -108,8 +109,8 @@ export default function FarmerProductFormPage() {
   return (
     <div className="farmer-product-form-page">
       <PageHeader
-        title={isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}
-        description="Upload ảnh, giá, tồn kho và mở bán."
+        title={isEdit ? 'Edit produce' : 'Add produce'}
+        description="Add a photo, set price and stock, then open it for pre-order."
       />
 
       <form
@@ -128,125 +129,127 @@ export default function FarmerProductFormPage() {
           }),
         )}
       >
-        <div
-          className="farmer-product-form-page__dropzone"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            onFile(e.dataTransfer.files[0]);
-          }}
-        >
-          {preview || form.watch('image') ? (
-            <img
-              src={preview ?? form.watch('image')}
-              alt="Preview"
-              className="farmer-product-form-page__preview"
-            />
-          ) : null}
-          <p className="farmer-product-form-page__dropzone-title">
-            Kéo thả ảnh hoặc chọn file
-          </p>
-          <p className="page-primitive__muted-xs">Tối đa {maxMb}MB</p>
-          <Input
-            type="file"
-            accept="image/*"
-            className="farmer-product-form-page__file-input"
-            onChange={(e) => onFile(e.target.files?.[0])}
-          />
-        </div>
-
-        <div className="page-primitive__form-field">
-          <Label htmlFor="name">Tên sản phẩm</Label>
-          <Input id="name" {...form.register('name')} />
-          {form.formState.errors.name ? (
-            <p className="page-primitive__error">{form.formState.errors.name.message}</p>
-          ) : null}
-        </div>
-
-        <div className="page-primitive__form-grid-2">
-          <div className="page-primitive__form-field">
-            <Label htmlFor="category_id">Danh mục</Label>
-            <select
-              id="category_id"
-              className="page-primitive__select-full"
-              {...form.register('category_id', { valueAsNumber: true })}
-            >
-              <option value={0}>Chọn danh mục</option>
-              {categoriesQuery.data?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="page-primitive__form-field">
-            <Label htmlFor="unit">Đơn vị</Label>
-            <select
-              id="unit"
-              className="page-primitive__select-full"
-              {...form.register('unit')}
-            >
-              {UNITS.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="farmer-product-form-page__grid-3">
-          <div className="page-primitive__form-field">
-            <Label htmlFor="price">Giá (₫)</Label>
-            <Input id="price" type="number" {...form.register('price')} />
-          </div>
-          <div className="page-primitive__form-field">
-            <Label htmlFor="stock_quantity">Tồn kho</Label>
-            <Input
-              id="stock_quantity"
-              type="number"
-              {...form.register('stock_quantity', { valueAsNumber: true })}
-            />
-          </div>
-          <div className="page-primitive__form-field">
-            <Label htmlFor="weekly_default_quantity">Tồn mặc định tuần</Label>
-            <Input
-              id="weekly_default_quantity"
-              type="number"
-              {...form.register('weekly_default_quantity', {
-                valueAsNumber: true,
-              })}
-            />
-          </div>
-        </div>
-
-        <div className="page-primitive__form-field">
-          <Label htmlFor="description">Mô tả</Label>
-          <Textarea id="description" rows={4} {...form.register('description')} />
-        </div>
-
-        <div className="farmer-product-form-page__toggle-row">
-          <div>
-            <p className="page-primitive__font-medium">Mở bán</p>
-            <p className="page-primitive__muted-xs">Tắt để tạm ngừng nhận đơn</p>
-          </div>
-          <Switch
-            checked={form.watch('is_available')}
-            onCheckedChange={(checked) => form.setValue('is_available', checked)}
-          />
-        </div>
-
-        <div className="page-primitive__actions-row">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate('/farmer/products')}
+        <div className="farmer-product-form-page__media">
+          <div
+            className="farmer-product-form-page__dropzone"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              onFile(e.dataTransfer.files[0]);
+            }}
           >
-            Hủy
-          </Button>
-          <Button type="submit" data-write loading={saveMutation.isPending}>
-            Lưu
-          </Button>
+            {preview || form.watch('image') ? (
+              <LazyImage
+                src={preview ?? form.watch('image')}
+                alt="Preview"
+                className="farmer-product-form-page__preview"
+              />
+            ) : null}
+            <p className="farmer-product-form-page__dropzone-title">
+              Drag and drop an image or choose a file
+            </p>
+            <p className="page-primitive__muted-xs">Max {maxMb}MB</p>
+            <Input
+              type="file"
+              accept="image/*"
+              className="farmer-product-form-page__file-input"
+              onChange={(e) => onFile(e.target.files?.[0])}
+            />
+          </div>
+        </div>
+
+        <div className="farmer-product-form-page__fields">
+          <div className="page-primitive__form-field">
+            <Input id="name" label="Product name" {...form.register('name')} />
+            {form.formState.errors.name ? (
+              <p className="page-primitive__error">{form.formState.errors.name.message}</p>
+            ) : null}
+          </div>
+
+          <div className="page-primitive__form-grid-2">
+            <div className="page-primitive__form-field">
+              <Label htmlFor="category_id">Category</Label>
+              <select
+                id="category_id"
+                className="page-primitive__select-full"
+                {...form.register('category_id', { valueAsNumber: true })}
+              >
+                <option value={0}>Select category</option>
+                {categoriesQuery.data?.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="page-primitive__form-field">
+              <Label htmlFor="unit">Unit</Label>
+              <select
+                id="unit"
+                className="page-primitive__select-full"
+                {...form.register('unit')}
+              >
+                {UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="farmer-product-form-page__grid-3">
+            <div className="page-primitive__form-field">
+              <Input id="price" type="number" label="Price ($)" {...form.register('price')} />
+            </div>
+            <div className="page-primitive__form-field">
+              <Input
+                id="stock_quantity"
+                type="number"
+                label="Stock"
+                {...form.register('stock_quantity', { valueAsNumber: true })}
+              />
+            </div>
+            <div className="page-primitive__form-field">
+              <Input
+                id="weekly_default_quantity"
+                type="number"
+                label="Weekly default stock"
+                {...form.register('weekly_default_quantity', {
+                  valueAsNumber: true,
+                })}
+              />
+            </div>
+          </div>
+
+          <div className="page-primitive__form-field">
+            <Label htmlFor="description">Description</Label>
+            <Textarea id="description" rows={4} {...form.register('description')} />
+          </div>
+
+          <div className="farmer-product-form-page__toggle-row">
+            <div>
+              <p className="page-primitive__font-medium">Open for sale</p>
+              <p className="page-primitive__muted-xs">Turn off to pause accepting orders</p>
+            </div>
+            <Switch
+              checked={form.watch('is_available')}
+              onCheckedChange={(checked) => form.setValue('is_available', checked)}
+            />
+          </div>
+
+          <div className="farmer-product-form-page__actions">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/farmer/products')}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" data-write loading={saveMutation.isPending}>
+              Save
+            </Button>
+          </div>
         </div>
       </form>
     </div>

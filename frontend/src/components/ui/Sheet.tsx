@@ -40,7 +40,7 @@ export function SheetContent({
         {children}
         <DialogPrimitive.Close className="sheet__close">
           <X className="sheet__close-icon" />
-          <span className="sr-only">Đóng</span>
+          <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </SheetPortal>

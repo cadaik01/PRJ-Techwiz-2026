@@ -27,7 +27,7 @@ export function useReplyReview() {
     mutationFn: ({ id, reply }: { id: number; reply: string }) =>
       farmerApi.replyReview(id, reply),
     onSuccess: () => {
-      toast.success('Đã gửi phản hồi');
+      toast.success('Reply sent');
       void queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.FARMER_MY_REVIEWS()[0]],
       });

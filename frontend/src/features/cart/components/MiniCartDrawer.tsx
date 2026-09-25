@@ -34,7 +34,7 @@ export function MiniCartDrawer() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Giỏ hàng"
+          aria-label="Cart"
           className="mini-cart__trigger"
         >
           <ShoppingCart className="mini-cart__icon" />
@@ -43,7 +43,7 @@ export function MiniCartDrawer() {
       </SheetTrigger>
       <SheetContent side="right" className="mini-cart__sheet">
         <SheetHeader>
-          <SheetTitle>Giỏ hàng ({count})</SheetTitle>
+          <SheetTitle>Your cart ({count})</SheetTitle>
         </SheetHeader>
         <div className="mini-cart__list">
           {Object.entries(grouped).map(([farmerId, farmerItems]) => (
@@ -64,12 +64,12 @@ export function MiniCartDrawer() {
             </div>
           ))}
           {items.length === 0 ? (
-            <p className="mini-cart__empty">Giỏ hàng trống.</p>
+            <p className="mini-cart__empty">Nothing reserved yet — add produce to get started.</p>
           ) : null}
         </div>
         <div className="mini-cart__footer">
           <div className="mini-cart__total">
-            <span>Tạm tính</span>
+            <span>Subtotal</span>
             <span>{formatVnd(total)}</span>
           </div>
           <Button
@@ -77,7 +77,7 @@ export function MiniCartDrawer() {
             className="mini-cart__checkout-btn"
             disabled={items.length === 0}
           >
-            <Link to="/app/cart">Xem giỏ hàng</Link>
+            <Link to="/app/cart">Review cart</Link>
           </Button>
         </div>
       </SheetContent>

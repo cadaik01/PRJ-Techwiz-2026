@@ -17,7 +17,7 @@ export function useUpdateFarmerProfile() {
     mutationFn: farmerApi.updateProfile,
     onSuccess: (data) => {
       queryClient.setQueryData(QUERY_KEYS.FARMER_PROFILE, data);
-      toast.success('Đã cập nhật hồ sơ quầy');
+      toast.success('Stall profile updated');
     },
   });
 }

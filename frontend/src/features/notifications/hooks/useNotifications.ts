@@ -22,7 +22,7 @@ export function useNotifications(role: NotificationRole) {
   const markAll = useMutation({
     mutationFn: () => notificationsApi.markAllRead(),
     onSuccess: () => {
-      toast.success('Đã đánh dấu tất cả đã đọc');
+      toast.success('All notifications marked as read');
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.NOTIFICATIONS_LIST,
       });

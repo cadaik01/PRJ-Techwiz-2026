@@ -41,20 +41,20 @@ export const handlers = [
     const user = findDemoByEmail(email);
     if (!user || user.password !== body.password) {
       return HttpResponse.json(
-        errorEnvelope('Email hoặc mật khẩu không đúng', 'INVALID_CREDENTIALS'),
+        errorEnvelope('Invalid email or password', 'INVALID_CREDENTIALS'),
         { status: 401 },
       );
     }
     if (user.role === 'ADMIN') {
       return HttpResponse.json(
-        errorEnvelope('Email hoặc mật khẩu không đúng', 'INVALID_CREDENTIALS'),
+        errorEnvelope('Invalid email or password', 'INVALID_CREDENTIALS'),
         { status: 401 },
       );
     }
     const session = issueTokens(user.email);
     if (!session) {
       return HttpResponse.json(
-        errorEnvelope('Không tạo được phiên', 'INTERNAL_SERVER_ERROR'),
+        errorEnvelope('Could not create session', 'INTERNAL_SERVER_ERROR'),
         { status: 500 },
       );
     }
@@ -73,14 +73,14 @@ export const handlers = [
     const user = findDemoByEmail(email);
     if (!user || user.password !== body.password || user.role !== 'ADMIN') {
       return HttpResponse.json(
-        errorEnvelope('Email hoặc mật khẩu không đúng', 'INVALID_CREDENTIALS'),
+        errorEnvelope('Invalid email or password', 'INVALID_CREDENTIALS'),
         { status: 401 },
       );
     }
     const session = issueTokens(user.email);
     if (!session) {
       return HttpResponse.json(
-        errorEnvelope('Không tạo được phiên', 'INTERNAL_SERVER_ERROR'),
+        errorEnvelope('Could not create session', 'INTERNAL_SERVER_ERROR'),
         { status: 500 },
       );
     }
@@ -98,7 +98,7 @@ export const handlers = [
     const result = body.refresh ? refreshTokens(body.refresh) : null;
     if (!result) {
       return HttpResponse.json(
-        errorEnvelope('Phiên đăng nhập hết hạn', 'TOKEN_INVALID'),
+        errorEnvelope('Session expired', 'TOKEN_INVALID'),
         { status: 401 },
       );
     }
@@ -116,7 +116,7 @@ export const handlers = [
     const demo = getDemoUserByAccess(authHeader(request));
     if (!demo) {
       return HttpResponse.json(
-        errorEnvelope('Phiên đăng nhập hết hạn', 'TOKEN_INVALID'),
+        errorEnvelope('Session expired', 'TOKEN_INVALID'),
         { status: 401 },
       );
     }
@@ -127,7 +127,7 @@ export const handlers = [
     const user = getUserByAccess(authHeader(request));
     if (!user) {
       return HttpResponse.json(
-        errorEnvelope('Phiên đăng nhập hết hạn', 'TOKEN_INVALID'),
+        errorEnvelope('Session expired', 'TOKEN_INVALID'),
         { status: 401 },
       );
     }
@@ -143,7 +143,7 @@ export const handlers = [
     );
     if ('error' in result) {
       return HttpResponse.json(
-        errorEnvelope('Mật khẩu hiện tại không đúng', 'VALIDATION_ERROR', {
+        errorEnvelope('Current password is incorrect', 'VALIDATION_ERROR', {
           current_password: ['Current password is incorrect'],
         }),
         { status: 400 },
@@ -156,7 +156,7 @@ export const handlers = [
     const user = getUserByAccess(authHeader(request));
     if (!user) {
       return HttpResponse.json(
-        errorEnvelope('Phiên đăng nhập hết hạn', 'TOKEN_INVALID'),
+        errorEnvelope('Session expired', 'TOKEN_INVALID'),
         { status: 401 },
       );
     }
@@ -179,7 +179,7 @@ export const handlers = [
     };
     const result = registerCustomerUser(body);
     if ('error' in result) {
-      return HttpResponse.json(errorEnvelope('Email đã được đăng ký', 'EMAIL_EXISTS'), {
+      return HttpResponse.json(errorEnvelope('Email already registered', 'EMAIL_EXISTS'), {
         status: 400,
       });
     }
@@ -198,7 +198,7 @@ export const handlers = [
     };
     const result = registerFarmerUser(body);
     if ('error' in result) {
-      return HttpResponse.json(errorEnvelope('Email đã được đăng ký', 'EMAIL_EXISTS'), {
+      return HttpResponse.json(errorEnvelope('Email already registered', 'EMAIL_EXISTS'), {
         status: 400,
       });
     }
@@ -212,7 +212,7 @@ export const handlers = [
     const last = body.messages?.[body.messages.length - 1]?.content ?? '';
     return HttpResponse.json(
       envelope({
-        reply: `MarketLink AI: mình đã nhận câu hỏi “${last.slice(0, 80)}”. (mock)`,
+        reply: `MarketLink AI: received your question “${last.slice(0, 80)}”. (mock)`,
         tools_used: ['search_markets'],
       }),
     );

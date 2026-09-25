@@ -32,12 +32,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (this.state.hasError) {
       return (
         <div className="error-boundary">
-          <h1 className="error-boundary__title">Đã xảy ra lỗi</h1>
+          <h1 className="error-boundary__title">Something went wrong</h1>
           <p className="error-boundary__message">
-            Giao diện gặp sự cố không mong muốn. Bạn có thể thử tải lại phần này.
+            This screen hit an unexpected error. Try again, or refresh the page.
           </p>
           <Button type="button" onClick={this.handleRetry}>
-            Thử lại
+            Try again
           </Button>
         </div>
       );

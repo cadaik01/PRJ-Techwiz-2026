@@ -19,11 +19,11 @@ export default function AdminMarketsPage() {
   return (
     <div className="admin-markets-page">
       <PageHeader
-        title="Quản lý chợ"
-        description="Tạo, sửa và bật/tắt phiên chợ."
+        title="Markets"
+        description="Create market sessions, edit details, and toggle availability."
         actions={
           <Button asChild>
-            <Link to="/admin/markets/new">Thêm chợ</Link>
+            <Link to="/admin/markets/new">Add a market</Link>
           </Button>
         }
       />
@@ -31,7 +31,10 @@ export default function AdminMarketsPage() {
       {query.isLoading ? (
         <PageSkeleton />
       ) : !query.data?.results.length ? (
-        <EmptyState title="Chưa có chợ" />
+        <EmptyState
+          title="No markets yet"
+          description="Add your first market so stalls and shoppers have a place to meet."
+        />
       ) : (
         <div className="admin-markets-page__grid">
           {query.data.results.map((m) => (
@@ -47,15 +50,15 @@ export default function AdminMarketsPage() {
                   <p className="admin-markets-page__address">{m.address}</p>
                 </div>
                 <Badge variant={m.is_active ? 'success' : 'secondary'}>
-                  {m.is_active ? 'Hoạt động' : 'Ngừng'}
+                  {m.is_active ? 'Active' : 'Inactive'}
                 </Badge>
               </div>
               <p className="admin-markets-page__meta">
-                {m.open_time}–{m.close_time} · {m.farmer_count} quầy
+                {m.open_time}–{m.close_time} · {m.farmer_count} stalls
               </p>
               <div className="admin-markets-page__actions">
                 <Button asChild size="sm" variant="outline">
-                  <Link to={`/admin/markets/${m.id}/edit`}>Sửa</Link>
+                  <Link to={`/admin/markets/${m.id}/edit`}>Edit</Link>
                 </Button>
                 <Button
                   size="sm"
@@ -63,7 +66,7 @@ export default function AdminMarketsPage() {
                   loading={toggle.isPending}
                   onClick={() => toggle.mutate({ id: m.id, active: !m.is_active })}
                 >
-                  {m.is_active ? 'Ngừng' : 'Kích hoạt'}
+                  {m.is_active ? 'Deactivate' : 'Activate'}
                 </Button>
               </div>
             </div>

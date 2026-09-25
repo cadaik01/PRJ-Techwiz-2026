@@ -70,7 +70,7 @@ function SortableRow({
       <span className="page-primitive__icon-lg-text">{cat.icon}</span>
       <div className="page-primitive__flex-1">
         <p className="page-primitive__font-medium">{cat.name}</p>
-        <p className="page-primitive__muted-xs">{cat.product_count} SP</p>
+        <p className="page-primitive__muted-xs">{cat.product_count} products</p>
       </div>
       <Button
         size="sm"
@@ -78,7 +78,7 @@ function SortableRow({
         disabled={cat.product_count > 0}
         onClick={() => onDelete(cat.id)}
       >
-        Xóa
+        Delete
       </Button>
     </div>
   );
@@ -122,8 +122,8 @@ export default function AdminCategoriesPage() {
   if (query.isError) {
     return (
       <EmptyState
-        title="Không tải được danh mục"
-        actionLabel="Thử lại"
+        title="Categories couldn't be loaded"
+        actionLabel="Try again"
         onAction={() => query.refetch()}
       />
     );
@@ -131,7 +131,10 @@ export default function AdminCategoriesPage() {
 
   return (
     <div className="admin-categories-page">
-      <PageHeader title="Danh mục" description="Kéo thả để sắp xếp display_order." />
+      <PageHeader
+        title="Produce categories"
+        description="Drag to reorder how categories appear to shoppers."
+      />
 
       <form
         className="admin-categories-page__create"
@@ -149,8 +152,8 @@ export default function AdminCategoriesPage() {
       >
         <div className="page-primitive__field-tight">
           <Input
-            placeholder="Tên"
-            className="page-primitive__input-name-narrow"
+            label="Name"
+            className="page-primitive__input-name-wide"
             {...form.register('name')}
           />
           {form.formState.errors.name ? (
@@ -159,8 +162,8 @@ export default function AdminCategoriesPage() {
         </div>
         <div className="page-primitive__field-tight">
           <Input
-            placeholder="icon"
-            className="page-primitive__input-icon-narrow"
+            label="Icon"
+            className="page-primitive__input-icon-wide"
             {...form.register('icon')}
           />
           {form.formState.errors.icon ? (
@@ -168,7 +171,7 @@ export default function AdminCategoriesPage() {
           ) : null}
         </div>
         <Button type="submit" loading={create.isPending}>
-          Thêm
+          Add
         </Button>
       </form>
 

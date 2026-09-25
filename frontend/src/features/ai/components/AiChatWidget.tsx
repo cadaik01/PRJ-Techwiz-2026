@@ -9,9 +9,9 @@ import { cn } from '@/lib/cn';
 import './AiChatWidget.css';
 
 const SUGGESTIONS = [
-  'Chợ nào họp hôm nay?',
-  'Cà chua còn hàng không?',
-  'Chỉ đường đến chợ…',
+  'Which markets are open today?',
+  'Is tomato still in stock?',
+  'How do I get to the market?',
 ];
 
 const panelTransition = {
@@ -37,19 +37,21 @@ export function AiChatWidget() {
             transition={panelTransition}
             className="ai-chat__panel"
             role="dialog"
-            aria-label="Trợ lý AI MarketLink"
+            aria-label="MarketLink AI assistant"
           >
             <div className="ai-chat__header">
               <div>
-                <p className="ai-chat__header-title">Trợ lý MarketLink</p>
-                <p className="ai-chat__header-sub">Hỏi về chợ, sản phẩm, chỉ đường</p>
+                <p className="ai-chat__header-title">MarketLink assistant</p>
+                <p className="ai-chat__header-sub">
+                  Ask about markets, produce, or how to get there
+                </p>
               </div>
               <Button
                 type="button"
                 size="icon"
                 variant="ghost"
                 className="ai-chat__close"
-                aria-label="Đóng chat"
+                aria-label="Close chat"
                 onClick={() => setOpen(false)}
               >
                 <X className="ai-chat__close-icon" />
@@ -70,7 +72,7 @@ export function AiChatWidget() {
                   {m.content}
                 </div>
               ))}
-              {loading ? <div className="ai-chat__typing">Đang soạn…</div> : null}
+              {loading ? <div className="ai-chat__typing">Typing…</div> : null}
               {tools.length > 0 && !loading ? (
                 <div className="ai-chat__tools">
                   {tools.map((t) => (
@@ -108,16 +110,16 @@ export function AiChatWidget() {
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value.slice(0, 1000))}
-                placeholder="Nhập câu hỏi…"
+                placeholder="Ask about markets or produce…"
                 rows={2}
                 className="ai-chat__textarea"
-                aria-label="Tin nhắn cho trợ lý AI"
+                aria-label="Message for AI assistant"
               />
               <Button
                 type="submit"
                 size="icon"
                 disabled={loading || !input.trim()}
-                aria-label="Gửi"
+                aria-label="Send"
               >
                 <Send className="ai-chat__send-icon" />
               </Button>
@@ -136,7 +138,7 @@ export function AiChatWidget() {
             exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.1 } }}
             transition={{ duration: 0.18 }}
             className="ai-chat__fab"
-            aria-label="Mở trợ lý AI"
+            aria-label="Open AI assistant"
             onClick={() => setOpen(true)}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.96 }}

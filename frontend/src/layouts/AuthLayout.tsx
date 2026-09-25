@@ -11,7 +11,7 @@ export function AuthLayout() {
   return (
     <div className="auth-layout">
       <a href="#main-content" className="auth-layout__skip-link">
-        Bỏ qua đến nội dung chính
+        Skip to main content
       </a>
 
       <aside className="auth-layout__aside">
@@ -40,15 +40,15 @@ export function AuthLayout() {
           <div className="auth-layout__hero-copy">
             <p className="auth-layout__hero-title">MarketLink</p>
             <h1 className="auth-layout__hero-heading">
-              Nông sản tươi — đặt trước, nhận tại quầy
+              Local markets, reserved for you
             </h1>
             <p className="auth-layout__hero-desc">
-              Kết nối phiên chợ địa phương với người mua. Không giao hàng — thanh toán khi
-              đến lấy.
+              Pre-order from trusted stalls, pick up on your schedule, and pay
+              when you collect — no delivery fees.
             </p>
           </div>
 
-          <p className="auth-layout__aside-tagline">Farm Fresh Just a Click Away</p>
+          <p className="auth-layout__aside-tagline">Farm fresh, just a click away</p>
         </div>
       </aside>
 
@@ -65,7 +65,7 @@ export function AuthLayout() {
 
           <Link to="/" className="auth-layout__home-link">
             <ArrowLeft className="auth-layout__home-link-icon" />
-            Về trang chủ
+            Back to home
           </Link>
 
           <ThemeToggle />

@@ -31,7 +31,13 @@
 .farmer-detail-page__container {
   max-width: var(--container-xl);
   margin-inline: auto;
-  padding-inline: var(--space-4);
+  padding: 0 var(--space-4) var(--space-12);
+}
+
+@media (min-width: 768px) {
+  .farmer-detail-page__container {
+    padding-bottom: var(--space-16);
+  }
 }
 
 .farmer-detail-page__profile-row {
@@ -66,10 +72,20 @@
   font-size: var(--text-xl);
 }
 
+.farmer-detail-page__profile-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-1);
+}
+
 .farmer-detail-page__name {
+  margin: 0;
   font-family: var(--font-heading);
   font-size: var(--text-2xl);
   font-weight: var(--weight-bold);
+  letter-spacing: -0.025em;
+  line-height: var(--leading-tight);
 }
 
 @media (min-width: 768px) {
@@ -79,6 +95,8 @@
 }
 
 .farmer-detail-page__contact {
+  margin: 0;
+  font-size: var(--text-sm);
   color: var(--color-muted-foreground);
 }
 
@@ -91,7 +109,7 @@
 }
 
 .farmer-detail-page__badges {
-  margin-top: var(--space-6);
+  margin-top: var(--space-5);
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
@@ -101,9 +119,13 @@
   margin-top: var(--space-8);
 }
 
+.farmer-detail-page__tabs .tabs-content {
+  margin-top: var(--space-6);
+}
+
 .farmer-detail-page__products-grid {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 @media (min-width: 640px) {
@@ -114,7 +136,7 @@
 
 @media (min-width: 1024px) {
   .farmer-detail-page__products-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
@@ -125,11 +147,11 @@
 .farmer-detail-page__reviews-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .farmer-detail-page__review {
-  padding: var(--space-4);
+  padding: var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);
   background-color: var(--color-card);
@@ -179,12 +201,13 @@
 
 .farmer-detail-page__about-layout {
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-8);
 }
 
 @media (min-width: 1024px) {
   .farmer-detail-page__about-layout {
     grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-10);
   }
 
   .farmer-detail-page__about-copy {
@@ -199,7 +222,7 @@
 .farmer-detail-page__about-copy {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .farmer-detail-page__bio {
@@ -246,11 +269,11 @@
 .farmer-detail-page__schedule-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .farmer-detail-page__schedule-card {
-  padding: var(--space-4);
+  padding: var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);
   background-color: var(--color-card);
@@ -258,20 +281,22 @@
 }
 
 .farmer-detail-page__schedule-market {
+  margin: 0;
   font-family: var(--font-heading);
   font-weight: var(--weight-semibold);
 }
 
 .farmer-detail-page__schedule-stall {
+  margin: var(--space-1) 0 0;
   font-size: var(--text-sm);
   color: var(--color-muted-foreground);
 }
 
 .farmer-detail-page__schedule-dates {
-  margin-top: var(--space-4);
+  margin-top: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .farmer-detail-page__date-label {
@@ -310,10 +335,7 @@
 }
 
 .farmer-detail-page__slot-cutoff {
+  margin-top: var(--space-1);
   font-size: var(--text-xs);
   color: var(--color-muted-foreground);
-}
-
-.farmer-detail-page__spacer {
-  height: var(--space-10);
 }

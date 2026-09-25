@@ -6,19 +6,19 @@ import { cn } from '@/lib/cn';
 import './OrderTimeline.css';
 
 const MAIN_STEPS = [
-  { key: 'PLACED', label: 'Đã đặt' },
-  { key: 'ACCEPTED', label: 'Xác nhận' },
-  { key: 'READY_FOR_PICKUP', label: 'Sẵn sàng' },
-  { key: 'COMPLETED', label: 'Hoàn thành' },
+  { key: 'PLACED', label: 'Placed' },
+  { key: 'ACCEPTED', label: 'Accepted' },
+  { key: 'READY_FOR_PICKUP', label: 'Ready' },
+  { key: 'COMPLETED', label: 'Completed' },
 ] as const;
 
 type BranchTone = 'danger' | 'muted' | 'warning';
 
 const BRANCH: Partial<Record<OrderStatus, { label: string; tone: BranchTone }>> = {
-  DECLINED: { label: 'Từ chối', tone: 'danger' },
-  CANCELLED: { label: 'Đã hủy', tone: 'danger' },
-  EXPIRED: { label: 'Hết hạn', tone: 'muted' },
-  NO_SHOW: { label: 'Không đến lấy', tone: 'warning' },
+  DECLINED: { label: 'Declined', tone: 'danger' },
+  CANCELLED: { label: 'Cancelled', tone: 'danger' },
+  EXPIRED: { label: 'Expired', tone: 'muted' },
+  NO_SHOW: { label: 'No-show', tone: 'warning' },
 };
 
 function stepIndex(status: OrderStatus) {
@@ -69,7 +69,7 @@ export function OrderTimeline({ status }: { status: OrderStatus }) {
       {branch ? (
         <div className={cn('order-timeline__branch', branchModifier(branch.tone))}>
           <X className="order-timeline__branch-icon" />
-          Nhánh kết thúc: {branch.label}
+          Ended: {branch.label}
         </div>
       ) : null}
     </div>

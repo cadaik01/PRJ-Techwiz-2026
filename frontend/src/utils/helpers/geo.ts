@@ -27,13 +27,13 @@ export function osmDirectionsUrl(latitude: number, longitude: number): string {
 
 /** Labels for DayOfWeek (1=Mon … 7=Sun). */
 export const DAY_OF_WEEK_LABELS: Record<DayOfWeek, string> = {
-  1: 'T2',
-  2: 'T3',
-  3: 'T4',
-  4: 'T5',
-  5: 'T6',
-  6: 'T7',
-  7: 'CN',
+  1: 'Mon',
+  2: 'Tue',
+  3: 'Wed',
+  4: 'Thu',
+  5: 'Fri',
+  6: 'Sat',
+  7: 'Sun',
 };
 
 /** @deprecated Prefer DAY_OF_WEEK_LABELS */

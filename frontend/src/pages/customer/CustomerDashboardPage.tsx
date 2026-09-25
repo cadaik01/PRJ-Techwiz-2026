@@ -23,11 +23,11 @@ export default function CustomerDashboardPage() {
   const data = dashboardQuery.data;
 
   const stats = [
-    { label: 'Đang mở', value: data?.counts.open ?? 0, icon: Package },
-    { label: 'Sẵn sàng lấy', value: data?.counts.ready_for_pickup ?? 0, icon: Star },
-    { label: 'Hoàn thành', value: data?.counts.completed ?? 0, icon: Heart },
+    { label: 'Open', value: data?.counts.open ?? 0, icon: Package },
+    { label: 'Ready for pickup', value: data?.counts.ready_for_pickup ?? 0, icon: Star },
+    { label: 'Completed', value: data?.counts.completed ?? 0, icon: Heart },
     {
-      label: 'Chờ đánh giá',
+      label: 'Awaiting review',
       value: data?.counts.pending_review ?? 0,
       icon: RefreshCcw,
     },
@@ -38,11 +38,11 @@ export default function CustomerDashboardPage() {
   return (
     <div className="customer-dashboard-page">
       <PageHeader
-        title="Tổng quan"
-        description="Theo dõi đơn đặt trước và phiên chợ sắp tới."
+        title="Your overview"
+        description="Track open pre-orders and the next pickup on your calendar."
         actions={
           <Button asChild>
-            <Link to="/products">Tiếp tục mua sắm</Link>
+            <Link to="/products">Continue shopping</Link>
           </Button>
         }
       />
@@ -66,7 +66,7 @@ export default function CustomerDashboardPage() {
       <div className="customer-dashboard-page__main">
         <Card className="customer-dashboard-page__upcoming-wide">
           <CardHeader>
-            <CardTitle>Đơn sắp tới</CardTitle>
+            <CardTitle>Coming up</CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__stack-3">
             {data?.upcoming.length ? (
@@ -77,26 +77,28 @@ export default function CustomerDashboardPage() {
                     <Countdown
                       className="customer-dashboard-page__countdown"
                       targetIso={order.pickup_start_at}
-                      label="Đếm ngược nhận hàng"
+                      label="Time until pickup"
                     />
                   ) : null}
                 </div>
               ))
             ) : (
-              <p className="page-primitive__muted-sm">Chưa có đơn sắp tới.</p>
+              <p className="page-primitive__muted-sm">
+                No pickups scheduled yet — reserve something for market day.
+              </p>
             )}
             <div className="page-primitive__actions-row">
               <Button asChild variant="outline" size="sm">
-                <Link to="/app/orders">Xem đơn</Link>
+                <Link to="/app/orders">View all orders</Link>
               </Button>
               <Button asChild variant="secondary" size="sm">
                 <Link to="/app/cart">
-                  <ShoppingCart className="page-primitive__icon-sm" /> Giỏ hàng
+                  <ShoppingCart className="page-primitive__icon-sm" /> Cart
                 </Link>
               </Button>
               {latest ? (
                 <Button asChild size="sm">
-                  <Link to={`/app/orders/${latest.id}`}>Đặt lại đơn gần nhất</Link>
+                  <Link to={`/app/orders/${latest.id}`}>Open latest order</Link>
                 </Button>
               ) : null}
             </div>
@@ -106,21 +108,21 @@ export default function CustomerDashboardPage() {
         <div className="customer-dashboard-page__sidebar">
           <Card>
             <CardHeader>
-              <CardTitle>Yêu thích</CardTitle>
+              <CardTitle>Saved favorites</CardTitle>
             </CardHeader>
             <CardContent className="page-primitive__stack-2 page-primitive__muted-sm">
               <p>
-                {favFarmers} quầy nông dân · {favMarkets} chợ
+                {favFarmers} stalls · {favMarkets} markets
               </p>
               <Button asChild size="sm" variant="outline">
-                <Link to="/app/favorites">Xem yêu thích</Link>
+                <Link to="/app/favorites">Open favorites</Link>
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Thông báo gần đây</CardTitle>
+              <CardTitle>Latest updates</CardTitle>
             </CardHeader>
             <CardContent className="page-primitive__stack-3">
               {data?.recent_notifications.map((n) => (
@@ -140,7 +142,7 @@ export default function CustomerDashboardPage() {
                 variant="link"
                 className="customer-dashboard-page__link-all"
               >
-                <Link to="/app/notifications">Tất cả thông báo</Link>
+                <Link to="/app/notifications">See all notifications</Link>
               </Button>
             </CardContent>
           </Card>

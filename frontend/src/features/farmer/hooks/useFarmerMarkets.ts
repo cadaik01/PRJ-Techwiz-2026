@@ -35,7 +35,7 @@ export function useAddFarmerMarket() {
     mutationFn: (payload: { market_id: number; stall_label: string }) =>
       farmerApi.addMarket(payload),
     onSuccess: () => {
-      toast.success('Đã thêm chợ');
+      toast.success('Market added');
       void invalidateFarmerMarkets(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -53,7 +53,7 @@ export function useUpdateFarmerMarketStall() {
       stall_label: string;
     }) => farmerApi.updateMarket(farmerMarketId, { stall_label }),
     onSuccess: () => {
-      toast.success('Đã lưu nhãn quầy');
+      toast.success('Stall label saved');
       void invalidateFarmerMarkets(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -65,7 +65,7 @@ export function useRemoveFarmerMarket() {
   return useMutation({
     mutationFn: (farmerMarketId: number) => farmerApi.removeMarket(farmerMarketId),
     onSuccess: () => {
-      toast.success('Đã rời chợ');
+      toast.success('Left market');
       void invalidateFarmerMarkets(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -82,7 +82,7 @@ export function useCreatePickupSlot() {
       end_time: string;
     }) => farmerApi.createPickupSlot(payload),
     onSuccess: () => {
-      toast.success('Đã thêm khung giờ');
+      toast.success('Pickup slot added');
       void invalidateFarmerMarkets(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),

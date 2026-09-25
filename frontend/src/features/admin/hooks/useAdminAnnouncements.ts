@@ -26,7 +26,7 @@ export function useCreateAnnouncement() {
   return useMutation({
     mutationFn: (payload: AnnouncementPayload) => adminApi.createAnnouncement(payload),
     onSuccess: () => {
-      toast.success('Đã tạo thông báo');
+      toast.success('Announcement created');
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.ADMIN_ANNOUNCEMENTS,
       });
@@ -40,7 +40,7 @@ export function useDeleteAnnouncement() {
   return useMutation({
     mutationFn: adminApi.deleteAnnouncement,
     onSuccess: () => {
-      toast.success('Đã xóa');
+      toast.success('Announcement removed');
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.ADMIN_ANNOUNCEMENTS,
       });
