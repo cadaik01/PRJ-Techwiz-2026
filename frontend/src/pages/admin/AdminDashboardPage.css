@@ -1,0 +1,13 @@
+@import '../styles/page-primitives.css';
+
+.admin-dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.admin-dashboard-page__pending-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

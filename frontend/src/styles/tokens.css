@@ -1,0 +1,176 @@
+/**
+ * Design tokens — MarketLink
+ * Source of truth for color, type, space, radius, shadow.
+ * Component CSS must use these vars (no hard-coded palette hex unless one-off).
+ */
+
+:root {
+  /* Typography */
+  --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-sans: Inter, system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  /* Spacing (4px base) */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Layout */
+  --container-sm: 40rem;
+  --container-md: 48rem;
+  --container-lg: 64rem;
+  --container-xl: 80rem;
+  --container-2xl: 90rem;
+  --header-height: 4rem;
+  --sidebar-width: 16rem;
+
+  /* Brand / palette */
+  --color-cream: #fafaf5;
+
+  --color-primary-50: #f0fdf4;
+  --color-primary-100: #dcfce7;
+  --color-primary-200: #bbf7d0;
+  --color-primary-300: #86efac;
+  --color-primary-400: #4ade80;
+  --color-primary-500: #22c55e;
+  --color-primary-600: #16a34a;
+  --color-primary-700: #15803d;
+  --color-primary-800: #166534;
+  --color-primary-900: #14532d;
+  --color-primary-950: #052e16;
+  --color-primary: #16a34a;
+
+  --color-accent-50: #fffbeb;
+  --color-accent-100: #fef3c7;
+  --color-accent-200: #fde68a;
+  --color-accent-300: #fcd34d;
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+  --color-accent-700: #b45309;
+  --color-accent: #f59e0b;
+
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+  --color-info: #2563eb;
+
+  --color-order-placed: #2563eb;
+  --color-order-accepted: #4f46e5;
+  --color-order-ready: #15803d;
+  --color-order-completed: #64748b;
+  --color-order-declined: #dc2626;
+  --color-order-cancelled: #dc2626;
+  --color-order-expired: #94a3b8;
+  --color-order-noshow: #ea580c;
+
+  /* Semantic surfaces */
+  --color-background: #fafaf5;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-muted: #f1f5f0;
+  --color-muted-foreground: #64748b;
+  --color-border: #dce8dd;
+  --color-ring: #16a34a;
+  --color-destructive: #dc2626;
+  --color-secondary: #e8f5e9;
+  --color-secondary-foreground: #14532d;
+
+  /* Radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.06);
+  --shadow-soft-lg: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.08);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --animate-pulse-ready: pulse-ready 2s ease-in-out infinite;
+  --animate-fade-up: fade-up 0.85s cubic-bezier(0.32, 0.72, 0, 1) both;
+  --animate-gentle-zoom: gentle-zoom 22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+
+  /* Breakpoints (reference for media queries in component CSS) */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+}
+
+.dark {
+  --color-background: #0f1a14;
+  --color-foreground: #f4f4f0;
+  --color-card: #15241c;
+  --color-card-foreground: #f4f4f0;
+  --color-muted: #1a2e24;
+  --color-muted-foreground: #94a3b8;
+  --color-border: #243d32;
+  --color-secondary: #1a2e24;
+  --color-secondary-foreground: #bbf7d0;
+}
+
+@keyframes pulse-ready {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gentle-zoom {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}

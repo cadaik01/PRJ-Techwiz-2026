@@ -1,0 +1,114 @@
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { ShoppingCart } from 'lucide-react';
+import { toast } from 'sonner';
+
+import { FavoriteButton } from '@/features/customer/components/FavoriteButton';
+import { LazyImage } from '@/components/common/LazyImage';
+import { PriceTag } from '@/components/common/PriceTag';
+import { RatingStars } from '@/components/common/RatingStars';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { useCartStore } from '@/stores/cart.store';
+import { useFavorites } from '@/features/customer/hooks/useFavorites';
+import type { ProductAvailability, ProductCard } from '@/types';
+import { cn } from '@/lib/cn';
+
+import './ProductCardView.css';
+
+function availabilityBadge(availability: ProductAvailability, stock: number) {
+  if (availability === 'UNAVAILABLE') {
+    return { label: 'Không bán', variant: 'secondary' as const };
+  }
+  if (availability === 'OUT_OF_STOCK') {
+    return { label: 'Hết hàng', variant: 'danger' as const };
+  }
+  if (stock <= 10) {
+    return { label: `Sắp hết · còn ${stock}`, variant: 'warning' as const };
+  }
+  return { label: `Còn ${stock}`, variant: 'success' as const };
+}
+
+export function ProductCardView({
+  product,
+  className,
+}: {
+  product: ProductCard;
+  className?: string;
+}) {
+  const addItem = useCartStore((s) => s.addItem);
+  const { hasProduct, toggleProduct } = useFavorites();
+  const favorited = Boolean(product.is_favorite) || hasProduct(product.id);
+  const stock = availabilityBadge(product.availability, product.stock_quantity);
+  const canAdd = product.availability === 'IN_STOCK' && product.stock_quantity > 0;
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn('product-card', className)}
+    >
+      <Link to={`/products/${product.id}`} className="product-card__media-link">
+        <div className="product-card__media">
+          {product.image ? (
+            <LazyImage
+              src={product.image}
+              alt={product.name}
+              className="product-card__image"
+            />
+          ) : (
+            <div className="product-card__placeholder">Không có ảnh</div>
+          )}
+          <div className="product-card__stock-badge">
+            <Badge variant={stock.variant}>{stock.label}</Badge>
+          </div>
+          <div className="product-card__favorite">
+            <FavoriteButton
+              active={favorited}
+              onToggle={() => {
+                void toggleProduct(product.id).then(() => {
+                  toast.success(favorited ? 'Đã bỏ yêu thích' : 'Đã thêm yêu thích');
+                });
+              }}
+              className="product-card__favorite-btn"
+            />
+          </div>
+        </div>
+        <div className="product-card__body">
+          <p className="product-card__category">{product.category.name}</p>
+          <h3 className="product-card__title">{product.name}</h3>
+          <p className="product-card__stall">{product.farmer.stall_name}</p>
+          <div className="product-card__meta-row">
+            <PriceTag amount={product.price} unit={product.unit} />
+            <RatingStars value={product.rating_avg ?? 0} count={product.rating_count} />
+          </div>
+        </div>
+      </Link>
+      <div className="product-card__footer">
+        <Button
+          className="product-card__add-btn"
+          size="sm"
+          disabled={!canAdd}
+          onClick={() => {
+            addItem({
+              product_id: product.id,
+              farmer_id: product.farmer.id,
+              farmer_name: product.farmer.stall_name,
+              name: product.name,
+              unit: product.unit,
+              price: product.price,
+              quantity: 1,
+              image: product.image,
+              is_available: canAdd,
+            });
+            toast.success('Đã thêm vào giỏ');
+          }}
+        >
+          <ShoppingCart className="product-card__cart-icon" />
+          Thêm vào giỏ
+        </Button>
+      </div>
+    </motion.article>
+  );
+}

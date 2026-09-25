@@ -1,0 +1,188 @@
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
+
+import { ApiError } from '@/lib/ApiError';
+import {
+  useCustomerOrder,
+  useUpdateOrder,
+} from '@/features/customer/hooks/useCustomerOrders';
+import { useFarmerPickupOptions } from '@/features/catalog/hooks/useCatalog';
+import { EmptyState } from '@/components/feedback/EmptyState';
+import { PageHeader } from '@/components/common/PageHeader';
+import { PageSkeleton } from '@/components/feedback/PageSkeleton';
+import { QuantityStepper } from '@/components/common/QuantityStepper';
+import {
+  TimeSlotPicker,
+  type SelectedSlot,
+} from '@/features/customer/components/TimeSlotPicker';
+import { Button } from '@/components/ui/Button';
+import { Textarea } from '@/components/ui/Textarea';
+import { usePublicConfigData } from '@/features/catalog/hooks/usePublicConfig';
+import { formatVnd } from '@/utils/formatters';
+import type { OrderDetail, PickupOption } from '@/types';
+
+import './OrderEditPage.css';
+
+export default function OrderEditPage() {
+  const { id = '' } = useParams();
+  const navigate = useNavigate();
+  const config = usePublicConfigData();
+
+  const orderQuery = useCustomerOrder(id);
+
+  const farmerId = orderQuery.data?.farmer.id;
+  const pickupQuery = useFarmerPickupOptions(
+    farmerId !== undefined ? String(farmerId) : '',
+  );
+
+  if (orderQuery.isLoading) return <PageSkeleton />;
+  if (orderQuery.isError || !orderQuery.data) {
+    return (
+      <EmptyState
+        title="Không tải được đơn"
+        actionLabel="Thử lại"
+        onAction={() => orderQuery.refetch()}
+      />
+    );
+  }
+
+  return (
+    <OrderEditForm
+      key={orderQuery.data.version}
+      order={orderQuery.data}
+      pickupOptions={pickupQuery.data}
+      horizonDays={config.booking_horizon_days}
+      onSaved={() => navigate(`/app/orders/${id}`)}
+      onConflict={() => {
+        void orderQuery.refetch();
+      }}
+      onCancel={() => navigate(`/app/orders/${id}`)}
+    />
+  );
+}
+
+function OrderEditForm({
+  order,
+  pickupOptions,
+  horizonDays,
+  onSaved,
+  onConflict,
+  onCancel,
+}: {
+  order: OrderDetail;
+  pickupOptions: PickupOption[] | undefined;
+  horizonDays: number;
+  onSaved: () => void;
+  onConflict: () => void;
+  onCancel: () => void;
+}) {
+  const [quantities, setQuantities] = useState(() => {
+    const qty: Record<number, number> = {};
+    for (const item of order.items) {
+      qty[item.product_id] = item.quantity;
+    }
+    return qty;
+  });
+  const [note, setNote] = useState(order.note ?? '');
+  const [slot, setSlot] = useState<SelectedSlot | null>(() => {
+    if (order.pickup_slot_id === null) return null;
+    return {
+      market_id: order.market.id,
+      pickup_slot_id: order.pickup_slot_id,
+      pickup_date: order.pickup_date,
+      label: `${order.market.name} · ${order.pickup_date}`,
+    };
+  });
+
+  const saveMutation = useUpdateOrder(order.id);
+
+  return (
+    <div className="order-edit-page">
+      <PageHeader
+        title={`Sửa đơn #${order.id}`}
+        description="Chỉ sửa được trước cut-off."
+      />
+
+      <div className="order-edit-page__quantities">
+        <h2 className="order-edit-page__block-title">Số lượng</h2>
+        {order.items.map((item) => (
+          <div key={item.product_id} className="order-edit-page__qty-row">
+            <div>
+              <p className="order-edit-page__item-name">{item.product_name}</p>
+              <p className="order-edit-page__item-price">
+                {formatVnd(item.unit_price)}/{item.unit}
+              </p>
+            </div>
+            <QuantityStepper
+              value={quantities[item.product_id] ?? item.quantity}
+              onChange={(value) =>
+                setQuantities((prev) => ({ ...prev, [item.product_id]: value }))
+              }
+            />
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <h2 className="order-edit-page__slot-title">Khung giờ nhận</h2>
+        {pickupOptions ? (
+          <TimeSlotPicker
+            options={pickupOptions}
+            value={slot}
+            onChange={setSlot}
+            horizonDays={horizonDays}
+          />
+        ) : null}
+      </div>
+
+      <Textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Ghi chú"
+      />
+
+      <div className="order-edit-page__actions">
+        <Button variant="outline" onClick={onCancel}>
+          Hủy
+        </Button>
+        <Button
+          loading={saveMutation.isPending}
+          onClick={() => {
+            if (!slot) {
+              toast.error('Chọn khung giờ nhận');
+              return;
+            }
+            saveMutation.mutate(
+              {
+                payload: {
+                  note,
+                  pickup_slot_id: slot.pickup_slot_id,
+                  pickup_date: slot.pickup_date,
+                  items: Object.entries(quantities).map(([product_id, quantity]) => ({
+                    product_id: Number(product_id),
+                    quantity,
+                  })),
+                },
+                version: order.version,
+              },
+              {
+                onSuccess: () => onSaved(),
+                onError: (error) => {
+                  const apiError = ApiError.fromUnknown(error);
+                  toast.error(apiError.friendlyMessage);
+                  if (apiError.code === 'RESOURCE_MODIFIED') {
+                    toast.info('Đơn vừa được cập nhật — đang tải lại…');
+                    onConflict();
+                  }
+                },
+              },
+            );
+          }}
+        >
+          Lưu thay đổi
+        </Button>
+      </div>
+    </div>
+  );
+}
