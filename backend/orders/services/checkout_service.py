@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from django.conf import settings
 from django.db import connection, transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -11,7 +12,6 @@ from catalog.services.stock import apply_stock_delta, lock_products
 from marketlink_core.context import get_request_id
 from notifications.models import NotificationType
 from notifications.services import notify
-from orders.constants import MAX_OPEN_ORDERS_PER_FARMER, MAX_OPEN_ORDERS_TOTAL
 from orders.exceptions import (
     CutoffPassedError,
     InsufficientStockError,
@@ -20,7 +20,6 @@ from orders.exceptions import (
     SlotNotAvailableError,
 )
 from orders.models import (
-    OPEN_STATUSES,
     ActorRole,
     ChangeReason,
     Order,
@@ -125,23 +124,24 @@ def _expire(orders, products, returned) -> None:
         notify(recipient=order.customer, event_type=NotificationType.ORDER_EXPIRED, context=build_order_context(order))
 
 
-def _check_open_order_limits(customer, groups, now) -> None:
-    # A PLACED order past its pickup start is already "expired" for the customer (A-005) even if no sweep
-    # has touched it yet, so it must not block new orders.
-    open_farmer_ids = list(
-        Order.objects.filter(customer=customer, status__in=OPEN_STATUSES)
-        .exclude(status=OrderStatus.PLACED, pickup_start_at__lte=now)
-        .values_list("farmer_id", flat=True)
+def _check_placed_order_limit(customer, groups, now) -> None:
+    """D-005 v1.5 guard 2: at most MAX_PLACED_ORDERS_PER_CUSTOMER orders waiting for farmer confirmation.
+
+    Orders the farmer already accepted do not count, and there is no per-farmer limit. A PLACED order past
+    its pickup start is already "expired" for the customer (A-005) even before a sweep, so it does not count.
+    """
+    limit = settings.MAX_PLACED_ORDERS_PER_CUSTOMER
+    waiting = (
+        Order.objects.filter(customer=customer, status=OrderStatus.PLACED)
+        .exclude(pickup_start_at__lte=now)
+        .count()
     )
-    errors = {
-        f"groups.{index}.farmer_id": ["You already have an open order with this farmer"]
-        for index, group in enumerate(groups)
-        if open_farmer_ids.count(group["farmer_id"]) >= MAX_OPEN_ORDERS_PER_FARMER
-    }
-    if len(open_farmer_ids) + len(groups) > MAX_OPEN_ORDERS_TOTAL:
-        errors["non_field_errors"] = [f"You can have at most {MAX_OPEN_ORDERS_TOTAL} open orders"]
-    if errors:
-        raise OpenOrderLimitExceededError(errors=errors)
+    if waiting + len(groups) > limit:
+        message = (
+            f"You have {limit} orders waiting for farmer confirmation. "
+            "Please wait for them to be confirmed before placing more."
+        )
+        raise OpenOrderLimitExceededError(message, errors={"non_field_errors": [message]})
 
 
 def _resolve_windows(groups, farmers, now) -> list:
@@ -223,7 +223,7 @@ def place_orders(*, customer, groups: list[dict], now=None) -> list[Order]:
         customer = _lock_customer(customer)
         farmers = _lock_farmers(groups)
         overdue = _lock_overdue_orders(now=now, farmer_ids=list(farmers))
-        _check_open_order_limits(customer, groups, now)
+        _check_placed_order_limit(customer, groups, now)
         windows = _resolve_windows(groups, farmers, now)
 
         returned = _returned_stock(overdue)

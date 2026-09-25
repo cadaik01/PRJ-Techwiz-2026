@@ -111,7 +111,8 @@ class TestCheckoutApi:
         assert shop.eggs.stock_quantity == 0
 
     def test_open_order_limit_is_422(self, shop):
-        make_order(customer=shop.customer, product=shop.tomato)
+        for _ in range(10):
+            make_order(customer=shop.customer, product=make_product(farmer=make_farmer()))
 
         response = _post(shop.customer, _body(shop))
 

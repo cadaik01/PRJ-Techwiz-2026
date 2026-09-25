@@ -17,6 +17,10 @@ from orders.exceptions import (
 )
 from orders.models import Order
 from orders.services.checkout_service import place_orders
+PLACED_LIMIT_MESSAGE = (
+    "You have 10 orders waiting for farmer confirmation. Please wait for them to be confirmed before placing more."
+)
+
 from tests_support.factories import make_customer, make_farmer, make_market, make_order, make_product, make_slot
 
 
@@ -106,22 +110,42 @@ class TestPlaceOrders:
         assert shop.tomato.stock_quantity == 10
         assert not Order.objects.exists()
 
-    def test_one_open_order_per_farmer(self, shop):
+    def test_several_orders_with_the_same_farmer_are_allowed(self, shop):
+        # D-005 v1.5: a customer who forgot an item simply places another order with the same farmer.
         make_order(customer=shop.customer, product=shop.tomato)
 
-        with pytest.raises(OpenOrderLimitExceededError) as caught:
-            _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.herbs, 1)))
+        orders = _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.herbs, 1)))
 
-        assert "groups.0.farmer_id" in caught.value.errors
+        assert len(orders) == 1
 
-    def test_at_most_five_open_orders(self, shop):
-        for _ in range(5):
+    def test_at_most_ten_orders_waiting_for_confirmation(self, shop):
+        for _ in range(10):
             make_order(customer=shop.customer, product=make_product(farmer=make_farmer()))
 
         with pytest.raises(OpenOrderLimitExceededError) as caught:
             _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.tomato, 1)))
 
-        assert "non_field_errors" in caught.value.errors
+        assert caught.value.errors == {"non_field_errors": [PLACED_LIMIT_MESSAGE]}
+
+    def test_orders_about_to_be_created_count_towards_the_limit(self, shop):
+        for _ in range(9):
+            make_order(customer=shop.customer, product=make_product(farmer=make_farmer()))
+
+        with pytest.raises(OpenOrderLimitExceededError):
+            _checkout(
+                shop,
+                _group(shop.farmer_a, shop.slot_a, shop.date, (shop.tomato, 1)),
+                _group(shop.farmer_b, shop.slot_b, shop.date, (shop.eggs, 1)),
+            )
+
+    @pytest.mark.parametrize("status", ["ACCEPTED", "READY_FOR_PICKUP"])
+    def test_orders_already_confirmed_by_the_farmer_do_not_count(self, shop, status):
+        for _ in range(10):
+            make_order(customer=shop.customer, product=make_product(farmer=make_farmer()), status=status)
+
+        orders = _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.tomato, 1)))
+
+        assert len(orders) == 1
 
     def test_overdue_order_is_expired_first_and_no_longer_counts(self, shop):
         overdue = make_order(customer=shop.customer, product=shop.tomato, pickup_start_at=shop.now - timedelta(hours=1))
@@ -133,7 +157,7 @@ class TestPlaceOrders:
         assert len(orders) == 1
 
     def test_overdue_orders_with_farmers_outside_the_cart_do_not_count(self, shop):
-        for _ in range(5):
+        for _ in range(10):
             make_order(customer=shop.customer, product=make_product(farmer=make_farmer()),
                        pickup_start_at=shop.now - timedelta(hours=1))
 
