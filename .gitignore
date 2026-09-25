@@ -26,6 +26,7 @@ frontend/.env
 
 # AI assistant tooling (local only)
 .claude/
+Claude outputs/
 
 # Documentation (local markdown - keep Document/ for push)
 TuDocs/
