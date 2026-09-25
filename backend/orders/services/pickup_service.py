@@ -3,12 +3,15 @@ from datetime import date, datetime, timedelta
 
 from django.utils import timezone
 
+from marketlink_core.exceptions import ErrorCode, UnprocessableEntityError
 from markets.models import FarmerClosure, MarketClosure, PickupSlot
+from markets.services.validation import validate_pickup_date
 from orders.constants import BOOKING_HORIZON_DAYS
 from orders.exceptions import CutoffPassedError, SlotNotAvailableError
 
-# A-019: a pickup date is valid only if the market is open that weekday, neither the market nor the
-# farmer is on a closure, the slot and market are active, it is inside the booking horizon and before cutoff.
+# A-019 / D-031: a pickup date is valid only if it is a market day and one of the farmer's operating days,
+# neither the market nor the farmer is on a closure, the slot and market are active, it is inside the
+# booking horizon and before cutoff.
 
 
 @dataclass(frozen=True)
@@ -62,30 +65,52 @@ def _covered(ranges, day: date) -> bool:
     return any(start <= day <= end for start, end in ranges)
 
 
-def _is_open_on(slot: PickupSlot, day: date, market_ranges, farmer_ranges) -> bool:
+def _farmer_operates_on(farmer, day: date) -> bool:
+    # D-031 (v1.7): the date must also be one of the farmer's operating days (JSON list of ISO weekdays 1-7).
+    return day.isoweekday() in (farmer.operating_days or [])
+
+
+def _is_open_on(slot: PickupSlot, day: date, market_ranges, farmer_ranges, farmer) -> bool:
     market = slot.farmer_market.market
     operating_days = {operating.day_of_week for operating in market.operating_days.all()}
     return (
         day.isoweekday() == slot.day_of_week
         and slot.day_of_week in operating_days
+        and _farmer_operates_on(farmer, day)
         and not _covered(market_ranges.get(market.id, []), day)
         and not _covered(farmer_ranges, day)
     )
 
 
 def resolve_pickup(*, farmer, pickup_slot_id: int, pickup_date: date, now=None) -> PickupWindow:
+    """CU-04: the Farmer branch's validate_pickup_date() plus the checks it does not cover yet.
+
+    Kept here until validate_pickup_date() checks operating_days (D-031) and the booking horizon agrees
+    with PU-08 (today .. today + BOOKING_HORIZON_DAYS - 1); both are pending with the Farmer branch.
+    """
     now = now or timezone.now()
     today = timezone.localdate(now)
     slot = _active_slots(farmer).filter(pk=pickup_slot_id).first()
     if slot is None or not today <= pickup_date < today + timedelta(days=BOOKING_HORIZON_DAYS):
         raise SlotNotAvailableError()
-    market_ranges, farmer_ranges = _closures(farmer, [slot.farmer_market.market_id], pickup_date, pickup_date)
-    if not _is_open_on(slot, pickup_date, market_ranges, farmer_ranges):
+    if not _farmer_operates_on(farmer, pickup_date):
         raise SlotNotAvailableError()
-    window = _window(slot, farmer, pickup_date)
-    if now >= window.cutoff_at:
-        raise CutoffPassedError()
-    return window
+    try:
+        schedule = validate_pickup_date(
+            farmer_id=farmer.pk,
+            market_id=slot.farmer_market.market_id,
+            pickup_date=pickup_date,
+            pickup_slot_id=slot.pk,
+        )
+    except UnprocessableEntityError as exc:
+        raise (CutoffPassedError() if exc.code == ErrorCode.CUTOFF_PASSED else SlotNotAvailableError()) from exc
+    return PickupWindow(
+        slot=slot,
+        pickup_date=pickup_date,
+        pickup_start_at=schedule.start_at,
+        pickup_end_at=schedule.end_at,
+        cutoff_at=schedule.cutoff_at,
+    )
 
 
 def list_pickup_options(*, farmer, date_from: date | None = None, days: int = BOOKING_HORIZON_DAYS, now=None) -> list[dict]:
@@ -102,7 +127,7 @@ def list_pickup_options(*, farmer, date_from: date | None = None, days: int = BO
     day = first
     while day <= last:
         for slot in slots:
-            if not _is_open_on(slot, day, market_ranges, farmer_ranges):
+            if not _is_open_on(slot, day, market_ranges, farmer_ranges, farmer):
                 continue
             window = _window(slot, farmer, day)
             # PU-08 v1.1 / A-003: slots whose cutoff has passed are not offered at all.

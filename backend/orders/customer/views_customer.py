@@ -9,7 +9,7 @@ from marketlink_core.responses import api_response
 from marketlink_core.services.db_retry import run_with_deadlock_retry
 from orders.customer.serializers_customer import CheckoutWriteSerializer, OrderSummaryReadSerializer
 from orders.selectors import order_summary_queryset
-from orders.services.checkout_service import place_orders
+from orders.services.checkout_service import expire_overdue_before_checkout, place_orders
 from orders.services.idempotency_service import run_idempotent
 
 
@@ -24,9 +24,10 @@ def _checkout_with_summaries(*, customer, groups) -> list:
 def _place_orders(request) -> tuple[int, dict]:
     serializer = CheckoutWriteSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    summaries = run_with_deadlock_retry(
-        _checkout_with_summaries, customer=request.user, groups=serializer.validated_data["groups"]
-    )
+    groups = serializer.validated_data["groups"]
+    # v1.7: the lazy sweep commits on its own, before the checkout transaction starts.
+    expire_overdue_before_checkout(farmer_ids=[group["farmer_id"] for group in groups])
+    summaries = run_with_deadlock_retry(_checkout_with_summaries, customer=request.user, groups=groups)
     return 201, api_response(
         message=f"Placed {len(summaries)} order(s) successfully", data={"orders": summaries}, status_code=201, request=request
     ).data

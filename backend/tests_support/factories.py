@@ -31,7 +31,7 @@ def make_customer(*, is_active: bool = True) -> CustomUser:
     return user
 
 
-def make_farmer(*, status: str = FarmerStatus.APPROVED, cutoff_hours: int = 12) -> FarmerProfile:
+def make_farmer(*, status: str = FarmerStatus.APPROVED, cutoff_hours: int = 12, operating_days=range(1, 8)) -> FarmerProfile:
     n = _next()
     user = CustomUser.objects.create_user(
         email=f"farmer{n}@example.com", password=PASSWORD, role=Role.objects.get(code="FARMER")
@@ -44,6 +44,7 @@ def make_farmer(*, status: str = FarmerStatus.APPROVED, cutoff_hours: int = 12) 
         address="5 Farm Road",
         status=status,
         order_cutoff_hours=cutoff_hours,
+        operating_days=list(operating_days),  # D-031: every day unless a test says otherwise
     )
 
 

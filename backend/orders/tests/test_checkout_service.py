@@ -1,6 +1,7 @@
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -16,7 +17,7 @@ from orders.exceptions import (
     SlotNotAvailableError,
 )
 from orders.models import Order
-from orders.services.checkout_service import place_orders
+from orders.services.checkout_service import expire_overdue_before_checkout, place_orders
 PLACED_LIMIT_MESSAGE = (
     "You have 10 orders waiting for farmer confirmation. Please wait for them to be confirmed before placing more."
 )
@@ -56,7 +57,14 @@ def _group(farmer, slot, pickup_date, *items, note=None):
 
 
 def _checkout(shop, *groups):
-    return place_orders(customer=shop.customer, groups=list(groups), now=shop.now)
+    # validate_pickup_date() and the held-stock query read the clock themselves, so freeze it at shop.now.
+    with mock.patch("django.utils.timezone.now", return_value=shop.now):
+        return place_orders(customer=shop.customer, groups=list(groups), now=shop.now)
+
+
+def _real_past():
+    # expire_overdue_orders() is called outside _checkout, with the real clock.
+    return timezone.now() - timedelta(hours=1)
 
 
 @pytest.mark.django_db
@@ -74,7 +82,8 @@ class TestPlaceOrders:
         items = {item.product_id: item for item in order.items.all()}
         assert (items[shop.tomato.id].unit_price, items[shop.tomato.id].line_total) == (Decimal("2.50"), Decimal("5.00"))
         assert items[shop.tomato.id].product_name == shop.tomato.name
-        assert (shop.tomato.stock_quantity, shop.herbs.stock_quantity) == (8, 2)
+        # v1.7 D-029: placing an order only checks stock; the farmer's acceptance (T2) takes it.
+        assert (shop.tomato.stock_quantity, shop.herbs.stock_quantity) == (10, 3)
         history = order.status_history.get()
         assert (history.from_status, history.to_status, history.transition) == (None, "PLACED", "T1")
         assert (history.actor_id, history.actor_role) == (shop.customer.id, "CUSTOMER")
@@ -147,13 +156,12 @@ class TestPlaceOrders:
 
         assert len(orders) == 1
 
-    def test_overdue_order_is_expired_first_and_no_longer_counts(self, shop):
-        overdue = make_order(customer=shop.customer, product=shop.tomato, pickup_start_at=shop.now - timedelta(hours=1))
+    def test_overdue_order_of_a_farmer_in_the_cart_does_not_count(self, shop):
+        for _ in range(10):
+            make_order(customer=shop.customer, product=shop.tomato, pickup_start_at=shop.now - timedelta(hours=1))
 
         orders = _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.herbs, 1)))
 
-        overdue.refresh_from_db()
-        assert overdue.status == "EXPIRED"
         assert len(orders) == 1
 
     def test_overdue_orders_with_farmers_outside_the_cart_do_not_count(self, shop):
@@ -165,15 +173,30 @@ class TestPlaceOrders:
 
         assert len(orders) == 1
 
-    def test_stock_held_by_an_overdue_order_is_released_before_checking(self, shop):
-        shop.herbs.stock_quantity = 0
-        shop.herbs.save()
+    def test_placed_orders_of_other_customers_reduce_available_stock(self, shop):
+        make_order(customer=make_customer(), product=shop.herbs, quantity=2)
+
+        with pytest.raises(InsufficientStockError) as caught:
+            _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.herbs, 2)))
+
+        assert caught.value.errors == {"groups.0.items.0.quantity": ["Only 1 KG left"]}
+        assert caught.value.data == {"available": {str(shop.herbs.id): 1}}
+
+    def test_overdue_placed_order_holds_no_stock(self, shop):
         make_order(customer=make_customer(), product=shop.herbs, quantity=3, pickup_start_at=shop.now - timedelta(hours=1))
 
         _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.herbs, 2)))
 
         shop.herbs.refresh_from_db()
-        assert shop.herbs.stock_quantity == 1
+        assert shop.herbs.stock_quantity == 3
+
+    @pytest.mark.parametrize("status", ["ACCEPTED", "READY_FOR_PICKUP"])
+    def test_accepted_orders_are_already_out_of_stock_and_not_held_twice(self, shop, status):
+        make_order(customer=make_customer(), product=shop.herbs, quantity=2, status=status)
+
+        orders = _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.herbs, 3)))
+
+        assert len(orders) == 1
 
     def test_locked_customer_cannot_place_orders(self, shop):
         shop.customer.is_active = False
@@ -217,8 +240,33 @@ class TestPlaceOrders:
 
         assert "groups.0.pickup_slot_id" in caught.value.errors
 
+    def test_day_the_farmer_does_not_operate_points_at_the_group(self, shop):
+        shop.farmer_a.operating_days = [day for day in range(1, 8) if day != shop.date.isoweekday()]
+        shop.farmer_a.save()
+
+        with pytest.raises(SlotNotAvailableError) as caught:
+            _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.tomato, 1)))
+
+        assert "groups.0.pickup_slot_id" in caught.value.errors
+
     def test_past_cutoff_is_rejected(self, shop):
         shop.now = timezone.make_aware(datetime.combine(shop.date, time(8, 0))) - timedelta(hours=1)
 
         with pytest.raises(CutoffPassedError):
             _checkout(shop, _group(shop.farmer_a, shop.slot_a, shop.date, (shop.tomato, 1)))
+
+
+@pytest.mark.django_db
+class TestExpireOverdueBeforeCheckout:
+    def test_expires_overdue_orders_of_the_cart_farmers_only(self, shop):
+        mine = make_order(customer=make_customer(), product=shop.tomato, pickup_start_at=_real_past())
+        elsewhere = make_order(customer=make_customer(), product=make_product(farmer=make_farmer()),
+                               pickup_start_at=_real_past())
+
+        expire_overdue_before_checkout(farmer_ids=[shop.farmer_a.pk, shop.farmer_b.pk])
+
+        mine.refresh_from_db()
+        elsewhere.refresh_from_db()
+        shop.tomato.refresh_from_db()
+        assert (mine.status, elsewhere.status) == ("EXPIRED", "PLACED")
+        assert shop.tomato.stock_quantity == 10

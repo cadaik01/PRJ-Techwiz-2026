@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from django.conf import settings
 from django.db import connection, transaction
 from django.utils import timezone
@@ -8,10 +6,7 @@ from rest_framework.exceptions import ValidationError
 from accounts.models import CustomerProfile, CustomUser, FarmerProfile, FarmerStatus
 from accounts.services.auth_service import account_locked_error
 from catalog.models import Product
-from catalog.services.stock import apply_stock_delta, lock_products
-from marketlink_core.context import get_request_id
-from notifications.models import NotificationType
-from notifications.services import notify
+from catalog.services.stock import get_held_quantities
 from orders.exceptions import (
     CutoffPassedError,
     InsufficientStockError,
@@ -19,23 +14,14 @@ from orders.exceptions import (
     ProductNotAvailableError,
     SlotNotAvailableError,
 )
-from orders.models import (
-    ActorRole,
-    ChangeReason,
-    Order,
-    OrderItem,
-    OrderStatus,
-    OrderStatusHistory,
-    Transition,
-)
+from orders.models import Order, OrderItem, OrderStatus
+from orders.services.expiry import expire_overdue_orders
 from orders.services.fsm import record_order_placed
-from orders.services.notification_context import build_order_context
 from orders.services.pickup_service import resolve_pickup
 
-# Lock order (Implementation Notes §3: users / profiles -> orders -> products), taken once each, ascending id:
-# users -> customer_profiles -> farmer_profiles (shared) -> overdue orders -> products (overdue + cart items).
-# Locking the customer and farmer rows orders checkout against AD-12 (lock customer) and AD-07 (suspend
-# farmer), so an order can never be created for an account that was locked or suspended concurrently.
+# v1.7 D-029: checkout reads products without locking them and never changes stock. It still locks
+# users -> customer_profiles -> farmer_profiles (shared), so an order is never created for an account that
+# AD-12 locked or a farmer that AD-07 suspended concurrently, and two tabs cannot both pass the 10-order limit.
 
 
 def _lock_customer(customer) -> CustomUser:
@@ -76,52 +62,14 @@ def _lock_farmers(groups) -> dict:
     return farmers
 
 
-def _lock_overdue_orders(*, now, farmer_ids) -> list[Order]:
-    ids = list(
-        Order.objects.filter(status=OrderStatus.PLACED, pickup_start_at__lte=now, farmer_id__in=farmer_ids)
-        .values_list("id", flat=True)
-    )
-    if not ids:
-        return []
-    # InnoDB locks rows in index-scan order, not ORDER BY order: going through the primary key keeps
-    # checkout's order locks in ascending id order.
-    return list(
-        Order.objects.filter(pk__in=ids, status=OrderStatus.PLACED)
-        .select_related("customer__customer_profile", "farmer", "market")
-        .order_by("id")
-        .select_for_update(of=("self",))
-    )
+def expire_overdue_before_checkout(*, farmer_ids) -> None:
+    """Lazy sweep (A-005) for the farmers in the cart, run by the view BEFORE the checkout transaction.
 
-
-def _returned_stock(orders) -> dict[int, int]:
-    returned = defaultdict(int)
-    for product_id, quantity in OrderItem.objects.filter(order__in=orders).values_list("product_id", "quantity"):
-        returned[product_id] += quantity
-    return dict(returned)
-
-
-def _expire(orders, products, returned) -> None:
-    """T8 for overdue orders found during checkout, with the same history and notice as fsm.transition_order.
-
-    Done here instead of fsm.transition_order so their stock is returned under checkout's single product lock.
-    Returned stock never triggers restock alerts (D-025).
+    Uses the Farmer branch's expire_overdue_orders(), which commits each T8 on its own; a PLACED order never
+    took stock (D-029), so expiring it changes no stock.
     """
-    apply_stock_delta(products=products, deltas=returned)
-    for order in orders:
-        order.status = OrderStatus.EXPIRED
-        order.version += 1
-        order.save(update_fields=["status", "version", "updated_at"])
-        OrderStatusHistory.objects.create(
-            order=order,
-            from_status=OrderStatus.PLACED,
-            to_status=OrderStatus.EXPIRED,
-            transition=Transition.T8,
-            actor=None,
-            actor_role=ActorRole.SYSTEM,
-            change_reason=ChangeReason.SYSTEM_EXPIRED,
-            request_id=get_request_id(),
-        )
-        notify(recipient=order.customer, event_type=NotificationType.ORDER_EXPIRED, context=build_order_context(order))
+    for farmer_id in sorted(set(farmer_ids)):
+        expire_overdue_orders(farmer_id=farmer_id)
 
 
 def _check_placed_order_limit(customer, groups, now) -> None:
@@ -163,14 +111,21 @@ def _is_published(product: Product) -> bool:
     return product.is_available and not product.is_archived and not product.is_hidden_by_admin
 
 
-def _shortage_message(product: Product) -> str:
-    if product.stock_quantity == 0:
+def _shortage_message(product: Product, available: int) -> str:
+    if available == 0:
         return "Out of stock"
-    return f"Only {product.stock_quantity} {product.unit} left"
+    return f"Only {available} {product.unit} left"
+
+
+def _available_stock(products) -> dict[int, int]:
+    # D-029: stock_quantity already excludes accepted orders; PLACED orders still before pickup hold theirs.
+    held = get_held_quantities(product_ids=products.keys())
+    return {pk: max(product.stock_quantity - held.get(pk, 0), 0) for pk, product in products.items()}
 
 
 def _validate_products(groups, products) -> None:
     foreign, unpublished, shortages, available = {}, {}, {}, {}
+    stock = _available_stock(products)
     for group_index, group in enumerate(groups):
         for item_index, item in enumerate(group["items"]):
             path = f"groups.{group_index}.items.{item_index}"
@@ -179,9 +134,9 @@ def _validate_products(groups, products) -> None:
                 foreign[f"{path}.product_id"] = ["This product does not belong to the selected farmer"]
             elif not _is_published(product):
                 unpublished[f"{path}.product_id"] = ["This product is no longer available"]
-            elif product.stock_quantity < item["quantity"]:
-                shortages[f"{path}.quantity"] = [_shortage_message(product)]
-                available[str(product.id)] = product.stock_quantity
+            elif stock[product.id] < item["quantity"]:
+                shortages[f"{path}.quantity"] = [_shortage_message(product, stock[product.id])]
+                available[str(product.id)] = stock[product.id]
     if foreign:
         raise ValidationError(foreign)
     if unpublished:
@@ -212,25 +167,21 @@ def _create_order(*, customer, farmer, group, window, products) -> Order:
         )
         for product, quantity in lines
     ])
-    apply_stock_delta(products=products, deltas={product.id: -quantity for product, quantity in lines})
     record_order_placed(order=order, actor=customer)
     return order
 
 
 def place_orders(*, customer, groups: list[dict], now=None) -> list[Order]:
+    """CU-04 (v1.7 D-029): checks available stock but neither locks nor takes it; T2 does that."""
     now = now or timezone.now()
     with transaction.atomic():
         customer = _lock_customer(customer)
         farmers = _lock_farmers(groups)
-        overdue = _lock_overdue_orders(now=now, farmer_ids=list(farmers))
         _check_placed_order_limit(customer, groups, now)
         windows = _resolve_windows(groups, farmers, now)
 
-        returned = _returned_stock(overdue)
         cart_product_ids = {item["product_id"] for group in groups for item in group["items"]}
-        products = lock_products(product_ids=set(returned) | cart_product_ids)
-        _expire(overdue, products, returned)
-
+        products = Product.objects.in_bulk(cart_product_ids)
         _validate_products(groups, products)
         return [
             _create_order(

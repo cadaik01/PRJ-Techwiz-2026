@@ -108,7 +108,17 @@ class TestCheckoutApi:
 
         shop.eggs.refresh_from_db()
         assert (first.status_code, second.status_code) == (201, 400)
-        assert shop.eggs.stock_quantity == 0
+        # v1.7 D-029: the first order only holds the unit; stock is taken when the farmer accepts.
+        assert shop.eggs.stock_quantity == 1
+
+    def test_overdue_orders_of_the_cart_farmers_are_expired_first(self, shop):
+        overdue = make_order(customer=make_customer(), product=shop.tomato,
+                             pickup_start_at=timezone.now() - timedelta(hours=1))
+
+        assert _post(shop.customer, _body(shop)).status_code == 201
+
+        overdue.refresh_from_db()
+        assert overdue.status == "EXPIRED"
 
     def test_open_order_limit_is_422(self, shop):
         for _ in range(10):

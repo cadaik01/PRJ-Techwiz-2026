@@ -1,5 +1,6 @@
 from datetime import datetime, time, timedelta
 from types import SimpleNamespace
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -27,7 +28,9 @@ def shop(db):
 def _resolve(shop, **overrides):
     args = {"farmer": shop.farmer, "pickup_slot_id": shop.slot.id, "pickup_date": shop.date, "now": shop.now}
     args.update(overrides)
-    return resolve_pickup(**args)
+    # validate_pickup_date() (markets, Farmer branch) reads the clock itself, so freeze it at "now".
+    with mock.patch("django.utils.timezone.now", return_value=args["now"]):
+        return resolve_pickup(**args)
 
 
 class TestResolvePickup:
@@ -82,6 +85,14 @@ class TestResolvePickup:
         with pytest.raises(SlotNotAvailableError):
             _resolve(shop)
 
+    def test_day_the_farmer_does_not_operate_is_rejected(self, shop):
+        # D-031: the date must be both a market day and one of the farmer's operating days.
+        shop.farmer.operating_days = [day for day in range(1, 8) if day != shop.date.isoweekday()]
+        shop.farmer.save()
+
+        with pytest.raises(SlotNotAvailableError):
+            _resolve(shop)
+
     def test_slot_of_another_farmer_is_rejected(self, shop):
         with pytest.raises(SlotNotAvailableError):
             _resolve(shop, farmer=make_farmer())
@@ -127,6 +138,18 @@ class TestListPickupOptions:
 
     def test_skips_closed_days(self, shop):
         FarmerClosure.objects.create(farmer=shop.farmer, start_date=shop.date, end_date=shop.date)
+
+        assert list_pickup_options(farmer=shop.farmer, now=shop.now) == []
+
+    def test_skips_days_the_farmer_does_not_operate(self, shop):
+        shop.farmer.operating_days = [day for day in range(1, 8) if day != shop.date.isoweekday()]
+        shop.farmer.save()
+
+        assert list_pickup_options(farmer=shop.farmer, now=shop.now) == []
+
+    def test_farmer_without_operating_days_offers_nothing(self, shop):
+        shop.farmer.operating_days = []
+        shop.farmer.save()
 
         assert list_pickup_options(farmer=shop.farmer, now=shop.now) == []
 
