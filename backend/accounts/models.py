@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models import Q
 from simple_history.models import HistoricalRecords
 
+from accounts.phone import normalize_phone
 from marketlink_core.models import BaseModel, HistoryRequestMeta, UUIDUploadTo
 from marketlink_core.policies.roles import RoleCode
 
@@ -110,7 +111,7 @@ class CustomerProfile(BaseModel):
         related_name="customer_profile",
     )
     full_name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=15)
+    phone = models.CharField(max_length=15, unique=True)
     address = models.CharField(max_length=255)
     deactivation_reason = models.CharField(max_length=500, null=True, blank=True)
 
@@ -119,6 +120,10 @@ class CustomerProfile(BaseModel):
 
     def __str__(self) -> str:
         return self.full_name
+
+    def save(self, *args, **kwargs):
+        self.phone = normalize_phone(self.phone)
+        super().save(*args, **kwargs)
 
 
 class FarmerStatus(models.TextChoices):
@@ -137,7 +142,7 @@ class FarmerProfile(BaseModel):
     )
     stall_name = models.CharField(max_length=100)
     contact_person = models.CharField(max_length=100)
-    phone = models.CharField(max_length=15)
+    phone = models.CharField(max_length=15, unique=True)
     address = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     image = models.ImageField(
@@ -156,6 +161,7 @@ class FarmerProfile(BaseModel):
     order_cutoff_hours = models.PositiveSmallIntegerField(
         default=12, validators=[MinValueValidator(1), MaxValueValidator(72)]
     )
+    operating_days = models.JSONField(default=list)
 
     history = HistoricalRecords(
         table_name="farmer_profile_histories",
@@ -183,3 +189,7 @@ class FarmerProfile(BaseModel):
 
     def __str__(self) -> str:
         return self.stall_name
+
+    def save(self, *args, **kwargs):
+        self.phone = normalize_phone(self.phone)
+        super().save(*args, **kwargs)

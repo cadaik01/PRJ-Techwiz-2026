@@ -38,13 +38,14 @@ class Transition(models.TextChoices):
     T4 = "T4", "Decline Accepted Order"
     T5 = "T5", "Customer Cancel Placed Order"
     T6 = "T6", "Customer Cancel Accepted Order"
-    T7 = "T7", "Customer Modify Accepted Order"
+    T7 = "T7", "Deprecated - Customer Modify Accepted Order"
     T8 = "T8", "System Expire Order"
     T9 = "T9", "Ready For Pickup"
     T10 = "T10", "Complete Order"
     T11 = "T11", "Mark No Show"
     T12 = "T12", "Admin Suspend Farmer"
     T13 = "T13", "Admin Lock Customer"
+    T14 = "T14", "Mark No Show For Accepted Order"
 
 
 class ChangeReason:
@@ -82,6 +83,7 @@ class Order(BaseModel):
         max_length=20, choices=OrderStatus.choices, default=OrderStatus.PLACED
     )
     note = models.CharField(max_length=300, null=True, blank=True)
+    pending_change = models.JSONField(null=True, blank=True)
     total_amount = models.DecimalField(**MONEY_FIELD_KWARGS)
     version = models.PositiveIntegerField(default=1)
 
