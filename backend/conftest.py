@@ -1,0 +1,81 @@
+import pytest
+from django.contrib.auth import get_user_model
+from django.core.cache import caches
+from rest_framework.test import APIClient
+
+from accounts.models import CustomerProfile, FarmerProfile, Role
+from marketlink_core.policies.roles import RoleCode
+
+User = get_user_model()
+
+PASSWORD = "Str0ngPass123"
+
+
+def _clear_all_caches():
+    for alias in caches:
+        caches[alias].clear()
+
+
+@pytest.fixture(autouse=True)
+def _clear_caches():
+    # Throttle counters live in "default"; token revocation lives in "blacklist".
+    _clear_all_caches()
+    yield
+    _clear_all_caches()
+
+
+@pytest.fixture
+def api_client():
+    return APIClient()
+
+
+@pytest.fixture
+def admin_user(db):
+    return User.objects.create_user(
+        email="admin@marketlink.test",
+        password=PASSWORD,
+        role=Role.objects.get(code=RoleCode.ADMIN),
+        is_staff=True,
+    )
+
+
+@pytest.fixture
+def customer_user(db):
+    user = User.objects.create_user(
+        email="customer@marketlink.test",
+        password=PASSWORD,
+        role=Role.objects.get(code=RoleCode.CUSTOMER),
+    )
+    CustomerProfile.objects.create(
+        user=user, full_name="Test Customer", phone="0901234567", address="12 Test Street",
+    )
+    return user
+
+
+@pytest.fixture
+def farmer_user(db):
+    user = User.objects.create_user(
+        email="farmer@marketlink.test",
+        password=PASSWORD,
+        role=Role.objects.get(code=RoleCode.FARMER),
+    )
+    FarmerProfile.objects.create(
+        user=user,
+        stall_name="Test Stall",
+        contact_person="Test Farmer",
+        phone="0907654321",
+        address="34 Market Street",
+    )
+    return user
+
+
+@pytest.fixture
+def admin_client(api_client, admin_user):
+    api_client.force_authenticate(user=admin_user)
+    return api_client
+
+
+@pytest.fixture
+def customer_client(api_client, customer_user):
+    api_client.force_authenticate(user=customer_user)
+    return api_client
