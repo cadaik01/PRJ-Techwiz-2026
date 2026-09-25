@@ -4,11 +4,8 @@ import uuid
 from marketlink_core.exceptions import BusinessValidationError, ErrorCode, PreconditionRequiredError
 
 
+# request_id columns are CHAR(36), so anything that is not a UUID must be dropped.
 def normalize_request_id(raw: str | None) -> str | None:
-    """Return a canonical UUID string, or None when the value is not a UUID.
-
-    Stored request_id columns are CHAR(36), so anything else must be rejected here.
-    """
     if not raw:
         return None
     try:
@@ -18,7 +15,6 @@ def normalize_request_id(raw: str | None) -> str | None:
 
 
 def client_ip(request) -> str | None:
-    """Best-effort client IP; invalid values are dropped because the column only fits an IP."""
     forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
     candidates = [forwarded.split(",")[0].strip()] if forwarded else []
     candidates.append(request.META.get("REMOTE_ADDR") or "")
@@ -31,7 +27,6 @@ def client_ip(request) -> str | None:
 
 
 def parse_if_match(request) -> int:
-    """Read the OCC version from If-Match; accepts "3", 3 and W/"3"."""
     raw = request.headers.get("If-Match")
     if raw is None or not raw.strip():
         raise PreconditionRequiredError(

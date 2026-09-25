@@ -1,8 +1,6 @@
 import uuid
 
-from django.db import transaction
 from django.utils.crypto import salted_hmac
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 
 SESSION_CLAIM = "sid"
@@ -15,13 +13,10 @@ def password_version(user) -> str:
 
 
 def issue_tokens(user, *, session_id: str | None = None) -> dict:
-    with transaction.atomic():
-        refresh = RefreshToken.for_user(user)
-        # Claims set on the refresh token are copied into every access token derived from it.
-        refresh["role"] = user.role.code
-            # One sid per login (device); it survives rotation so a whole device session can be revoked at once.
-        refresh[SESSION_CLAIM] = session_id or uuid.uuid4().hex
-        refresh[PASSWORD_VERSION_CLAIM] = password_version(user)
-        # for_user() stores the token before our claims exist; store the final string so the sid can be read back.
-        OutstandingToken.objects.filter(jti=refresh["jti"]).update(token=str(refresh))
+    refresh = RefreshToken.for_user(user)
+    # Claims set on the refresh token are copied into every access token derived from it.
+    refresh["role"] = user.role.code
+    # One sid per login (device); it survives rotation so a whole device session can be revoked at once.
+    refresh[SESSION_CLAIM] = session_id or uuid.uuid4().hex
+    refresh[PASSWORD_VERSION_CLAIM] = password_version(user)
     return {"access": str(refresh.access_token), "refresh": str(refresh)}

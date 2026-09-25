@@ -14,7 +14,7 @@
 * **D-002 (Actors Hệ Thống)**: 4 Tác nhân thực tế: `Admin`, `Farmer` (Vendor), `Customer`, `Guest` (Public).
 * **D-003 (Ranh Giới Phạm Vi SRS §1.5)**: Không tích hợp cổng thanh toán trực tuyến (Thanh toán COD/tiền mặt tại sạp); Không vận chuyển/shipper (Chỉ nhận hàng tại sạp chợ); Không thẩm định chứng chỉ nông dân (VietGAP, Organic).
 * **D-004 (A-001 Checkout Multi-Farmer)**: Giỏ hàng gom nhiều Farmer; khi checkout sinh **$N$ đơn độc lập**, mỗi Farmer 1 đơn; không dùng bảng Order cha / SubOrder. Một endpoint duy nhất `POST /api/customer/orders/`; All-or-Nothing; khóa kho `.order_by("id").select_for_update()`; giá lấy từ DB; giỏ hàng lưu tại client (Zustand persist trong `localStorage`).
-* **D-005 (A-001b Chống Đặt Đơn Ảo & Giữ Hàng)**: Trừ tồn kho ngay khi tạo đơn `PLACED` (giữ chỗ). Áp dụng 4 chốt chặn: (1) Bắt buộc đăng nhập Customer; (2) Giới hạn tối đa 1 đơn mở/Farmer và 5 đơn mở toàn hệ thống (Mã lỗi 422 `OPEN_ORDER_LIMIT_EXCEEDED`, khóa `CustomerProfile`); (3) Throttle riêng `orders: 10/hour`; (4) Quyền Farmer `DECLINED` và Admin khóa tài khoản vi phạm.
+* **D-005 (A-001b Chống Đặt Đơn Ảo & Giữ Hàng)**: Trừ tồn kho ngay khi tạo đơn `PLACED` (giữ chỗ). Áp dụng 4 chốt chặn: (1) Bắt buộc đăng nhập Customer; (2) *(cập nhật v1.5)* Giới hạn tối đa **10 đơn chưa duyệt (`PLACED`)** trên toàn hệ thống cho mỗi khách (setting `MAX_PLACED_ORDERS_PER_CUSTOMER`); đơn đã được Farmer duyệt không tính; **không giới hạn số đơn với cùng một Farmer** — khách quên món cứ đặt đơn mới (Mã lỗi 422 `OPEN_ORDER_LIMIT_EXCEEDED`, khóa `CustomerProfile`); (3) Throttle riêng `orders: 10/hour`; (4) Quyền Farmer `DECLINED` và Admin khóa tài khoản vi phạm.
 * **D-006 (A-002 Order FSM Chuẩn Hóa)**: Chuẩn hóa đồ thị FSM 8 trạng thái: 3 trạng thái Mở (`PLACED`, `ACCEPTED`, `READY_FOR_PICKUP`) và 5 trạng thái Kết thúc (`COMPLETED`, `CANCELLED`, `DECLINED`, `NO_SHOW`, `EXPIRED`). Quản lý bằng 13 cạnh chuyển trạng thái T1–T13 (bao gồm các cạnh can thiệp khẩn cấp T12, T13 của Admin khi đình chỉ Farmer hoặc khóa Khách, giải quyết dứt điểm trạng thái `READY_FOR_PICKUP`); Triple-Gate Validation; OCC `version` + `If-Match`; lưu vết mỗi lần chuyển trạng thái / sửa đơn vào bảng `order_status_history` (`from_status`, `to_status`, `transition`, `actor`, `actor_role`, `change_reason`, `request_id`) trong cùng transaction với lệnh cập nhật `orders`.
 * **D-007 (A-003 Sửa Đơn & Giờ Cutoff)**: Cutoff gắn theo từng đơn (`order_cutoff_hours`), tính và lưu cứng `cutoff_at`. Khách chỉ sửa trước cutoff. Farmer chỉ được chuyển `READY_FOR_PICKUP` sau cutoff. Khách sửa đơn khi đang `ACCEPTED` thì hệ thống tự chuyển về `PLACED` và điều chỉnh kho theo chênh lệch. `order_cutoff_hours` nhận giá trị 1–72 (không cho phép 0). Giao diện hiển thị thời điểm chốt cụ thể (`cutoff_at`), không hiển thị số giờ; khung có `cutoff_at` đã qua không cho chọn.
 * **D-008 (A-004 Mẫu Tồn Kho Hàng Tuần)**: Không tạo bảng riêng; thêm `weekly_default_quantity` vào `Product`. Nông dân bấm nút "Apply to this week". Công thức: $\text{tồn\_kho\_mới} = \max(\text{mẫu} - \text{số\_đang\_giữ\_bởi\_đơn\_mở},\; 0)$. Service gọi quét lười `expire_overdue_orders` trước khi nạp kho.
@@ -37,6 +37,7 @@
 * **D-025 (A-021 Điều Kiện Gửi Restock Alert)**: Chỉ gửi `RESTOCK` khi Farmer chủ động bổ sung hàng (FA-14 sửa tồn kho, FA-18 áp dụng mẫu tuần) làm tồn kho từ `0` lên `> 0`. Không gửi khi hàng quay lại do đơn bị hủy / từ chối / hết hạn / Admin can thiệp.
 * **D-026 (A-022 Vị Trí Sạp Trong Chợ)**: `farmer_markets.stall_label` bắt buộc, `VARCHAR(100)` (nhãn "Stall location in market"); snapshot `orders.stall_label` `VARCHAR(100)`. Chi tiết đơn luôn hiển thị số điện thoại Farmer kèm nút Gọi để khách tìm sạp.
 * **D-027 (Tài Khoản Admin & Cổng Đăng Nhập Riêng)**: (1) Tài khoản Admin do phòng IT cấp bằng `python manage.py createsuperuser` hoặc lệnh seed; hệ thống **không** có màn hình / API tạo Admin. Admin đăng nhập bằng email + mật khẩu (`USERNAME_FIELD = "email"`). (2) Hai cổng đăng nhập: Customer và Farmer dùng chung `/login` (AU-03); Admin dùng trang riêng `/admin/login` (A-00, AU-09). Mỗi cổng từ chối role của cổng kia bằng `401 INVALID_CREDENTIALS` (không tiết lộ tài khoản Admin tồn tại). (3) Không có luồng bắt buộc đổi mật khẩu lần đầu; bỏ cột `users.must_change_password`. Đổi mật khẩu (AU-07) là thao tác tự nguyện. (4) `/django-admin/` chỉ là công cụ cho dev (`is_staff`), không phải trang quản trị của đề bài.
+* **D-028 (Chặn Tài Khoản Spam — không thêm bảng)**: (1) Mỗi số điện thoại chỉ gắn **một** tài khoản Customer (và một tài khoản Farmer): `customer_profiles.phone`, `farmer_profiles.phone` được chuẩn hóa (`+84 90 123 4567`, `090.123.4567` → `0901234567`) và đặt UNIQUE — hiện thực: hàm `accounts/phone.py::normalize_phone()`, `CustomerProfile.save()` / `FarmerProfile.save()` tự chuẩn hóa trước khi lưu, migration `accounts/0005_unique_phone` (chuẩn hóa dữ liệu cũ rồi thêm UNIQUE); đăng ký trùng → `400 VALIDATION_ERROR` với lỗi dưới ô số điện thoại. (2) **Khóa tài khoản chính là blacklist**: tài khoản không bị xóa cứng (D-017) nên email và số điện thoại của tài khoản bị khóa không đăng ký lại được; mở khóa (AD-13) là gỡ chặn. Không có bảng blacklist riêng. (3) Cờ **"At risk"** ở A-04: khách có từ `AT_RISK_THRESHOLD` (3) đơn `NO_SHOW`/`EXPIRED` trong `AT_RISK_WINDOW_DAYS` (30) ngày được đánh dấu, tính trực tiếp từ `orders`; **Admin quyết định khóa**, hệ thống không tự khóa. (4) Hạn chế đã biết: không có OTP SMS nên số điện thoại vẫn có thể nhập bừa — ràng buộc trên chỉ nâng rào cản, không tuyệt đối.
 
 ---
 
@@ -145,7 +146,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | ID | Vấn Đề Nghiệp Vụ & Bằng Chứng SRS (FACT) | Giả Định Đề Xuất (ASSUMPTION) | Quyết Định Đã Chốt (DECISION GATE) | Tác Động Kỹ Thuật (IMPACT) |
 | :---: | :--- | :--- | :---: | :--- |
 | **A-001** | Khách thêm sản phẩm vào giỏ và đặt hàng (SRS §1.6 Trang 9). | Giỏ hàng cho phép chứa sản phẩm từ nhiều Farmer khác nhau. | ✅ **ĐÃ CHỐT (D-004)**<br>Checkout sinh **$N$ đơn độc lập**; không dùng Master-SubOrder. | 1 endpoint `POST /orders/`; All-or-Nothing; Khóa kho một lần; Giỏ hàng lưu Zustand client. |
-| **A-001b**| Đặt hàng theo tồn kho khả dụng; Farmer duyệt/từ chối (SRS §1.6). | Trừ kho khi đặt hay khi duyệt? Cách chống đặt đơn ảo giam hàng. | ✅ **ĐÃ CHỐT (D-005)**<br>Trừ kho ngay khi đặt (`PLACED`). Áp dụng 4 chốt chặn chống spam. | Tối đa 1 đơn mở/Farmer và 5 đơn toàn sàn (Lỗi 422); Throttle `orders: 10/h`; Khóa `CustomerProfile`. |
+| **A-001b**| Đặt hàng theo tồn kho khả dụng; Farmer duyệt/từ chối (SRS §1.6). | Trừ kho khi đặt hay khi duyệt? Cách chống đặt đơn ảo giam hàng. | ✅ **ĐÃ CHỐT (D-005)**<br>Trừ kho ngay khi đặt (`PLACED`). Áp dụng 4 chốt chặn chống spam. | Tối đa 10 đơn chưa duyệt (`PLACED`) toàn sàn, không giới hạn theo Farmer (Lỗi 422, v1.5); Throttle `orders: 10/h`; Khóa `CustomerProfile`. |
 | **A-002** | Xem trạng thái đơn; hủy/sửa trước cutoff; Farmer duyệt/từ chối (SRS §1.6). | Danh sách trạng thái đầy đủ và các bước chuyển hợp lệ của đơn hàng. | ✅ **ĐÃ CHỐT (D-006)**<br>FSM 8 trạng thái; 13 cạnh chuyển T1–T13; Triple-Gate; OCC `version`. | Ma trận `TRANSITIONS` trong service; Kiểm soát OCC qua header `If-Match`; Lịch sử ghi bảng `order_status_history`. |
 | **A-003** | Khách hủy hoặc sửa đơn trước giờ cutoff của Farmer (SRS §1.6). | Định nghĩa cutoff và phạm vi các trường khách được phép sửa. | ✅ **ĐÃ CHỐT (D-007)**<br>Cutoff tính theo từng đơn; Sửa khi `ACCEPTED` thì reset về `PLACED`. | Lưu cứng `Order.cutoff_at`; Chặn `READY_FOR_PICKUP` trước cutoff; Điều chỉnh kho bù trừ. |
 | **A-004** | Farmer thiết lập mẫu tồn kho tuần và điều chỉnh linh hoạt (SRS §1.6). | Cơ chế nạp mẫu tuần có ghi đè lượng hàng đang giữ của đơn mở không? | ✅ **ĐÃ CHỐT (D-008)**<br>Nút bấm UI nạp mẫu; Trừ đi lượng hàng đang giữ bởi đơn mở. | Trường `weekly_default_quantity` trong `Product`; Công thức $\max(\text{mẫu} - \text{đang\_giữ}, 0)$. |
@@ -219,13 +220,14 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
   *(Đơn mở: `PLACED`, `ACCEPTED`, `READY_FOR_PICKUP`. Mọi thao tác đổi kho bắt buộc khóa Product bằng `.order_by("id").select_for_update()` trong `transaction.atomic()`)*.
 * **Bốn chốt chặn chống đặt đơn ảo giam hàng**:
   1. **Chốt 1: Bắt buộc đăng nhập**: Endpoint tạo đơn yêu cầu role `CUSTOMER`. Mọi đơn đều gắn với một người cụ thể, không thể đặt ẩn danh.
-  2. **Chốt 2: Giới hạn số đơn đang mở (Chốt quan trọng nhất)**:
-     * Mỗi khách có **tối đa 1 đơn mở** với mỗi Farmer.
-     * Mỗi khách có **tối đa 5 đơn mở** trên toàn hệ thống.
+  2. **Chốt 2: Giới hạn số đơn chưa duyệt** *(cập nhật v1.5)*:
+     * Mỗi khách có **tối đa 10 đơn `PLACED`** (Farmer chưa duyệt) trên toàn hệ thống — setting `MAX_PLACED_ORDERS_PER_CUSTOMER = 10`.
+     * Đơn `ACCEPTED` / `READY_FOR_PICKUP` **không tính**: Farmer đã chấp nhận người mua nên không còn là rủi ro giam hàng.
+     * **Không giới hạn số đơn với cùng một Farmer**: khách quên món thì đặt thêm đơn mới như bình thường, không bắt khách hiểu cơ chế sửa đơn. Phía Farmer, F-02 nhóm các đơn cùng khách + cùng ngày nhận để soạn hàng một lần.
      * Vi phạm All-or-Nothing trả về HTTP `422`, class `UnprocessableEntityError`, code `OPEN_ORDER_LIMIT_EXCEEDED`.
      * Đầu service checkout, khóa dòng hồ sơ khách: `CustomerProfile.objects.select_for_update().get(user=actor)` trước khi đếm để tránh race condition khi khách mở 2 tab bấm cùng lúc.
   3. **Chốt 3: Throttle riêng cho việc tạo đơn**: Thêm scope `"orders": "10/hour"` vào `DEFAULT_THROTTLE_RATES` gắn `ScopedRateThrottle` cho endpoint `POST /api/customer/orders/`. Sửa/hủy đơn không tính vào giới hạn này.
-  4. **Chốt 4: Xử lý sau khi phát hiện vi phạm**: Farmer thấy khả nghi thì bấm `DECLINED` (bắt buộc nhập lý do), kho hoàn trả ngay; Admin có quyền khóa tài khoản vi phạm.
+  4. **Chốt 4: Xử lý sau khi phát hiện vi phạm**: Farmer thấy khả nghi thì bấm `DECLINED` (bắt buộc nhập lý do), kho hoàn trả ngay; Admin có quyền khóa tài khoản vi phạm. Khách hay đặt mà không lấy được gắn cờ "At risk" và khóa tài khoản đồng thời chặn đăng ký lại bằng cùng email / số điện thoại (D-028).
 
 ---
 
@@ -797,7 +799,7 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 | Trường | Quy tắc | Thông báo lỗi inline |
 | :--- | :--- | :--- |
 | Email | Định dạng email, ≤ 100 ký tự, chuẩn hóa `trim().toLowerCase()` | "Invalid email address" |
-| Số điện thoại VN | `^(0|\+84)(3|5|7|8|9)\d{8}$` | "Invalid phone number" |
+| Số điện thoại VN | `^(0|\+84)(3|5|7|8|9)\d{8}$`; chuẩn hóa về `0xxxxxxxxx` trước khi kiểm tra trùng (D-028) | "Invalid phone number" |
 | Mật khẩu | ≥ 8 ký tự, có chữ và số | "Password must be at least 8 characters and include letters and numbers" |
 | Xác nhận mật khẩu | Trùng mật khẩu | "Passwords do not match" |
 | Họ tên / Tên sạp | 2–100 ký tự | "Please enter 2–100 characters" |
@@ -825,7 +827,7 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 | 403 | Trang `/403` nếu điều hướng; toast nếu là thao tác |
 | 404 | Trang `/404` |
 | 409 `RESOURCE_MODIFIED` | Dialog "This order was just updated by someone else" + nút "Reload" (refetch lấy `version` mới) |
-| 422 `OPEN_ORDER_LIMIT_EXCEEDED` | Dialog giải thích giới hạn (D-005) + link "View open orders" |
+| 422 `OPEN_ORDER_LIMIT_EXCEEDED` | Dialog "You have 10 orders waiting for farmer confirmation. Please wait for them to be confirmed before placing more." (D-005) + link "View open orders" |
 | 422 `FAILED_PRECONDITION` | Toast với `message` từ server (ví dụ: đã quá giờ cutoff) |
 | 422 `RESOURCE_IN_USE` | Toast với `message` + danh sách đối tượng liên quan (ví dụ đơn mở trong kỳ nghỉ, D-022/D-023) |
 | 403 `ACCOUNT_LOCKED` | Thông báo trên form đăng nhập kèm lý do khóa (D-024) |
@@ -1155,6 +1157,7 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 - **Bộ lọc**: ngày nhận (khoảng), chợ, trạng thái (tab Lịch sử), tìm theo mã đơn / tên khách.
 - **Cột bảng**: Mã đơn · Khách hàng (tên, SĐT) · Chợ · Ngày + khung nhận · Số món · Tổng tiền · Trạng thái · Cutoff · Hành động.
 - **Hành động trên dòng**: nút theo ma trận §7.1 (Duyệt / Từ chối / Sẵn sàng / Hoàn tất / Không đến).
+- **Nhóm đơn cùng khách** (D-005 v1.5): các đơn của cùng một khách có cùng ngày nhận hiển thị liền nhau kèm nhãn "2 orders from Le Minh Chau for Sat 26/09", để Farmer soạn và giao một lần.
 - **Chế độ "Packing list"** (tab Đã xác nhận): gom tổng số lượng từng sản phẩm cho một ngày + chợ ("Tomato: 23 kg across 6 orders") giúp Farmer chuẩn bị. *(Dữ liệu suy ra từ đơn, không phát sinh bảng mới.)*
 - **Phân trang**: 20.
 
@@ -1283,7 +1286,8 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 - Toàn bộ thông tin đăng ký + hồ sơ sạp, bản đồ vị trí, chợ tham gia, khung nhận hàng, danh sách sản phẩm, thống kê đơn (tổng / hoàn tất / từ chối / hết hạn), lịch sử thay đổi trạng thái duyệt (ai, khi nào, lý do). Nút hành động như A-02.
 
 ### A-04 · Quản lý khách hàng (FR-52)
-- **Tìm kiếm**: tên, email, SĐT. **Lọc**: Hoạt động / Đã khóa.
+- **Tìm kiếm**: tên, email, SĐT. **Lọc**: Hoạt động / Đã khóa / At risk (D-028).
+- **Cờ "At risk"** (D-028): badge cam khi khách có ≥ `AT_RISK_THRESHOLD` đơn `NO_SHOW`/`EXPIRED` trong `AT_RISK_WINDOW_DAYS` ngày; khách At risk xếp lên đầu. Admin xem rồi quyết định khóa.
 - **Cột**: Họ tên · Email · SĐT · Ngày đăng ký · Tổng đơn · Đơn mở · Số lần `NO_SHOW` · Trạng thái · Lý do khóa (khi Đã khóa, D-024) · Hành động.
 - **Khóa tài khoản**: Lý do * + cảnh báo "X open orders will be cancelled and stock restored. The customer will not be able to sign in." (D-015).
 - **Kích hoạt lại**: xác nhận thường.
@@ -1641,7 +1645,7 @@ erDiagram
 | :--- | :--- | :---: | :--- | :--- |
 | user_id | BIGINT | ✗ | PK + FK → `users.id` **CASCADE** | `related_name="customer_profile"` |
 | full_name | VARCHAR(100) | ✗ | | FR-01 |
-| phone | VARCHAR(15) | ✗ | | Regex VN ở serializer |
+| phone | VARCHAR(15) | ✗ | **UNIQUE** (D-028) | Regex VN ở serializer; lưu dạng chuẩn hóa `0xxxxxxxxx` |
 | address | VARCHAR(255) | ✗ | | FR-01 |
 | deactivation_reason | VARCHAR(500) | ✓ | | Lý do Admin khóa tài khoản (D-024): bắt buộc khi khóa (service), xóa về NULL khi mở khóa; trả trong `403 ACCOUNT_LOCKED` khi đăng nhập đúng mật khẩu |
 - **Khóa dòng**: service checkout gọi `select_for_update()` trên dòng này trước khi đếm đơn mở (D-005, chốt 2).
@@ -1652,7 +1656,7 @@ erDiagram
 | user_id | BIGINT | ✗ | PK + FK → `users.id` **CASCADE** | `related_name="farmer_profile"` |
 | stall_name | VARCHAR(100) | ✗ | | FR-02 |
 | contact_person | VARCHAR(100) | ✗ | | FR-02 |
-| phone | VARCHAR(15) | ✗ | | |
+| phone | VARCHAR(15) | ✗ | **UNIQUE** (D-028) | Lưu dạng chuẩn hóa `0xxxxxxxxx` |
 | address | VARCHAR(255) | ✗ | | |
 | description | TEXT | ✓ | | |
 | image | VARCHAR(255) | ✓ | | Đường dẫn ảnh (tên UUID) |
@@ -1799,7 +1803,7 @@ erDiagram
   | :--- | :--- |
   | `(farmer_id, status, pickup_start_at)` | Danh sách đơn Farmer theo tab (F-02), đếm Pending (F-01), quét lười theo Farmer (D-009) |
   | `(customer_id, status)` | Đơn của tôi (C-04), đếm đơn mở toàn hệ thống (D-005: ≤ 5) |
-  | `(customer_id, farmer_id, status)` | Kiểm tra 1 đơn mở / Farmer (D-005) |
+  | `(customer_id, farmer_id, status)` | Nhóm đơn cùng khách ở F-02; lịch sử mua theo Farmer |
   | `(status, pickup_start_at)` | Quét `PLACED` quá hạn toàn hệ thống (lệnh `expire_orders`) |
   | `(market_id, status, pickup_date)` | Báo cáo doanh thu theo chợ (A-09) |
   | `(created_at)` | Sắp xếp / lọc theo ngày |
@@ -1948,7 +1952,7 @@ erDiagram
 | :--- | :--- | :--- | :--- |
 | `orders` | 2 — nhiều Role cùng sửa (Khách, Farmer, Admin, Hệ thống) | **OCC** `version` + `If-Match`; ghi dưới `select_for_update(of=("self",))` | `409 RESOURCE_MODIFIED` / `428` thiếu header |
 | `products.stock_quantity` | 3 — tài nguyên hữu hạn | **Pessimistic** `select_for_update()` theo `order_by("id")` | `400 INSUFFICIENT_STOCK` |
-| `customer_profiles` (đếm đơn mở) | 3 — bất biến "≤ 5 đơn mở, ≤ 1 / Farmer" | `select_for_update()` dòng profile trước khi đếm | `422 OPEN_ORDER_LIMIT_EXCEEDED` |
+| `customer_profiles` (đếm đơn chưa duyệt) | 3 — bất biến "≤ 10 đơn `PLACED` / khách" (v1.5) | `select_for_update()` dòng profile trước khi đếm | `422 OPEN_ORDER_LIMIT_EXCEEDED` |
 | `farmer_profiles.status` | Admin đổi trạng thái | `select_for_update()` + FSM đơn giản 4 trạng thái | `400 INVALID_STATUS_TRANSITION` |
 | Review `reply` | Farmer phản hồi 1 lần | `select_for_update()` + kiểm tra `reply IS NULL` | `422 FAILED_PRECONDITION` |
 | Profile, favorites, notifications | 1 — dữ liệu cá nhân | Chỉ object-level authorization | `404` khi truy cập chéo |
@@ -1991,7 +1995,7 @@ erDiagram
 | Tọa độ Farmer cùng NULL / cùng có | CHECK | Serializer |
 | 1 review / món, 1 review Farmer / đơn | UNIQUE (1-1) | Chỉ khi `COMPLETED`, đúng chủ đơn |
 | 1 dòng / sản phẩm trong đơn | UNIQUE `(order_id, product_id)` | — |
-| ≤ 1 đơn mở / Farmer, ≤ 5 đơn mở / khách | *(MySQL không hỗ trợ unique có điều kiện)* | Khóa `customer_profiles` rồi đếm (D-005) |
+| ≤ 10 đơn `PLACED` / khách | *(MySQL không hỗ trợ unique có điều kiện)* | Khóa `customer_profiles` rồi đếm (D-005, v1.5) |
 | Mọi món trong đơn thuộc cùng Farmer của đơn | — | Validate theo nhóm (D-004) |
 | Slot thuộc Farmer, đúng thứ, trong giờ chợ | — | Validate khi tạo slot / đặt đơn |
 | Chỉ Farmer `APPROVED` được tạo sản phẩm / nhận đơn | — | Policy |
@@ -2239,7 +2243,7 @@ erDiagram
 | 409 | `RESOURCE_MODIFIED` | `If-Match` lệch `version` | Dialog "Reload" |
 | 409 | `IDEMPOTENCY_IN_PROGRESS` | Cùng `Idempotency-Key` đang xử lý | Chờ, không gửi lại |
 | 409 | `CONFLICT_RETRY` | Deadlock MySQL sau 1 lần retry | Toast "Please try again" |
-| 422 | `OPEN_ORDER_LIMIT_EXCEEDED` | Vượt 1 đơn mở / Farmer hoặc 5 đơn mở (D-005) | Dialog giới hạn |
+| 422 | `OPEN_ORDER_LIMIT_EXCEEDED` | Vượt `MAX_PLACED_ORDERS_PER_CUSTOMER` (10) đơn chưa duyệt (D-005, v1.5) | Dialog giới hạn |
 | 422 | `CUTOFF_PASSED` | Sửa / hủy / đặt sau `cutoff_at`; Farmer từ chối đơn `ACCEPTED` sau cutoff | Toast + refetch |
 | 422 | `CUTOFF_NOT_REACHED` | Đánh dấu Sẵn sàng trước `cutoff_at` (T9) | Toast |
 | 422 | `PICKUP_ALREADY_STARTED` | Duyệt / từ chối đơn `PLACED` sau `pickup_start_at` | Toast + refetch |
@@ -2450,6 +2454,7 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | AU-08 | `POST /api/auth/ws-ticket/` | Authenticated (Customer, Farmer) | — | `{ ticket: uuid, expires_in: 30 }` | 200 | — | N-01 |
 | AU-09 | `POST /api/auth/admin/login/` | AllowAny · throttle `admin_login` | `{ email, password }` | `{ access, refresh, user: Me }` | 200 | `INVALID_CREDENTIALS` | A-00 |
 - Quy tắc validate: §1.5 Pass 3 (email chuẩn hóa lowercase; mật khẩu ≥ 8 ký tự, có chữ và số; SĐT regex VN).
+- AU-01 / AU-02 (D-028): số điện thoại được chuẩn hóa về dạng `0xxxxxxxxx` trước khi kiểm tra và lưu; trùng với tài khoản khác cùng role (kể cả tài khoản đã bị khóa) → `400 VALIDATION_ERROR`, `errors.phone = ["This phone number is already registered."]`.
 - AU-03 và AU-09 ghi `audit_logs` `LOGIN` / `LOGIN_FAILED` (AU-09 thêm `details.portal = "ADMIN"`); AU-05 ghi `LOGOUT`; AU-07 ghi `PASSWORD_CHANGED`.
 - **Tách cổng (D-027)**: AU-03 trả `401 INVALID_CREDENTIALS` với tài khoản `ADMIN`; AU-09 trả `401 INVALID_CREDENTIALS` với tài khoản không phải `ADMIN` — kể cả khi mật khẩu đúng, để không tiết lộ loại tài khoản.
 - AU-03 với tài khoản bị khóa (D-024): kiểm tra mật khẩu trước; đúng mật khẩu mới trả `403 ACCOUNT_LOCKED` với `errors: { reason: [deactivation_reason] }`; sai mật khẩu trả `401 INVALID_CREDENTIALS`.
@@ -2545,7 +2550,7 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | AD-06 | `POST /api/admin/farmers/<id>/reject/` | Admin | `{ reason: 5–500 }` | `AdminFarmerRow` | 200 | như AD-05 | A-02, A-03 |
 | AD-07 | `POST /api/admin/farmers/<id>/suspend/` | Admin | `{ reason: 5–500 }` | `AdminFarmerRow` + `{ affected_orders: integer }` — §5.4 | 200 | `INVALID_STATUS_TRANSITION` (không ở `APPROVED`), `CONFLICT_RETRY` | A-02, A-03 |
 | AD-08 | `POST /api/admin/farmers/<id>/reinstate/` | Admin | `{}` | `AdminFarmerRow` | 200 | `INVALID_STATUS_TRANSITION` (không ở `SUSPENDED`) | A-02, A-03 |
-| AD-09 | `GET /api/admin/customers/` **[P]** | Admin | `is_active?`, `q?` | `{ id, full_name, email, phone, date_joined, is_active, deactivation_reason, total_orders, open_orders, no_show_count }[]` | 200 | — | A-04 |
+| AD-09 | `GET /api/admin/customers/` **[P]** | Admin | `is_active?`, `q?`, `at_risk?` | `{ id, full_name, email, phone, date_joined, is_active, deactivation_reason, total_orders, open_orders, no_show_count, at_risk }[]` (D-028) | 200 | — | A-04 |
 | AD-10 | `GET /api/admin/customers/<id>/` | Admin | — | Như dòng AD-09 + `{ address, recent_orders: OrderSummary[≤10] }` | 200 | — | A-04 |
 | AD-11 | `GET /api/admin/customers/<id>/deactivation-impact/` | Admin | — | `{ open_orders: { PLACED, ACCEPTED, READY_FOR_PICKUP, total }, affected_farmers: integer }` | 200 | — | Dialog A-04 |
 | AD-12 | `POST /api/admin/customers/<id>/deactivate/` | Admin | `{ reason: 5–500 }` | Dòng AD-09 + `{ affected_orders }` — §5.4 | 200 | `INVALID_STATUS_TRANSITION` (đã khóa), `CONFLICT_RETRY` | A-04 |
@@ -2653,7 +2658,7 @@ Content-Type: application/json
 1. Kiểm tra `Idempotency-Key` trong Redis (khóa `idem:<user_id>:<key>`): đang xử lý → 409 `IDEMPOTENCY_IN_PROGRESS`; đã hoàn tất → trả lại **nguyên** phản hồi cũ (201) kèm header `Idempotent-Replayed: true`; cùng khóa nhưng body khác → 422 `IDEMPOTENCY_KEY_REUSED`.
 2. Validate cấu trúc (serializer) → 400 `VALIDATION_ERROR`.
 3. `transaction.atomic()`:
-   1. Khóa `customer_profiles` của khách; đếm đơn mở → vượt giới hạn → 422 `OPEN_ORDER_LIMIT_EXCEEDED`.
+   1. Khóa `customer_profiles` của khách; đếm đơn `PLACED` hiện có + số đơn sắp tạo (1 / Farmer trong giỏ) → vượt `MAX_PLACED_ORDERS_PER_CUSTOMER` → 422 `OPEN_ORDER_LIMIT_EXCEEDED`.
    2. Gọi `expire_overdue_orders(farmer_id)` cho từng Farmer trong giỏ.
    3. Tính `pickup_start_at`, `pickup_end_at`, `cutoff_at` cho từng nhóm; `now ≥ cutoff_at` → 422 `CUTOFF_PASSED`; slot / ngày sai → 422 `SLOT_NOT_AVAILABLE`.
    4. Khóa mọi `products` của tất cả nhóm theo `order_by("id")`; sản phẩm không thuộc Farmer của nhóm → 400 `VALIDATION_ERROR`; không còn bán công khai → 422 `PRODUCT_NOT_AVAILABLE`; thiếu hàng → 400 `INSUFFICIENT_STOCK` (liệt kê **mọi** dòng thiếu trong `errors`).
@@ -2775,7 +2780,7 @@ Content-Type: application/json
 | CT-06 | Thiếu `If-Match` | FA-23 | 428 `PRECONDITION_REQUIRED` |
 | CT-07 | Hai khách đặt cùng lúc món còn 1 | CU-04 ×2 song song | Một 201, một 400 `INSUFFICIENT_STOCK`; tồn kho = 0, không âm |
 | CT-08 | Bấm đặt hàng 2 lần cùng `Idempotency-Key` | CU-04 ×2 | Cùng 1 bộ đơn; lần 2 có `Idempotent-Replayed: true` |
-| CT-09 | Đặt đơn thứ 2 cho cùng Farmer khi đơn 1 còn mở | CU-04 | 422 `OPEN_ORDER_LIMIT_EXCEEDED` |
+| CT-09 | Khách đã có 10 đơn `PLACED` đặt thêm đơn | CU-04 | 422 `OPEN_ORDER_LIMIT_EXCEEDED`; đặt thêm đơn cho cùng Farmer khi chưa tới 10 → 201 |
 | CT-10 | Hủy sau cutoff | CU-08 | 422 `CUTOFF_PASSED` |
 | CT-11 | Sẵn sàng trước cutoff | FA-25 | 422 `CUTOFF_NOT_REACHED` |
 | CT-12 | Hoàn tất đơn `PLACED` (nhảy cóc) | FA-26 | 400 `INVALID_STATUS_TRANSITION` |
@@ -2797,6 +2802,8 @@ Content-Type: application/json
 | v1.2 | — | D-020 cập nhật: tiền tệ USD (`DECIMAL(10,2)`, JSON chuỗi thập phân `"12.50"`, giá $0.01–$10,000.00); `message`, `errors`, thông báo in-app, email và toàn bộ UI chuyển sang tiếng Anh; danh mục seed đổi tên tiếng Anh | Lead Architect |
 | v1.3 | — | D-027: Admin do IT cấp (không có API tạo Admin); tách cổng đăng nhập Admin `/admin/login` (A-00, AU-09, throttle `admin_login`); bỏ `must_change_password` (cột, claim, `Me`); `page_size` cho chọn 5 / 10 / 20 | Lead Architect |
 | v1.4 | — | Đồng bộ tài liệu với code: đường dẫn `marketlink_core/` (thay `core/`, `config/`), module chat `chat_bot/`, `CORS_EXPOSE_HEADERS` thêm `idempotent-replayed` | Lead Architect |
+| v1.5 | — | D-005: giới hạn 10 đơn chưa duyệt (`PLACED`) mỗi khách, bỏ giới hạn theo Farmer; F-02 nhóm đơn cùng khách + ngày nhận. D-028: 1 số điện thoại = 1 tài khoản, khóa tài khoản là chặn email + số điện thoại, cờ At risk ở A-04 (không thêm bảng) | Lead Architect |
+| v1.6 | — | D-028 đã hiện thực phần dữ liệu: `normalize_phone()`, UNIQUE `customer_profiles.phone` / `farmer_profiles.phone`, migration `accounts/0005_unique_phone` | Lead Architect |
 
 ---
 

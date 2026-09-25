@@ -10,15 +10,9 @@ MYSQL_LOCK_WAIT_TIMEOUT = 1205
 T = TypeVar("T")
 
 
+# The retry sits outside fn's atomic block because InnoDB rolls back the whole deadlocked transaction.
+# A lock wait timeout already waited innodb_lock_wait_timeout, so it becomes 409 straight away.
 def run_with_deadlock_retry(fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
-    """Run fn and retry once on a MySQL deadlock (1213).
-
-    A lock wait timeout (1205) already waited innodb_lock_wait_timeout, so it becomes
-    409 CONFLICT_RETRY straight away instead of a 500.
-
-    fn must open its own transaction.atomic(); the retry has to sit outside that block
-    because InnoDB has already rolled the deadlocked transaction back.
-    """
     for attempt in range(2):
         try:
             return fn(*args, **kwargs)

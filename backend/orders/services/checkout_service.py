@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.db import connection, transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -5,6 +7,8 @@ from rest_framework.exceptions import ValidationError
 from accounts.models import CustomerProfile, CustomUser, FarmerProfile, FarmerStatus
 from accounts.services.auth_service import account_locked_error
 from catalog.models import Product
+from catalog.services.stock import apply_stock_delta, lock_products
+from marketlink_core.context import get_request_id
 from notifications.models import NotificationType
 from notifications.services import notify
 from orders.constants import MAX_OPEN_ORDERS_PER_FARMER, MAX_OPEN_ORDERS_TOTAL
@@ -15,10 +19,18 @@ from orders.exceptions import (
     ProductNotAvailableError,
     SlotNotAvailableError,
 )
-from orders.models import OPEN_STATUSES, ActorRole, Order, OrderItem, OrderStatus, Transition
-from orders.services.expiry_service import finish_expiry, lock_overdue_orders, returned_stock
-from orders.services.history_service import record_status_change
-from orders.services.locking import lock_products
+from orders.models import (
+    OPEN_STATUSES,
+    ActorRole,
+    ChangeReason,
+    Order,
+    OrderItem,
+    OrderStatus,
+    OrderStatusHistory,
+    Transition,
+)
+from orders.services.fsm import record_order_placed
+from orders.services.notification_context import build_order_context
 from orders.services.pickup_service import resolve_pickup
 
 # Lock order (Implementation Notes §3: users / profiles -> orders -> products), taken once each, ascending id:
@@ -63,6 +75,54 @@ def _lock_farmers(groups) -> dict:
     if missing:
         raise ProductNotAvailableError(errors=missing)
     return farmers
+
+
+def _lock_overdue_orders(*, now, farmer_ids) -> list[Order]:
+    ids = list(
+        Order.objects.filter(status=OrderStatus.PLACED, pickup_start_at__lte=now, farmer_id__in=farmer_ids)
+        .values_list("id", flat=True)
+    )
+    if not ids:
+        return []
+    # InnoDB locks rows in index-scan order, not ORDER BY order: going through the primary key keeps
+    # checkout's order locks in ascending id order.
+    return list(
+        Order.objects.filter(pk__in=ids, status=OrderStatus.PLACED)
+        .select_related("customer__customer_profile", "farmer", "market")
+        .order_by("id")
+        .select_for_update(of=("self",))
+    )
+
+
+def _returned_stock(orders) -> dict[int, int]:
+    returned = defaultdict(int)
+    for product_id, quantity in OrderItem.objects.filter(order__in=orders).values_list("product_id", "quantity"):
+        returned[product_id] += quantity
+    return dict(returned)
+
+
+def _expire(orders, products, returned) -> None:
+    """T8 for overdue orders found during checkout, with the same history and notice as fsm.transition_order.
+
+    Done here instead of fsm.transition_order so their stock is returned under checkout's single product lock.
+    Returned stock never triggers restock alerts (D-025).
+    """
+    apply_stock_delta(products=products, deltas=returned)
+    for order in orders:
+        order.status = OrderStatus.EXPIRED
+        order.version += 1
+        order.save(update_fields=["status", "version", "updated_at"])
+        OrderStatusHistory.objects.create(
+            order=order,
+            from_status=OrderStatus.PLACED,
+            to_status=OrderStatus.EXPIRED,
+            transition=Transition.T8,
+            actor=None,
+            actor_role=ActorRole.SYSTEM,
+            change_reason=ChangeReason.SYSTEM_EXPIRED,
+            request_id=get_request_id(),
+        )
+        notify(recipient=order.customer, event_type=NotificationType.ORDER_EXPIRED, context=build_order_context(order))
 
 
 def _check_open_order_limits(customer, groups, now) -> None:
@@ -152,14 +212,8 @@ def _create_order(*, customer, farmer, group, window, products) -> Order:
         )
         for product, quantity in lines
     ])
-    for product, quantity in lines:
-        product.stock_quantity -= quantity
-        product.save(update_fields=["stock_quantity", "updated_at"])
-    record_status_change(
-        order=order, from_status=None, to_status=OrderStatus.PLACED, transition=Transition.T1,
-        actor=customer, actor_role=ActorRole.CUSTOMER,
-    )
-    notify(recipient=farmer.user, event_type=NotificationType.ORDER_PLACED, context={"order": order})
+    apply_stock_delta(products=products, deltas={product.id: -quantity for product, quantity in lines})
+    record_order_placed(order=order, actor=customer)
     return order
 
 
@@ -168,14 +222,14 @@ def place_orders(*, customer, groups: list[dict], now=None) -> list[Order]:
     with transaction.atomic():
         customer = _lock_customer(customer)
         farmers = _lock_farmers(groups)
-        overdue = lock_overdue_orders(now=now, farmer_ids=list(farmers))
+        overdue = _lock_overdue_orders(now=now, farmer_ids=list(farmers))
         _check_open_order_limits(customer, groups, now)
         windows = _resolve_windows(groups, farmers, now)
 
-        returned = returned_stock(overdue)
+        returned = _returned_stock(overdue)
         cart_product_ids = {item["product_id"] for group in groups for item in group["items"]}
-        products = lock_products(set(returned) | cart_product_ids)
-        finish_expiry(orders=overdue, products=products, returned=returned)
+        products = lock_products(product_ids=set(returned) | cart_product_ids)
+        _expire(overdue, products, returned)
 
         _validate_products(groups, products)
         return [

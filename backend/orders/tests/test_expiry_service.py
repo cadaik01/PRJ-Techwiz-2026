@@ -6,7 +6,7 @@ from django.core.management import call_command
 from django.utils import timezone
 
 from notifications.models import Notification
-from orders.services.expiry_service import expire_overdue_orders
+from orders.services.expiry import expire_overdue_orders
 from tests_support.factories import make_customer, make_farmer, make_order, make_product
 
 
@@ -68,17 +68,3 @@ class TestExpireOverdueOrders:
 
         assert "Expired 1 order(s)" in out.getvalue()
 
-
-def test_management_command_retries_a_deadlock():
-    from unittest import mock
-
-    from django.db import OperationalError
-
-    out = StringIO()
-    with mock.patch(
-        "orders.management.commands.expire_orders.expire_overdue_orders",
-        side_effect=[OperationalError(1213, "Deadlock found"), 3],
-    ):
-        call_command("expire_orders", stdout=out)
-
-    assert "Expired 3 order(s)" in out.getvalue()

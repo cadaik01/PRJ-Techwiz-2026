@@ -7,13 +7,6 @@ from marketlink_core.responses import api_response
 
 
 class StandardPagination(PageNumberPagination):
-    """Page-number pagination wrapped in the envelope (Pass 4B §2.2).
-
-    Clients may pick page_size from ALLOWED_PAGE_SIZES only; any other value silently falls
-    back to the default so nobody can pull thousands of rows in one call. next/previous are
-    page numbers, not URLs.
-    """
-
     page_size = 20
     page_size_query_param = "page_size"
     allowed_page_sizes = (5, 10, 20)
@@ -69,6 +62,4 @@ class StandardPagination(PageNumberPagination):
 
 
 class PublicReviewPagination(StandardPagination):
-    """Public review lists use 10 items per page (Pass 4B §2.2)."""
-
     page_size = 10
