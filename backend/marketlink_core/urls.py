@@ -22,6 +22,7 @@ urlpatterns = [
     path("api/customer/", include("accounts.customer.urls_customer")),
     path("api/customer/", include("orders.customer.urls_customer")),
     path("api/customer/", include("reviews.customer.urls_customer")),
+    path("api/customer/", include("favorites.customer.urls_customer")),
 ]
 
 if settings.DEBUG:
