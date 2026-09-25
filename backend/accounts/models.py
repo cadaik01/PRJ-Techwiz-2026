@@ -161,6 +161,7 @@ class FarmerProfile(BaseModel):
     order_cutoff_hours = models.PositiveSmallIntegerField(
         default=12, validators=[MinValueValidator(1), MaxValueValidator(72)]
     )
+    operating_days = models.JSONField(default=list)
 
     history = HistoricalRecords(
         table_name="farmer_profile_histories",

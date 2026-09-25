@@ -8,23 +8,23 @@
 ---
 
 ## 📋 BẢNG NHẬT KÝ QUYẾT ĐỊNH TOÀN DIỆN (DECISION LOG)
-*(Ghi nhận toàn bộ 26 quyết định kiến trúc chính thức do Lead Architect phê duyệt từ Pass 2)*:
+*(Ghi nhận toàn bộ quyết định kiến trúc chính thức D-001 → D-035 do Lead Architect phê duyệt. Quyết định có số lớn hơn thay thế phần tương ứng của quyết định cũ; các chỗ bị thay thế được ghi chú "cập nhật v1.7")*:
 
 * **D-001 (Tech Stack Cố Định)**: Backend Django REST Framework + MySQL 8.x (InnoDB, `utf8mb4_0900_ai_ci`); Frontend React 19 / Vite + CSS3 thuần (CSS Modules tích hợp sẵn trong Vite + Design Tokens CSS Variables). Khớp danh mục công nghệ SRS §1.8 ("HTML5, CSS3").
 * **D-002 (Actors Hệ Thống)**: 4 Tác nhân thực tế: `Admin`, `Farmer` (Vendor), `Customer`, `Guest` (Public).
 * **D-003 (Ranh Giới Phạm Vi SRS §1.5)**: Không tích hợp cổng thanh toán trực tuyến (Thanh toán COD/tiền mặt tại sạp); Không vận chuyển/shipper (Chỉ nhận hàng tại sạp chợ); Không thẩm định chứng chỉ nông dân (VietGAP, Organic).
-* **D-004 (A-001 Checkout Multi-Farmer)**: Giỏ hàng gom nhiều Farmer; khi checkout sinh **$N$ đơn độc lập**, mỗi Farmer 1 đơn; không dùng bảng Order cha / SubOrder. Một endpoint duy nhất `POST /api/customer/orders/`; All-or-Nothing; khóa kho `.order_by("id").select_for_update()`; giá lấy từ DB; giỏ hàng lưu tại client (Zustand persist trong `localStorage`).
-* **D-005 (A-001b Chống Đặt Đơn Ảo & Giữ Hàng)**: Trừ tồn kho ngay khi tạo đơn `PLACED` (giữ chỗ). Áp dụng 4 chốt chặn: (1) Bắt buộc đăng nhập Customer; (2) *(cập nhật v1.5)* Giới hạn tối đa **10 đơn chưa duyệt (`PLACED`)** trên toàn hệ thống cho mỗi khách (setting `MAX_PLACED_ORDERS_PER_CUSTOMER`); đơn đã được Farmer duyệt không tính; **không giới hạn số đơn với cùng một Farmer** — khách quên món cứ đặt đơn mới (Mã lỗi 422 `OPEN_ORDER_LIMIT_EXCEEDED`, khóa `CustomerProfile`); (3) Throttle riêng `orders: 10/hour`; (4) Quyền Farmer `DECLINED` và Admin khóa tài khoản vi phạm.
-* **D-006 (A-002 Order FSM Chuẩn Hóa)**: Chuẩn hóa đồ thị FSM 8 trạng thái: 3 trạng thái Mở (`PLACED`, `ACCEPTED`, `READY_FOR_PICKUP`) và 5 trạng thái Kết thúc (`COMPLETED`, `CANCELLED`, `DECLINED`, `NO_SHOW`, `EXPIRED`). Quản lý bằng 13 cạnh chuyển trạng thái T1–T13 (bao gồm các cạnh can thiệp khẩn cấp T12, T13 của Admin khi đình chỉ Farmer hoặc khóa Khách, giải quyết dứt điểm trạng thái `READY_FOR_PICKUP`); Triple-Gate Validation; OCC `version` + `If-Match`; lưu vết mỗi lần chuyển trạng thái / sửa đơn vào bảng `order_status_history` (`from_status`, `to_status`, `transition`, `actor`, `actor_role`, `change_reason`, `request_id`) trong cùng transaction với lệnh cập nhật `orders`.
-* **D-007 (A-003 Sửa Đơn & Giờ Cutoff)**: Cutoff gắn theo từng đơn (`order_cutoff_hours`), tính và lưu cứng `cutoff_at`. Khách chỉ sửa trước cutoff. Farmer chỉ được chuyển `READY_FOR_PICKUP` sau cutoff. Khách sửa đơn khi đang `ACCEPTED` thì hệ thống tự chuyển về `PLACED` và điều chỉnh kho theo chênh lệch. `order_cutoff_hours` nhận giá trị 1–72 (không cho phép 0). Giao diện hiển thị thời điểm chốt cụ thể (`cutoff_at`), không hiển thị số giờ; khung có `cutoff_at` đã qua không cho chọn.
-* **D-008 (A-004 Mẫu Tồn Kho Hàng Tuần)**: Không tạo bảng riêng; thêm `weekly_default_quantity` vào `Product`. Nông dân bấm nút "Apply to this week". Công thức: $\text{tồn\_kho\_mới} = \max(\text{mẫu} - \text{số\_đang\_giữ\_bởi\_đơn\_mở},\; 0)$. Service gọi quét lười `expire_overdue_orders` trước khi nạp kho.
-* **D-009 (A-005 Quét Lười Đơn Quá Hạn)**: Không dùng Celery Beat. Dùng service quét lười `expire_overdue_orders` tại 3 điểm (đầu checkout, đầu nạp mẫu tuần, khi mở dashboard Farmer). Đơn `PLACED` quá giờ bắt đầu pickup tự chuyển `EXPIRED` và cộng trả kho.
+* **D-004 (A-001 Checkout Multi-Farmer)**: Giỏ hàng gom nhiều Farmer; khi checkout sinh **$N$ đơn độc lập**, mỗi Farmer 1 đơn; không dùng bảng Order cha / SubOrder. Một endpoint duy nhất `POST /api/customer/orders/`; All-or-Nothing; *(cập nhật v1.7 — D-029)* checkout chỉ kiểm tra tồn kho khả dụng, không trừ kho; giá lấy từ DB; giỏ hàng lưu tại client (Zustand persist trong `localStorage`).
+* **D-005 (A-001b Chống Đặt Đơn Ảo & Giữ Hàng)**: *(cập nhật v1.7 — D-029)* Tạo đơn `PLACED` **không trừ kho**; kho chỉ bị trừ khi Farmer duyệt đơn. Áp dụng 4 chốt chặn: (1) Bắt buộc đăng nhập Customer; (2) *(cập nhật v1.5)* Giới hạn tối đa **10 đơn chưa duyệt (`PLACED`)** trên toàn hệ thống cho mỗi khách (setting `MAX_PLACED_ORDERS_PER_CUSTOMER`); đơn đã được Farmer duyệt không tính; đơn `PLACED` đã qua `pickup_start_at` không tính; **không giới hạn số đơn với cùng một Farmer** — khách quên món cứ đặt đơn mới (Mã lỗi 422 `OPEN_ORDER_LIMIT_EXCEEDED`, khóa `CustomerProfile`); (3) Throttle riêng `orders: 10/hour`; (4) Quyền Farmer `DECLINED` và Admin khóa tài khoản vi phạm.
+* **D-006 (A-002 Order FSM Chuẩn Hóa)**: Chuẩn hóa đồ thị FSM 8 trạng thái: 3 trạng thái Mở (`PLACED`, `ACCEPTED`, `READY_FOR_PICKUP`) và 5 trạng thái Kết thúc (`COMPLETED`, `CANCELLED`, `DECLINED`, `NO_SHOW`, `EXPIRED`). Quản lý bằng 13 cạnh chuyển trạng thái *(cập nhật v1.7: T7 bãi bỏ theo D-030, thêm T14 theo D-029; 13 cạnh đang dùng là T1–T6, T8–T14)* (bao gồm các cạnh can thiệp khẩn cấp T12, T13 của Admin khi đình chỉ Farmer hoặc khóa Khách, giải quyết dứt điểm trạng thái `READY_FOR_PICKUP`); Triple-Gate Validation; OCC `version` + `If-Match`; lưu vết mỗi lần chuyển trạng thái / sửa đơn vào bảng `order_status_history` (`from_status`, `to_status`, `transition`, `actor`, `actor_role`, `change_reason`, `request_id`) trong cùng transaction với lệnh cập nhật `orders`.
+* **D-007 (A-003 Sửa Đơn & Giờ Cutoff)**: Cutoff gắn theo từng đơn (`order_cutoff_hours`), tính và lưu cứng `cutoff_at`. Khách chỉ sửa trước cutoff. Farmer chỉ được chuyển `READY_FOR_PICKUP` sau cutoff. *(cập nhật v1.7 — D-030)* Khách sửa đơn đang `PLACED` thì áp dụng ngay; sửa đơn đang `ACCEPTED` thì tạo **yêu cầu thay đổi** chờ Farmer quyết định, đơn giữ nguyên nội dung cũ cho tới khi Farmer chấp nhận. `order_cutoff_hours` nhận giá trị 1–72 (không cho phép 0). Giao diện hiển thị thời điểm chốt cụ thể (`cutoff_at`), không hiển thị số giờ; khung có `cutoff_at` đã qua không cho chọn.
+* **D-008 (A-004 Mẫu Tồn Kho Hàng Tuần)**: Không tạo bảng riêng; thêm `weekly_default_quantity` vào `Product`. Nông dân bấm nút "Apply to this week". Công thức: $\text{tồn\_kho\_mới} = \max(\text{mẫu} - \text{số\_đang\_giữ},\; 0)$, trong đó *(cập nhật v1.7 — D-029)* "số đang giữ" chỉ gồm đơn `ACCEPTED` và `READY_FOR_PICKUP` (đơn `PLACED` chưa trừ kho nên không tính). Service gọi quét lười `expire_overdue_orders` trước khi nạp kho.
+* **D-009 (A-005 Quét Lười Đơn Quá Hạn)**: Không dùng Celery Beat. Dùng service quét lười `expire_overdue_orders` tại 3 điểm (đầu checkout, đầu nạp mẫu tuần, khi mở dashboard Farmer). Đơn `PLACED` quá giờ bắt đầu pickup tự chuyển `EXPIRED`; *(cập nhật v1.7 — D-029)* không đổi kho vì đơn chưa từng bị trừ kho, và không tính lỗi cho khách. Cùng lúc hủy các yêu cầu thay đổi đã quá hạn (D-030).
 * **D-010 (A-006 Thông Báo Đa Kênh)**: In-app WebSocket (Channels + Daphne + Upstash Redis qua vé 1 lần `ws-ticket`) là kênh chính; Email Gmail SMTP phụ qua `on_commit` + `ThreadPoolExecutor(max_workers=2)`. Điểm phát duy nhất `notify()`. Gửi mail cho 6 loại sự kiện: Khách nhận 4 (`ACCEPTED`, `READY_FOR_PICKUP`, `DECLINED` gồm cả do Admin đình chỉ Farmer, `EXPIRED`); Farmer nhận 2 (khách hủy đơn qua T5/T6, đơn bị hủy do Admin khóa khách qua T5/T6/T13). Restock alert chỉ gửi in-app. Bảng `notifications` và `announcements`.
-* **D-011 (A-007 Trợ Lý AI Chatbot)**: Xếp nhóm Bonus. Chatbot xây dựng bằng Gemini API (dòng Flash) qua `google-genai` với Function Calling (chỉ đọc 4 công cụ, không truy cập DB trực tiếp, không text-to-SQL, không lưu lịch sử trên server).
-* **D-012 (A-008 Bản Đồ Số)**: OpenStreetMap + React-Leaflet cho 100% bản đồ trong app (Ghim vị trí, hiển thị sạp, tính Haversine khoảng cách). Google Maps chỉ dùng cho link chỉ đường ngoại vi và iframe tại trang Contact Us. Tọa độ lưu `DecimalField(max_digits=9, decimal_places=6)`. Điểm nhận hàng suy ra từ chợ. Giữ cột `markets.map_provider` (mặc định `OSM`) để khớp bảng mẫu SRS §1.8.
-* **D-013 (A-009 Khung Pickup)**: Bảng `pickup_slots` lặp lại hàng tuần gắn với cặp Farmer–Chợ (`day_of_week`, `start_time`, `end_time`). Khách chọn ngày cụ thể + 1 khung hợp lệ.
+* **D-011 (A-007 Trợ Lý AI Chatbot)**: *(cập nhật v1.7 — D-034)* Bắt buộc triển khai. Chatbot xây dựng bằng Gemini API (dòng Flash) qua `google-genai` với Function Calling (chỉ đọc 4 công cụ, không truy cập DB trực tiếp, không text-to-SQL, không lưu lịch sử trên server).
+* **D-012 (A-008 Bản Đồ Số)**: OpenStreetMap + React-Leaflet cho 100% bản đồ trong app (Ghim vị trí, hiển thị sạp, tính Haversine khoảng cách). Google Maps chỉ dùng cho link chỉ đường ngoại vi và iframe tại trang Contact Us. Tọa độ lưu `DecimalField(max_digits=9, decimal_places=6)`. Điểm nhận hàng suy ra từ chợ. Tọa độ của Farmer do hệ thống tự tra từ địa chỉ đăng ký (D-032). Giữ cột `markets.map_provider` (mặc định `OSM`) để khớp bảng mẫu SRS §1.8.
+* **D-013 (A-009 Khung Pickup)**: Bảng `pickup_slots` lặp lại hàng tuần gắn với cặp Farmer–Chợ (`day_of_week`, `start_time`, `end_time`). Khách chọn ngày cụ thể + 1 khung hợp lệ. *(cập nhật v1.7 — D-031)* Khung chỉ được đặt vào ngày vừa là ngày chợ họp vừa là ngày hoạt động của Farmer.
 * **D-014 (A-010 Tồn Kho & Đơn Vị Tính)**: Mỗi sản phẩm dùng 1 kho chung cho mọi chợ. `unit` là TextChoices (`KG`, `BUNCH`, `PIECE`, `PACK`...). Số lượng là số nguyên `stock_quantity INT`.
-* **D-015 (A-011 Vòng Đời Farmer & Khóa User)**: Farmer: `PENDING` $\rightarrow$ `APPROVED` $\rightleftarrows$ `SUSPENDED` / `REJECTED`. Bị đình chỉ: ẩn khỏi public, toàn bộ đơn mở (`PLACED`, `ACCEPTED` qua T3, T4; `READY_FOR_PICKUP` qua T12) chuyển sang `DECLINED` (lý do `FARMER_SUSPENDED_BY_ADMIN`), hoàn kho, thông báo khách. Khách bị khóa: `is_active=False`, toàn bộ đơn mở (`PLACED`, `ACCEPTED` qua T5, T6; `READY_FOR_PICKUP` qua T13) chuyển sang `CANCELLED` (lý do `CUSTOMER_LOCKED_BY_ADMIN`), hoàn kho, thông báo Farmer giải phóng hàng bán tại sạp.
+* **D-015 (A-011 Vòng Đời Farmer & Khóa User)**: Farmer: `PENDING` $\rightarrow$ `APPROVED` $\rightleftarrows$ `SUSPENDED` / `REJECTED`. Bị đình chỉ: ẩn khỏi public, toàn bộ đơn mở (`PLACED`, `ACCEPTED` qua T3, T4; `READY_FOR_PICKUP` qua T12) chuyển sang `DECLINED` (lý do `FARMER_SUSPENDED_BY_ADMIN`), hoàn kho cho đơn đã bị trừ kho (`ACCEPTED`, `READY_FOR_PICKUP` — D-029), thông báo khách. Khách bị khóa: `is_active=False`, toàn bộ đơn mở (`PLACED`, `ACCEPTED` qua T5, T6; `READY_FOR_PICKUP` qua T13) chuyển sang `CANCELLED` (lý do `CUSTOMER_LOCKED_BY_ADMIN`), hoàn kho cho đơn đã bị trừ kho (D-029), thông báo Farmer rằng hàng của các đơn này đã được trả về kho online. Admin không thao tác trên từng đơn (D-033).
 * **D-016 (A-012 Đánh Giá & Nhận Xét)**: Chỉ đánh giá khi đơn `COMPLETED`. Mỗi món review tối đa 1 lần, mỗi đơn review Farmer 1 lần (1–5 sao). Farmer phản hồi 1 lần. Admin ẩn review (`is_hidden_by_admin`) chứ không xóa cứng.
 * **D-017 (A-013 Chính Sách Xóa Dữ Liệu)**: Xóa mềm bằng `is_archived` cho sản phẩm và `is_active` cho chợ. Admin gỡ sản phẩm vi phạm dùng cờ `is_hidden_by_admin`.
 * **D-018 (A-014 Báo Cáo & Thống Kê)**: Xem dashboard theo khoảng ngày; xuất file Excel bằng `openpyxl`. Mỗi lần xuất ghi `audit_logs` action `EXPORT_DATA`. Thay thế bảng `reports` của SRS bằng `audit_logs`.
@@ -34,10 +34,30 @@
 * **D-022 (A-018 Giờ Mở Cửa Chợ & Đổi Lịch Chợ)**: Mỗi chợ có một cặp `open_time`/`close_time` chung cho mọi ngày mở cửa (Admin quản lý). Giờ riêng của từng Farmer là `pickup_slots`, bắt buộc rơi vào ngày chợ mở và nằm trong giờ mở cửa của chợ. Admin đổi lịch lâu dài (AD-16) thì hệ thống tự tắt (`is_active = false`) các khung nằm ngoài lịch mới và gửi `MARKET_SCHEDULE_CHANGED` cho Farmer liên quan; đơn đã đặt không bị ảnh hưởng (snapshot D-007). Ngừng hoạt động chợ (AD-17) bị chặn `422 RESOURCE_IN_USE` khi còn đơn mở tại chợ.
 * **D-023 (A-019 Lịch Đóng Cửa Chợ & Lịch Nghỉ Farmer)**: Bảng `market_closures` (Admin khai báo: lễ, Tết, thời tiết) và `farmer_closures` (Farmer khai báo: "closed for the week" — SRS §1.1), theo khoảng ngày `start_date`–`end_date`. Ngày thuộc kỳ đóng cửa / nghỉ không được chọn làm ngày nhận hàng; khung giờ giữ nguyên và tự hoạt động lại sau kỳ nghỉ. Tạo kỳ nghỉ bị chặn `422 RESOURCE_IN_USE` nếu còn đơn mở có ngày nhận trong khoảng đó.
 * **D-024 (A-020 Lý Do Khóa Tài Khoản Khách)**: Cột `customer_profiles.deactivation_reason` (bắt buộc khi khóa, xóa về NULL khi mở khóa; lịch sử khóa/mở vẫn nằm trong `audit_logs`). Đăng nhập đúng mật khẩu nhưng tài khoản đã khóa trả `403 ACCOUNT_LOCKED` kèm lý do; sai mật khẩu vẫn trả `401 INVALID_CREDENTIALS` (không tiết lộ trạng thái khóa cho người ngoài).
-* **D-025 (A-021 Điều Kiện Gửi Restock Alert)**: Chỉ gửi `RESTOCK` khi Farmer chủ động bổ sung hàng (FA-14 sửa tồn kho, FA-18 áp dụng mẫu tuần) làm tồn kho từ `0` lên `> 0`. Không gửi khi hàng quay lại do đơn bị hủy / từ chối / hết hạn / Admin can thiệp.
+* **D-025 (A-021 Điều Kiện Gửi Restock Alert)**: Chỉ gửi `RESTOCK` khi Farmer chủ động bổ sung hàng (FA-14 sửa tồn kho, FA-18 áp dụng mẫu tuần) làm tồn kho từ `0` lên `> 0`. Không gửi khi hàng quay lại do đơn bị hủy / từ chối / khách không đến / Admin can thiệp / Farmer chấp nhận yêu cầu giảm số lượng.
 * **D-026 (A-022 Vị Trí Sạp Trong Chợ)**: `farmer_markets.stall_label` bắt buộc, `VARCHAR(100)` (nhãn "Stall location in market"); snapshot `orders.stall_label` `VARCHAR(100)`. Chi tiết đơn luôn hiển thị số điện thoại Farmer kèm nút Gọi để khách tìm sạp.
 * **D-027 (Tài Khoản Admin & Cổng Đăng Nhập Riêng)**: (1) Tài khoản Admin do phòng IT cấp bằng `python manage.py createsuperuser` hoặc lệnh seed; hệ thống **không** có màn hình / API tạo Admin. Admin đăng nhập bằng email + mật khẩu (`USERNAME_FIELD = "email"`). (2) Hai cổng đăng nhập: Customer và Farmer dùng chung `/login` (AU-03); Admin dùng trang riêng `/admin/login` (A-00, AU-09). Mỗi cổng từ chối role của cổng kia bằng `401 INVALID_CREDENTIALS` (không tiết lộ tài khoản Admin tồn tại). (3) Không có luồng bắt buộc đổi mật khẩu lần đầu; bỏ cột `users.must_change_password`. Đổi mật khẩu (AU-07) là thao tác tự nguyện. (4) `/django-admin/` chỉ là công cụ cho dev (`is_staff`), không phải trang quản trị của đề bài.
-* **D-028 (Chặn Tài Khoản Spam — không thêm bảng)**: (1) Mỗi số điện thoại chỉ gắn **một** tài khoản Customer (và một tài khoản Farmer): `customer_profiles.phone`, `farmer_profiles.phone` được chuẩn hóa (`+84 90 123 4567`, `090.123.4567` → `0901234567`) và đặt UNIQUE — hiện thực: hàm `accounts/phone.py::normalize_phone()`, `CustomerProfile.save()` / `FarmerProfile.save()` tự chuẩn hóa trước khi lưu, migration `accounts/0005_unique_phone` (chuẩn hóa dữ liệu cũ rồi thêm UNIQUE); đăng ký trùng → `400 VALIDATION_ERROR` với lỗi dưới ô số điện thoại. (2) **Khóa tài khoản chính là blacklist**: tài khoản không bị xóa cứng (D-017) nên email và số điện thoại của tài khoản bị khóa không đăng ký lại được; mở khóa (AD-13) là gỡ chặn. Không có bảng blacklist riêng. (3) Cờ **"At risk"** ở A-04: khách có từ `AT_RISK_THRESHOLD` (3) đơn `NO_SHOW`/`EXPIRED` trong `AT_RISK_WINDOW_DAYS` (30) ngày được đánh dấu, tính trực tiếp từ `orders`; **Admin quyết định khóa**, hệ thống không tự khóa. (4) Hạn chế đã biết: không có OTP SMS nên số điện thoại vẫn có thể nhập bừa — ràng buộc trên chỉ nâng rào cản, không tuyệt đối.
+* **D-028 (Chặn Tài Khoản Spam — không thêm bảng)**: (1) Mỗi số điện thoại chỉ gắn **một** tài khoản Customer (và một tài khoản Farmer): `customer_profiles.phone`, `farmer_profiles.phone` được chuẩn hóa (`+84 90 123 4567`, `090.123.4567` → `0901234567`) và đặt UNIQUE — hiện thực: hàm `accounts/phone.py::normalize_phone()`, `CustomerProfile.save()` / `FarmerProfile.save()` tự chuẩn hóa trước khi lưu, migration `accounts/0005_unique_phone` (chuẩn hóa dữ liệu cũ rồi thêm UNIQUE); đăng ký trùng → `400 VALIDATION_ERROR` với lỗi dưới ô số điện thoại. (2) **Khóa tài khoản chính là blacklist**: tài khoản không bị xóa cứng (D-017) nên email và số điện thoại của tài khoản bị khóa không đăng ký lại được; mở khóa (AD-13) là gỡ chặn. Không có bảng blacklist riêng. (3) Cờ **"At risk"** ở A-04: khách có từ `AT_RISK_THRESHOLD` (3) đơn **`NO_SHOW`** trong `AT_RISK_WINDOW_DAYS` (30) ngày được đánh dấu (tuyệt đối không đếm `EXPIRED`, vì đơn hết hạn là do Farmer không duyệt đơn trước giờ nhận, không phải lỗi từ phía khách), tính trực tiếp từ `orders`; **Admin quyết định khóa**, hệ thống không tự khóa. (4) Hạn chế đã biết: không có OTP SMS nên số điện thoại vẫn có thể nhập bừa — ràng buộc trên chỉ nâng rào cản, không tuyệt đối.
+* **D-029 (Trừ Kho Khi Duyệt, Hết Hạn & Khách Không Đến — v1.7)**:
+  (1) **Tạo đơn (T1) không trừ kho**: hệ thống chỉ kiểm tra mỗi món có số lượng đặt ≤ `stock_quantity` hiện tại; thiếu → `400 INSUFFICIENT_STOCK`. Nhiều khách có thể cùng đặt một món; Farmer là người chọn đơn để duyệt.
+  (2) **Duyệt đơn (T2) mới trừ kho**: khóa sản phẩm theo `id` tăng dần rồi trừ; không đủ hàng → `400 INSUFFICIENT_STOCK`, đơn vẫn `PLACED` để Farmer từ chối hoặc bổ sung kho rồi duyệt lại. Hệ thống không tự từ chối các đơn chờ khác.
+  (3) **Chỉ cộng trả kho cho đơn đã bị trừ kho**: T4, T6, T11, T12, T13, T14 cộng trả; T3, T5, T8 không đổi kho.
+  (4) **Hết hạn (`EXPIRED`, T8)**: đơn `PLACED` mà Farmer không duyệt trước `pickup_start_at` tự hết hạn, như chưa từng phát sinh: không đổi kho, không tính lỗi cho khách, khách nhận thông báo.
+  (5) **Khách không đến (`NO_SHOW`, T11 từ `READY_FOR_PICKUP`, T14 từ `ACCEPTED`)**: Farmer bấm sau khi hết khung nhận (`now ≥ pickup_end_at`) và đã liên hệ khách không được; không bắt chờ thêm. Hàng được **cộng trả về kho online**. Mỗi đơn `NO_SHOW` tính 1 lần vào cờ "At risk" của khách (D-028). Đã `NO_SHOW` thì không thể chuyển sang `COMPLETED`.
+  (6) **Farmer từ chối đơn đã duyệt (T4)**: được làm tới trước `pickup_start_at`, bắt buộc lý do 5–500 ký tự, không khóa nút trước giờ nhận; hộp thoại nhắc Farmer gọi điện cho khách và có tùy chọn đánh dấu hết hàng các món trong đơn.
+* **D-030 (Sửa Đơn & Yêu Cầu Thay Đổi — v1.7)**:
+  (1) **Đơn `PLACED`**: khách sửa trực tiếp; hệ thống chỉ kiểm tra kho khả dụng, không trừ kho; ghi lịch sử và báo Farmer `ORDER_MODIFIED`.
+  (2) **Đơn `ACCEPTED`**: khách gửi **yêu cầu thay đổi**; đơn giữ nguyên nội dung cũ và số hàng đã trừ. Hệ thống kiểm tra kho khả dụng đủ cho phần tăng thêm mới nhận yêu cầu. Farmer có 3 lựa chọn: *Chấp nhận* (trừ thêm phần tăng / trả lại phần giảm rồi áp dụng nội dung mới), *Từ chối thay đổi* (giữ nguyên đơn cũ), *Hủy cả đơn* (T4, có lý do, hoàn kho). Mỗi lựa chọn đều báo khách.
+  (3) **Quy tắc thời gian**: chỉ gửi yêu cầu trước `cutoff_at` hiện tại; ngày nhận mới phải từ hôm nay trở đi (khóa ngày quá khứ) và không quá `BOOKING_HORIZON_DAYS` (7) ngày tính từ hôm nay; `cutoff_at` của khung mới chưa qua. Tới `pickup_start_at` của đơn hiện tại mà Farmer chưa xử lý thì yêu cầu tự hủy, đơn giữ nguyên. Mỗi đơn chỉ có một yêu cầu đang chờ; yêu cầu mới thay yêu cầu cũ.
+  (4) **Lưu trữ gọn**: không thêm bảng; thêm 1 cột JSON `orders.pending_change` (NULL khi không có yêu cầu). Mọi sự kiện gửi / chấp nhận / từ chối / tự hủy yêu cầu ghi 1 dòng `order_status_history` với `from_status = to_status`, `transition = NULL`.
+  (5) **Cạnh T7 (`ACCEPTED → PLACED`) bị bãi bỏ**: sửa đơn không còn làm đổi trạng thái.
+  (6) **Kiểm tra sản phẩm khi sửa**: món thêm mới hoặc tăng số lượng phải đang bán công khai (không lưu trữ, không bị Admin gỡ, đang mở bán, Farmer `APPROVED`); món đã ngừng bán chỉ được giữ nguyên hoặc giảm.
+  (7) Chỉ chính chủ đơn được sửa; Admin và nhân viên không sửa thay.
+* **D-031 (Ngày Hoạt Động Của Farmer — v1.7)**: Farmer khai **ngày hoạt động** (Thứ 2 → Chủ nhật) ngay khi đăng ký, **bắt buộc ≥ 1 ngày**, sửa được ở hồ sơ sạp. Lưu trong `farmer_profiles.operating_days` (JSON danh sách số 1–7, không thêm bảng). Khung giờ nhận chỉ được đặt vào ngày vừa là ngày chợ họp vừa là ngày hoạt động của Farmer; ngày khách được chọn cũng phải thỏa cả hai. Bỏ một ngày hoạt động thì các khung giờ của ngày đó tự tắt; nếu còn đơn mở có ngày nhận rơi vào thứ đó (từ hôm nay trở đi) thì chặn `422 RESOURCE_IN_USE` kèm danh sách đơn. Thay thế DB-03 (trước đây ngày hoạt động suy ra từ khung giờ).
+* **D-032 (Tọa Độ Farmer Tự Tra Từ Địa Chỉ — v1.7)**: Farmer không phải nhập tọa độ. Khi đăng ký (AU-02) hoặc đổi địa chỉ (FA-03), backend tự tra tọa độ từ địa chỉ qua OpenStreetMap Nominatim (gọi ngoài transaction, timeout 5 giây, tối đa 1 lượt/giây, có User-Agent riêng). Tra không được thì để tọa độ trống, không chặn đăng ký; bản đồ dùng vị trí chợ Farmer bán và F-08 hiện nhắc "Location not found". Farmer có thể kéo ghim trên bản đồ để chỉnh lại (không bắt buộc). Độ chính xác thường ở mức phường / đường.
+* **D-033 (Quyền Admin Với Đơn Hàng — v1.7)**: Admin **không** hủy hay sửa từng đơn. Chỉ khi Admin đình chỉ Farmer (AD-07) hoặc khóa khách (AD-12), hệ thống tự đóng các đơn mở liên quan (T3/T4/T12 hoặc T5/T6/T13), hoàn kho theo D-029. Lý do Admin nhập chỉ lưu ở `audit_logs` và `farmer_profiles.status_reason` / `customer_profiles.deactivation_reason`; lịch sử đơn luôn ghi mã hệ thống (`FARMER_SUSPENDED_BY_ADMIN`, `CUSTOMER_LOCKED_BY_ADMIN`) và email gửi khách / Farmer dùng câu chữ chuẩn, trung tính.
+* **D-034 (Phạm Vi Bắt Buộc — v1.7)**: Mọi tính năng có trong tài liệu thiết kế này đều **bắt buộc** triển khai, kể cả thông báo in-app (WebSocket) + email, yêu thích + đặt lại nhanh + cảnh báo có hàng lại, trợ lý AI. Bỏ nhóm "Điểm cộng" trong Scope Freeze.
+* **D-035 (Diễn Giải "Track Deliveries" — v1.7)**: Mục "Track Deliveries" trong sơ đồ luồng SRS (trang 7) được hiểu là khách theo dõi trạng thái đơn nhận tại chợ (chờ duyệt, đã duyệt, sẵn sàng chờ đến lấy, hoàn tất) và tình trạng còn hàng, vì SRS §1.5 loại trừ giao hàng.
 
 ---
 
@@ -60,7 +80,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 * 🚫 **Không hỗ trợ dịch vụ giao hàng / shipper (Ngoại vi phạm vi)**: Khâu vận chuyển giao hàng tận nơi nằm ngoài phạm vi; ứng dụng chỉ hỗ trợ nhận hàng trực tiếp tại sạp chợ.
 * 🚫 **Không thẩm định chứng nhận nông dân (Ngoại vi phạm vi)**: Hệ thống không có chức năng xác thực danh tính, giấy phép kinh doanh hay chứng nhận an toàn thực phẩm/chứng nhận hữu cơ của nông dân.
 * 🗺️ **Tích hợp bản đồ số (Trong phạm vi)**: Bắt buộc nhúng Google Maps API hoặc OpenStreetMap để định vị chợ, quầy hàng nông dân, hiển thị chỉ đường và điểm hẹn lấy hàng.
-* 🤖 **Trợ lý ảo AI (Tính năng tùy chọn / Điểm cộng)**: Tích hợp chatbot hỗ trợ khách hàng tìm kiếm sản phẩm, giải đáp khung giờ chợ họp, thời gian nông dân có mặt và thông tin sản phẩm.
+* 🤖 **Trợ lý ảo AI (SRS ghi là tùy chọn; dự án vẫn triển khai bắt buộc — D-034)**: Tích hợp chatbot hỗ trợ khách hàng tìm kiếm sản phẩm, giải đáp khung giờ chợ họp, thời gian nông dân có mặt và thông tin sản phẩm.
 
 ---
 
@@ -128,13 +148,13 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | **UC-27** | Đăng thông báo/tin tức toàn hệ thống | Quản trị viên | §1.6, Trang 11 |
 | **UC-28** | Xem Dashboard cá nhân (đơn đang mở, lần nhận sắp tới, lối tắt yêu thích) | Khách hàng | §1.6 Trang 8 ("access their dashboard"); §1.4 ("dashboards for both Farmers and customers") |
 | **UC-29** | Tìm kiếm, sắp xếp, lọc danh bạ Nông dân (vị trí, chợ, ngày, danh mục) | Khách vãng lai, Khách hàng | §1.6 Trang 11–12 ("Search, Sort, Filter ... Farmers") |
-| **UC-30** | Xác nhận đơn hoàn tất / đánh dấu khách không đến nhận (T10, T11) | Nông dân | §1.6 Trang 9 (trạng thái "completed"); D-006 |
+| **UC-30** | Xác nhận đơn hoàn tất / đánh dấu khách không đến nhận (T10, T11, T14) | Nông dân | §1.6 Trang 9 (trạng thái "completed"); D-006 |
 | **UC-31** | Nhận thông báo đơn hàng (in-app + email): đơn mới, khách sửa, khách hủy, đơn bị hủy do khách bị khóa | Nông dân | Suy ra từ §1.6 Trang 10 ("view incoming pre-orders"); D-010 |
 | **UC-32** | Quản lý hồ sơ cá nhân & đổi mật khẩu | Khách hàng, Nông dân, Quản trị viên | §1.6 Trang 8, 10; Sơ đồ luồng Trang 7 ("Update Profile") |
 | **UC-33** | Giám sát hệ thống qua Nhật ký an ninh (Audit Log) | Quản trị viên | Sơ đồ luồng Trang 7 ("Monitor System", "Control Access") |
-| **UC-34** | Tự động chuyển đơn quá hạn duyệt sang `EXPIRED` và hoàn kho (quét lười) | Hệ thống | Giả định A-005; D-009 |
+| **UC-34** | Tự động chuyển đơn quá hạn duyệt sang `EXPIRED` (không đổi kho — D-029) và tự hủy yêu cầu thay đổi quá hạn (quét lười) | Hệ thống | Giả định A-005; D-009 |
 
-> **Tác nhân "Hệ thống"** chỉ xuất hiện ở UC-34 và cạnh T8, T7 (FSM). Đây không phải role đăng nhập; trong `order_status_history` ghi `actor_role = SYSTEM`, `actor` để trống.
+> **Tác nhân "Hệ thống"** chỉ xuất hiện ở UC-34, cạnh T8 (FSM) và sự kiện tự hủy yêu cầu thay đổi (D-030). Đây không phải role đăng nhập; trong `order_status_history` ghi `actor_role = SYSTEM`, `actor` để trống.
 
 ---
 
@@ -145,18 +165,18 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 
 | ID | Vấn Đề Nghiệp Vụ & Bằng Chứng SRS (FACT) | Giả Định Đề Xuất (ASSUMPTION) | Quyết Định Đã Chốt (DECISION GATE) | Tác Động Kỹ Thuật (IMPACT) |
 | :---: | :--- | :--- | :---: | :--- |
-| **A-001** | Khách thêm sản phẩm vào giỏ và đặt hàng (SRS §1.6 Trang 9). | Giỏ hàng cho phép chứa sản phẩm từ nhiều Farmer khác nhau. | ✅ **ĐÃ CHỐT (D-004)**<br>Checkout sinh **$N$ đơn độc lập**; không dùng Master-SubOrder. | 1 endpoint `POST /orders/`; All-or-Nothing; Khóa kho một lần; Giỏ hàng lưu Zustand client. |
-| **A-001b**| Đặt hàng theo tồn kho khả dụng; Farmer duyệt/từ chối (SRS §1.6). | Trừ kho khi đặt hay khi duyệt? Cách chống đặt đơn ảo giam hàng. | ✅ **ĐÃ CHỐT (D-005)**<br>Trừ kho ngay khi đặt (`PLACED`). Áp dụng 4 chốt chặn chống spam. | Tối đa 10 đơn chưa duyệt (`PLACED`) toàn sàn, không giới hạn theo Farmer (Lỗi 422, v1.5); Throttle `orders: 10/h`; Khóa `CustomerProfile`. |
-| **A-002** | Xem trạng thái đơn; hủy/sửa trước cutoff; Farmer duyệt/từ chối (SRS §1.6). | Danh sách trạng thái đầy đủ và các bước chuyển hợp lệ của đơn hàng. | ✅ **ĐÃ CHỐT (D-006)**<br>FSM 8 trạng thái; 13 cạnh chuyển T1–T13; Triple-Gate; OCC `version`. | Ma trận `TRANSITIONS` trong service; Kiểm soát OCC qua header `If-Match`; Lịch sử ghi bảng `order_status_history`. |
-| **A-003** | Khách hủy hoặc sửa đơn trước giờ cutoff của Farmer (SRS §1.6). | Định nghĩa cutoff và phạm vi các trường khách được phép sửa. | ✅ **ĐÃ CHỐT (D-007)**<br>Cutoff tính theo từng đơn; Sửa khi `ACCEPTED` thì reset về `PLACED`. | Lưu cứng `Order.cutoff_at`; Chặn `READY_FOR_PICKUP` trước cutoff; Điều chỉnh kho bù trừ. |
-| **A-004** | Farmer thiết lập mẫu tồn kho tuần và điều chỉnh linh hoạt (SRS §1.6). | Cơ chế nạp mẫu tuần có ghi đè lượng hàng đang giữ của đơn mở không? | ✅ **ĐÃ CHỐT (D-008)**<br>Nút bấm UI nạp mẫu; Trừ đi lượng hàng đang giữ bởi đơn mở. | Trường `weekly_default_quantity` trong `Product`; Công thức $\max(\text{mẫu} - \text{đang\_giữ}, 0)$. |
-| **A-005** | Đơn `PLACED` Farmer không duyệt hoặc khách không đến lấy (SRS §1.6). | Mốc hết hạn của đơn chưa duyệt và cơ chế quét đơn tự động. | ✅ **ĐÃ CHỐT (D-009)**<br>Hết hạn tại `pickup_start_at` $\rightarrow$ `EXPIRED`. Dùng quét lười 3 điểm. | Service `expire_overdue_orders` chạy tại checkout, nạp mẫu và xem dashboard; Hoàn kho an toàn. |
+| **A-001** | Khách thêm sản phẩm vào giỏ và đặt hàng (SRS §1.6 Trang 9). | Giỏ hàng cho phép chứa sản phẩm từ nhiều Farmer khác nhau. | ✅ **ĐÃ CHỐT (D-004)**<br>Checkout sinh **$N$ đơn độc lập**; không dùng Master-SubOrder. | 1 endpoint `POST /orders/`; All-or-Nothing; Kiểm tra kho khả dụng, không trừ kho (D-029); Giỏ hàng lưu Zustand client. |
+| **A-001b**| Đặt hàng theo tồn kho khả dụng; Farmer duyệt/từ chối (SRS §1.6). | Trừ kho khi đặt hay khi duyệt? Cách chống đặt đơn ảo giam hàng. | ✅ **ĐÃ CHỐT (D-005, D-029)**<br>Không trừ kho khi đặt; chỉ trừ khi Farmer duyệt. Áp dụng 4 chốt chặn chống spam. | Tối đa 10 đơn chưa duyệt (`PLACED`, chưa qua giờ nhận) toàn sàn, không giới hạn theo Farmer (Lỗi 422, v1.5); Throttle `orders: 10/h`; Khóa `CustomerProfile`. |
+| **A-002** | Xem trạng thái đơn; hủy/sửa trước cutoff; Farmer duyệt/từ chối (SRS §1.6). | Danh sách trạng thái đầy đủ và các bước chuyển hợp lệ của đơn hàng. | ✅ **ĐÃ CHỐT (D-006)**<br>FSM 8 trạng thái; 13 cạnh (T1–T6, T8–T14; T7 bãi bỏ v1.7); Triple-Gate; OCC `version`. | Ma trận `TRANSITIONS` trong service; Kiểm soát OCC qua header `If-Match`; Lịch sử ghi bảng `order_status_history`. |
+| **A-003** | Khách hủy hoặc sửa đơn trước giờ cutoff của Farmer (SRS §1.6). | Định nghĩa cutoff và phạm vi các trường khách được phép sửa. | ✅ **ĐÃ CHỐT (D-007)**<br>Cutoff tính theo từng đơn; Sửa khi `ACCEPTED` tạo yêu cầu thay đổi chờ Farmer quyết định (D-030). | Lưu cứng `Order.cutoff_at`; Chặn `READY_FOR_PICKUP` trước cutoff; Cột `orders.pending_change`. |
+| **A-004** | Farmer thiết lập mẫu tồn kho tuần và điều chỉnh linh hoạt (SRS §1.6). | Cơ chế nạp mẫu tuần có ghi đè lượng hàng đang giữ của đơn mở không? | ✅ **ĐÃ CHỐT (D-008)**<br>Nút bấm UI nạp mẫu; Trừ đi lượng hàng đang giữ bởi đơn đã duyệt / sẵn sàng. | Trường `weekly_default_quantity` trong `Product`; Công thức $\max(\text{mẫu} - \text{đang\_giữ}, 0)$. |
+| **A-005** | Đơn `PLACED` Farmer không duyệt hoặc khách không đến lấy (SRS §1.6). | Mốc hết hạn của đơn chưa duyệt và cơ chế quét đơn tự động. | ✅ **ĐÃ CHỐT (D-009)**<br>Hết hạn tại `pickup_start_at` $\rightarrow$ `EXPIRED`. Dùng quét lười 3 điểm. | Service `expire_overdue_orders` chạy tại checkout, nạp mẫu và xem dashboard; Không đổi kho, không tính lỗi khách (D-029). |
 | **A-006** | Khách nhận thông báo qua email hoặc in-app alert (SRS §1.6 Trang 12). | Lựa chọn kênh thông báo tối ưu cho bài thi và tránh nghẽn. | ✅ **ĐÃ CHỐT (D-010)**<br>In-app WebSocket là kênh đảm bảo; Email Gmail SMTP là kênh phụ. | Điểm phát duy nhất `notify()`; WebSocket ticket 1 lần; ThreadPoolExecutor(2) gửi mail nền. |
-| **A-007** | Trợ lý ảo AI / Chatbot hỗ trợ tra cứu thông tin (SRS §1.6 & §1.8). | Tự xây hay dùng tawk.to/Zapier? Phạm vi can thiệp dữ liệu của AI. | ✅ **ĐÃ CHỐT (D-011)**<br>Gemini Flash + Function Calling (chỉ đọc 4 tools); Xếp Bonus. | Endpoint `/api/chat/messages/`; Không text-to-SQL; Có cờ bật/tắt `AI_CHAT_ENABLED`. |
+| **A-007** | Trợ lý ảo AI / Chatbot hỗ trợ tra cứu thông tin (SRS §1.6 & §1.8). | Tự xây hay dùng tawk.to/Zapier? Phạm vi can thiệp dữ liệu của AI. | ✅ **ĐÃ CHỐT (D-011)**<br>Gemini Flash + Function Calling (chỉ đọc 4 tools); Bắt buộc (D-034). | Endpoint `/api/chat/messages/`; Không text-to-SQL; Có cờ bật/tắt `AI_CHAT_ENABLED`. |
 | **A-008** | Nhúng bản đồ Google Maps hoặc OpenStreetMap (SRS §1.8 Trang 15). | Lựa chọn giải pháp bản đồ số an toàn, không tốn chi phí / API key. | ✅ **ĐÃ CHỐT (D-012)**<br>OpenStreetMap + React-Leaflet trong app; Google Maps cho link ngoài. | Lưu tọa độ `Decimal(9,6)`; Tính khoảng cách Haversine ở backend; Fix bẫy CSS/Icon Leaflet. |
 | **A-009** | Khách chọn ngày và khung giờ lấy hàng khả dụng (SRS §1.6 Trang 9). | Cấu trúc dữ liệu khung giờ nhận hàng (Pickup Slot) của Farmer. | ✅ **ĐÃ CHỐT (D-013)**<br>Bảng `pickup_slots` lặp lại hàng tuần gắn cặp Farmer–Chợ. | Trường `day_of_week`, `start_time`, `end_time`; Khách chọn ngày cụ thể + 1 slot hợp lệ. |
 | **A-010** | Danh mục sản phẩm, đơn vị tính và số lượng tồn kho (SRS §1.6). | Kho chia theo chợ hay dùng chung? Kiểu dữ liệu số lượng. | ✅ **ĐÃ CHỐT (D-014)**<br>Kho chung cho mọi chợ; Số lượng là số nguyên `INT`. | `stock_quantity = IntegerField`; `unit = TextChoices` (`KG`, `BUNCH`, `PIECE`, `PACK`). |
-| **A-011** | Admin duyệt/đình chỉ Farmer; khóa tài khoản khách vi phạm (SRS §1.6). | Vòng đời tài khoản Farmer và xử lý các đơn mở khi bị khóa. | ✅ **ĐÃ CHỐT (D-015)**<br>Farmer 4 trạng thái; Khóa/Đình chỉ thì đơn mở tự hủy/hoàn kho. | Đơn của Farmer bị đình chỉ chuyển `DECLINED`; Đơn của khách bị khóa chuyển `CANCELLED`. |
+| **A-011** | Admin duyệt/đình chỉ Farmer; khóa tài khoản khách vi phạm (SRS §1.6). | Vòng đời tài khoản Farmer và xử lý các đơn mở khi bị khóa. | ✅ **ĐÃ CHỐT (D-015)**<br>Farmer 4 trạng thái; Khóa/Đình chỉ thì đơn mở tự đóng; hoàn kho đơn đã duyệt (D-029, D-033). | Đơn của Farmer bị đình chỉ chuyển `DECLINED`; Đơn của khách bị khóa chuyển `CANCELLED`. |
 | **A-012** | Khách đánh giá sao và nhận xét sau khi đơn hoàn tất (SRS §1.6 Trang 9). | Giới hạn số lần đánh giá và phạm vi đánh giá (Farmer vs Sản phẩm). | ✅ **ĐÃ CHỐT (D-016)**<br>Chỉ review khi `COMPLETED`; Mỗi món 1 review, mỗi đơn 1 review Farmer. | Rating 1–5 sao; Farmer phản hồi 1 lần; Admin ẩn review vi phạm (`is_hidden_by_admin`). |
 | **A-013** | Xóa sản phẩm và xóa chợ khỏi hệ thống (SRS §1.6). | Cơ chế xóa bảo vệ toàn vẹn dữ liệu khi đã phát sinh đơn hàng. | ✅ **ĐÃ CHỐT (D-017)**<br>Xóa mềm (`is_archived` cho sản phẩm, `is_active` cho chợ). | Áp dụng `on_delete=models.RESTRICT`; Admin gỡ sản phẩm dùng `is_hidden_by_admin`. |
 | **A-014** | Admin xem báo cáo doanh thu, đơn hàng, nông dân năng nổ (SRS §1.6). | Báo cáo xem trên màn hình hay xuất file? Lưu trữ bảng reports. | ✅ **ĐÃ CHỐT (D-018)**<br>Xem dashboard theo ngày; Xuất Excel (`openpyxl`); Ghi `audit_logs`. | Thay bảng `reports` của SRS bằng `audit_logs` action `EXPORT_DATA`. |
@@ -168,6 +188,10 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | **A-020** | Admin khóa khách "in case of policy violations" (SRS §1.6). | Khách bị khóa có được biết lý do không? | ✅ **ĐÃ CHỐT (D-024)**<br>Lưu `deactivation_reason`; báo lý do khi đăng nhập đúng mật khẩu. | Cột mới trong `customer_profiles`; mã `403 ACCOUNT_LOCKED` kèm lý do. |
 | **A-021** | Cảnh báo có hàng lại cho món yêu thích (SRS §1.6). | Nguồn nào làm hàng "có lại" thì được báo? | ✅ **ĐÃ CHỐT (D-025)**<br>Chỉ khi Farmer chủ động bổ sung hàng. | Hook restock chỉ ở FA-14, FA-18; tránh báo liên tục khi đơn hủy/trả kho. |
 | **A-022** | Khách nhận hàng tại sạp trong chợ (SRS §1.5). | Khách tìm đúng sạp bằng cách nào khi không lưu tọa độ sạp? | ✅ **ĐÃ CHỐT (D-026)**<br>`stall_label` bắt buộc, ≤ 100 ký tự; hiển thị SĐT Farmer + nút Gọi. | `farmer_markets.stall_label NOT NULL`; snapshot `orders.stall_label` 100 ký tự. |
+| **A-023** | Sơ đồ luồng SRS trang 7 ghi "Track Deliveries" nhưng §1.5 loại trừ giao hàng. | Hiểu "Track Deliveries" là gì? | ✅ **ĐÃ CHỐT (D-035)**<br>Theo dõi trạng thái đơn nhận tại chợ và tình trạng còn hàng. | Timeline đơn C-05; badge trạng thái; không có module giao hàng. |
+| **A-024** | Farmer khai "operating days" trong hồ sơ (SRS §1.6 Farmer Registration and Profile). | Lưu riêng hay suy ra từ khung giờ? Khai lúc nào? | ✅ **ĐÃ CHỐT (D-031)**<br>Khai ngay khi đăng ký (≥ 1 ngày), sửa ở hồ sơ. | Cột JSON `farmer_profiles.operating_days`; khung giờ và ngày nhận phải thuộc ngày hoạt động. |
+| **A-025** | Farmer cung cấp vị trí sạp / điểm nhận để hiện trên bản đồ (SRS §1.2, §1.4, §1.8). | Farmer không biết tọa độ thì lấy ở đâu? | ✅ **ĐÃ CHỐT (D-032)**<br>Hệ thống tự tra tọa độ từ địa chỉ; Farmer chỉnh ghim nếu muốn. | Gọi Nominatim khi đăng ký / đổi địa chỉ; lỗi thì để trống, dùng vị trí chợ. |
+| **A-026** | Khách sửa đơn trước cutoff (SRS §1.6) khi Farmer đã duyệt và đã trừ kho. | Sửa đơn đã duyệt có làm mất / trừ trùng kho không? | ✅ **ĐÃ CHỐT (D-030)**<br>Tạo yêu cầu thay đổi; Farmer chấp nhận / từ chối / hủy đơn. | Cột JSON `orders.pending_change`; bỏ cạnh T7. |
 
 ---
 
@@ -195,39 +219,47 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
     ```
     Response trả về danh sách các đơn đã tạo. Tuyệt đối không để frontend tự lặp gọi $N$ lần vì mất tính nguyên tử và `Idempotency-Key` không bao trọn được giao dịch.
   * **All-or-Nothing**: Một sản phẩm thiếu hàng thì hủy cả lần checkout và trả mã lỗi `400 Bad Request` với code `INSUFFICIENT_STOCK`, kèm trường `errors` chỉ rõ sản phẩm nào.
-  * **Khóa kho xuyên Farmer**: Gom toàn bộ `product_id` của mọi nhóm, khóa bằng `.order_by("id").select_for_update(of=("self",))` một lần duy nhất (skill §5, triệt tiêu Deadlock).
+  * **Kiểm tra kho xuyên Farmer** *(cập nhật v1.7 — D-029)*: Gom toàn bộ `product_id` của mọi nhóm, đọc tồn kho khả dụng một lần và so với số lượng đặt; **không khóa, không trừ kho** khi tạo đơn. Khóa sản phẩm (`.order_by("id").select_for_update(of=("self",))`) chỉ diễn ra khi Farmer duyệt đơn.
   * **Giá lấy từ DB**: Khi checkout, snapshot đơn giá vào `order_items`, không tin giá client gửi lên.
   * **Giỏ hàng để ở client (Zustand, có persist)**: Lưu `localStorage`. SRS chỉ ghi *"add products to a cart"*, không yêu cầu đồng bộ giữa các thiết bị, bớt được 1 bảng và 4–5 API endpoints thừa.
   * **Validate theo nhóm**: Mọi item trong một nhóm phải thuộc đúng `farmer_id` của nhóm đó, và `pickup_slot_id` phải thuộc Farmer đó, lọc queryset ở `__init__` của serializer (skill §10).
 
 ---
 
-### 📌 A-001b: Giữ Hàng Khi Đặt & Bốn Chốt Chặn Chống Đặt Đơn Ảo (Stock Reservation & Anti-Spam)
-* **Vì sao trừ kho khi đặt, không đợi Farmer duyệt**:
-  * Đơn `PLACED` chỉ tạm giữ hàng (giống giữ ghế khi mua vé máy bay). Farmer duyệt đơn là xác nhận sẽ chuẩn bị đơn đó, không phải bước kiểm soát tồn kho.
-  * Nếu đợi duyệt mới trừ thì sẽ bị bán vượt (oversell): Kho có 10 kg, 5 khách đặt tổng cộng 25 kg, tất cả đều được nhận vì lúc đặt hệ thống báo còn hàng $\rightarrow$ Farmer buộc phải từ chối bớt, khách thật bị hủy đơn.
+### 📌 A-001b: Cơ Chế Trừ Kho Khi Duyệt & Bốn Chốt Chặn Chống Đặt Đơn Ảo (Stock Deduction on Accept & Anti-Spam)
+* **Nguyên tắc: Khách đặt (PLACED) chưa trừ kho, chỉ trừ khi Farmer duyệt (ACCEPTED)**:
+  * Đơn `PLACED` đóng vai trò là "Phiếu yêu cầu đặt hàng trước" (Pre-order Request). Khi khách tạo đơn, hệ thống **KHÔNG trừ kho vật lý / kho online ngay**, nhằm tránh tình trạng khách ảo đặt đơn giam hàng làm sạp không còn hàng bán cho người khác.
+  * Khi khách đặt (`PLACED`): Hệ thống chỉ kiểm tra mềm (soft check) xem tồn kho khả dụng hiện tại có $\ge$ số lượng yêu cầu hay không. Nếu thiếu trả lỗi `400 INSUFFICIENT_STOCK`.
+  * Khi Farmer duyệt đơn (`ACCEPTED`): Farmer xác nhận có đủ nông sản thực tế để soạn hàng. Lúc này hệ thống mới chính thức khóa dòng sản phẩm bằng `.select_for_update()` và trừ kho khả dụng (`stock_quantity`).
 * **Bảng ma trận tác động lên tồn kho theo từng sự kiện**:
   | Sự kiện | Tồn kho | Nguồn quy định |
   | :--- | :---: | :---: |
-  | Khách đặt (tạo đơn `PLACED`) | **Trừ** (giữ chỗ) | A-001b |
-  | Khách sửa đơn trước cutoff | **Theo phần chênh lệch từng món** | A-003 |
-  | `DECLINED` (Farmer từ chối) | **Cộng trả** | A-002 |
-  | `CANCELLED` (Khách hủy trước cutoff) | **Cộng trả** | A-002 |
-  | `EXPIRED` (Hệ thống, quá giờ bắt đầu pickup) | **Cộng trả** | A-005 |
-  | `ACCEPTED`, `READY_FOR_PICKUP`, `COMPLETED` | **Không đổi** | A-002 |
-  | `NO_SHOW` | **Không đổi** (hàng đã soạn, Farmer bán tại sạp) | A-002 |
-  | Áp dụng mẫu tuần | $= \max(\text{mẫu} - \text{số đang giữ bởi đơn mở},\; 0)$ | A-004 |
-  *(Đơn mở: `PLACED`, `ACCEPTED`, `READY_FOR_PICKUP`. Mọi thao tác đổi kho bắt buộc khóa Product bằng `.order_by("id").select_for_update()` trong `transaction.atomic()`)*.
+  | Khách đặt (tạo đơn `PLACED`) | **Không đổi** (chỉ kiểm tra tồn kho khả dụng) | A-001b |
+  | Farmer duyệt đơn (`ACCEPTED`) | **Trừ** (khóa kho và trừ tồn kho chính thức) | A-001b, A-002 |
+  | Khách sửa đơn `PLACED` trước cutoff | **Không đổi** (chỉ kiểm tra kho khả dụng) | A-003 |
+  | Khách gửi yêu cầu thay đổi cho đơn `ACCEPTED` | **Không đổi** (chỉ kiểm tra kho đủ cho phần tăng) | A-003 |
+  | Farmer chấp nhận yêu cầu thay đổi | **Theo chênh lệch từng món** (trừ phần tăng, trả phần giảm) | A-003 |
+  | `DECLINED` từ `PLACED` (T3) | **Không đổi** (chưa trừ nên không hoàn) | A-002 |
+  | `DECLINED` từ `ACCEPTED` (T4) | **Cộng trả** (đã trừ khi duyệt nên hoàn lại) | A-002 |
+  | `CANCELLED` từ `PLACED` (T5) | **Không đổi** (chưa trừ nên không hoàn) | A-002 |
+  | `CANCELLED` từ `ACCEPTED` (T6) | **Cộng trả** (đã trừ khi duyệt nên hoàn lại) | A-002 |
+  | `EXPIRED` (Hệ thống, quá giờ bắt đầu pickup) | **Không đổi** (hết hạn khi còn PLACED, chưa trừ kho) | A-005 |
+  | `READY_FOR_PICKUP`, `COMPLETED` | **Không đổi** | A-002 |
+  | `NO_SHOW` (Khách không đến nhận — T11, T14) | **Cộng trả** về kho online (đã trừ khi duyệt) | A-002 |
+  | Admin đình chỉ Farmer / khóa khách (T12, T13 từ `READY_FOR_PICKUP`) | **Cộng trả** | A-002, D-033 |
+  | Áp dụng mẫu tuần | $= \max(\text{mẫu} - \text{số đang giữ bởi đơn ACCEPTED/READY},\; 0)$ | A-004 |
+  *(Mọi thao tác đổi kho bắt buộc khóa Product bằng `.order_by("id").select_for_update()` trong `transaction.atomic()`)*.
 * **Bốn chốt chặn chống đặt đơn ảo giam hàng**:
   1. **Chốt 1: Bắt buộc đăng nhập**: Endpoint tạo đơn yêu cầu role `CUSTOMER`. Mọi đơn đều gắn với một người cụ thể, không thể đặt ẩn danh.
   2. **Chốt 2: Giới hạn số đơn chưa duyệt** *(cập nhật v1.5)*:
      * Mỗi khách có **tối đa 10 đơn `PLACED`** (Farmer chưa duyệt) trên toàn hệ thống — setting `MAX_PLACED_ORDERS_PER_CUSTOMER = 10`.
      * Đơn `ACCEPTED` / `READY_FOR_PICKUP` **không tính**: Farmer đã chấp nhận người mua nên không còn là rủi ro giam hàng.
-     * **Không giới hạn số đơn với cùng một Farmer**: khách quên món thì đặt thêm đơn mới như bình thường, không bắt khách hiểu cơ chế sửa đơn. Phía Farmer, F-02 nhóm các đơn cùng khách + cùng ngày nhận để soạn hàng một lần.
+     * **Mốc loại trừ tự động**: Khi đếm số đơn `PLACED` của khách, câu query tự động loại trừ các đơn đã quá giờ bắt đầu nhận hàng (`pickup_start_at <= now`), vì các đơn này theo quy định A-005 đã hết hạn duyệt và không còn hiệu lực.
+     * **Không giới hạn số đơn với cùng một Farmer**: khách quên món thì đặt thêm đơn mới như bình thường. Phía Farmer, F-02 nhóm các đơn cùng khách + cùng ngày nhận để soạn hàng một lần.
      * Vi phạm All-or-Nothing trả về HTTP `422`, class `UnprocessableEntityError`, code `OPEN_ORDER_LIMIT_EXCEEDED`.
      * Đầu service checkout, khóa dòng hồ sơ khách: `CustomerProfile.objects.select_for_update().get(user=actor)` trước khi đếm để tránh race condition khi khách mở 2 tab bấm cùng lúc.
   3. **Chốt 3: Throttle riêng cho việc tạo đơn**: Thêm scope `"orders": "10/hour"` vào `DEFAULT_THROTTLE_RATES` gắn `ScopedRateThrottle` cho endpoint `POST /api/customer/orders/`. Sửa/hủy đơn không tính vào giới hạn này.
-  4. **Chốt 4: Xử lý sau khi phát hiện vi phạm**: Farmer thấy khả nghi thì bấm `DECLINED` (bắt buộc nhập lý do), kho hoàn trả ngay; Admin có quyền khóa tài khoản vi phạm. Khách hay đặt mà không lấy được gắn cờ "At risk" và khóa tài khoản đồng thời chặn đăng ký lại bằng cùng email / số điện thoại (D-028).
+  4. **Chốt 4: Xử lý sau khi phát hiện vi phạm**: Farmer thấy khả nghi thì bấm `DECLINED` (bắt buộc nhập lý do); Admin có quyền khóa tài khoản vi phạm. Khách hay đặt mà không đến lấy (`NO_SHOW`) được gắn cờ "At risk" và khóa tài khoản đồng thời chặn đăng ký lại bằng cùng email / số điện thoại (D-028).
 
 ---
 
@@ -237,63 +269,66 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 #### 1. Danh sách 8 trạng thái
 | Trạng thái | Loại | Ý nghĩa | Nguồn |
 | :--- | :---: | :--- | :---: |
-| `PLACED` | Mở | Khách đã đặt, hàng đã được giữ, chờ Farmer duyệt | SRS |
+| `PLACED` | Mở | Khách đã đặt, chờ Farmer duyệt (chưa trừ kho — D-029) | SRS |
 | `ACCEPTED` | Mở | Farmer đã nhận đơn, sẽ chuẩn bị | SRS |
 | `READY_FOR_PICKUP` | Mở | Hàng đã soạn xong, chờ khách đến lấy | SRS |
 | `COMPLETED` | Kết thúc | Khách đã nhận hàng và trả tiền | SRS |
 | `CANCELLED` | Kết thúc | Khách hủy trước cutoff | SRS ("cancel") |
 | `DECLINED` | Kết thúc | Farmer từ chối, bắt buộc có lý do | SRS ("decline") |
-| `NO_SHOW` | Kết thúc | Khách không đến lấy hàng | Giả định |
-| `EXPIRED` | Kết thúc | Farmer không duyệt trước giờ bắt đầu pickup | Giả định |
+| `NO_SHOW` | Kết thúc | Khách không đến lấy hàng; hàng trả về kho online; tính vào cờ At risk | Giả định |
+| `EXPIRED` | Kết thúc | Farmer không duyệt trước giờ bắt đầu pickup; không ảnh hưởng kho và không tính lỗi khách | Giả định |
 
-* **Đơn mở (tính vào hàng đang giữ)**: `PLACED`, `ACCEPTED`, `READY_FOR_PICKUP`.
+* **Đơn mở**: `PLACED`, `ACCEPTED`, `READY_FOR_PICKUP`.
+* **Đơn đang giữ hàng (đã trừ kho)**: `ACCEPTED`, `READY_FOR_PICKUP`. Đơn `PLACED` chỉ là nhu cầu chờ đối soát.
 * **Đơn kết thúc (điểm dừng vĩnh viễn)**: `COMPLETED`, `CANCELLED`, `DECLINED`, `NO_SHOW`, `EXPIRED`.
 
 #### 2. Ba mốc thời gian lưu cứng trên mỗi đơn
 | Mốc thời gian | Cách tính | Vai trò nghiệp vụ |
 | :--- | :--- | :--- |
-| `cutoff_at` | Giờ bắt đầu khung pickup − `order_cutoff_hours` (lưu cứng khi tạo/sửa khung) | Hạn chót để khách sửa hoặc hủy; hạn chót để Farmer từ chối đơn đã duyệt; mốc cho phép soạn hàng |
-| `pickup_start_at` | Ngày pickup + giờ bắt đầu khung pickup | Hạn chót để Farmer duyệt đơn `PLACED`; quá mốc này thành `EXPIRED` |
-| `pickup_end_at` | Ngày pickup + giờ kết thúc khung pickup | Điều kiện cho phép Farmer đánh dấu `NO_SHOW` |
+| `cutoff_at` | Giờ bắt đầu khung pickup − `order_cutoff_hours` (lưu cứng khi tạo/sửa khung) | Hạn chót để khách sửa, gửi yêu cầu thay đổi hoặc hủy; mốc cho phép soạn hàng (T9) |
+| `pickup_start_at` | Ngày pickup + giờ bắt đầu khung pickup | Hạn chót để Farmer duyệt / từ chối đơn (T2, T3, T4) và xử lý yêu cầu thay đổi; đơn `PLACED` quá mốc này thành `EXPIRED` |
+| `pickup_end_at` | Ngày pickup + giờ kết thúc khung pickup | Điều kiện cho phép Farmer đánh dấu `NO_SHOW` (T11, T14) |
 
-#### 3. Bảng ma trận 13 cạnh chuyển trạng thái (Ma trận TRANSITIONS)
+#### 3. Bảng ma trận 13 cạnh chuyển trạng thái (Ma trận TRANSITIONS — v1.7: T1–T6, T8–T14; T7 bãi bỏ)
 | # | Chuyển trạng thái | Ai thực hiện | Điều kiện (Gate 3) | Tồn kho | Thông báo (A-006) |
 | :---: | :--- | :---: | :--- | :---: | :--- |
-| **T1** | `(tạo)` $\rightarrow$ `PLACED` | Khách | Đủ hàng; trước `cutoff_at`; không vượt giới hạn đơn mở (A-001b) | **Trừ** | Farmer: đơn mới |
-| **T2** | `PLACED` $\rightarrow$ `ACCEPTED` | Farmer | Trước `pickup_start_at` (được duyệt cả sau cutoff) | — | Khách (in-app + email) |
-| **T3** | `PLACED` $\rightarrow$ `DECLINED` | Farmer / Admin | Farmer: trước `pickup_start_at`, bắt buộc nhập lý do; Admin: khi đình chỉ Farmer (bỏ qua cutoff) | **Cộng trả** | Khách (in-app + email) |
-| **T4** | `ACCEPTED` $\rightarrow$ `DECLINED` | Farmer / Admin | Farmer: trước `cutoff_at`, bắt buộc nhập lý do; Admin: khi đình chỉ Farmer (bỏ qua cutoff) | **Cộng trả** | Khách (in-app + email) |
-| **T5** | `PLACED` $\rightarrow$ `CANCELLED` | Khách / Admin | Khách: trước `cutoff_at`; Admin: khi khóa tài khoản khách (bỏ qua cutoff) | **Cộng trả** | Farmer (in-app + email) |
-| **T6** | `ACCEPTED` $\rightarrow$ `CANCELLED` | Khách / Admin | Khách: trước `cutoff_at`; Admin: khi khóa tài khoản khách (bỏ qua cutoff) | **Cộng trả** | Farmer (in-app + email) |
-| **T7** | `ACCEPTED` $\rightarrow$ `PLACED` | Hệ thống | Khách sửa đơn trước `cutoff_at` (A-003) | **Bù trừ chênh lệch** | Farmer: đơn đã thay đổi |
-| **T8** | `PLACED` $\rightarrow$ `EXPIRED` | Hệ thống | Đã qua `pickup_start_at` (quét lười A-005) | **Cộng trả** | Khách (in-app + email) |
-| **T9** | `ACCEPTED` $\rightarrow$ `READY_FOR_PICKUP` | Farmer | Sau `cutoff_at` | — | Khách (in-app + email) |
+| **T1** | `(tạo)` $\rightarrow$ `PLACED` | Khách | Đủ hàng khả dụng; trước `cutoff_at`; không vượt giới hạn 10 đơn `PLACED` (A-001b) | — (kiểm tra khả dụng) | Farmer: đơn mới |
+| **T2** | `PLACED` $\rightarrow$ `ACCEPTED` | Farmer | Trước `pickup_start_at` (được duyệt cả sau cutoff); đủ kho, thiếu → `400 INSUFFICIENT_STOCK` | **Trừ** (khóa & trừ kho) | Khách (in-app + email) |
+| **T3** | `PLACED` $\rightarrow$ `DECLINED` | Farmer / Admin | Farmer: trước `pickup_start_at`, bắt buộc nhập lý do; Admin: khi đình chỉ Farmer (bỏ qua cutoff) | — (không cộng trả) | Khách (in-app + email) |
+| **T4** | `ACCEPTED` $\rightarrow$ `DECLINED` | Farmer / Admin | Farmer: trước `pickup_start_at` (không khóa nút sớm hơn), bắt buộc nhập lý do 5–500 ký tự; cũng là lựa chọn "Hủy cả đơn" khi có yêu cầu thay đổi; Admin: khi đình chỉ Farmer | **Cộng trả** (hoàn kho) | Khách (in-app + email) |
+| **T5** | `PLACED` $\rightarrow$ `CANCELLED` | Khách / Admin | Khách: trước `cutoff_at`; Admin: khi khóa tài khoản khách (bỏ qua cutoff) | — (không cộng trả) | Farmer (in-app + email) |
+| **T6** | `ACCEPTED` $\rightarrow$ `CANCELLED` | Khách / Admin | Khách: trước `cutoff_at`; Admin: khi khóa tài khoản khách (bỏ qua cutoff) | **Cộng trả** (hoàn kho) | Farmer (in-app + email) |
+| ~~**T7**~~ | ~~`ACCEPTED` $\rightarrow$ `PLACED`~~ | — | **Bãi bỏ từ v1.7 (D-030)**: sửa đơn đã duyệt tạo yêu cầu thay đổi, không đổi trạng thái | — | — |
+| **T8** | `PLACED` $\rightarrow$ `EXPIRED` | Hệ thống | Đã qua `pickup_start_at` (quét lười A-005) | — (không cộng trả) | Khách (in-app + email) |
+| **T9** | `ACCEPTED` $\rightarrow$ `READY_FOR_PICKUP` | Farmer | Sau `cutoff_at`; không có yêu cầu thay đổi đang chờ (còn thì `422 FAILED_PRECONDITION`) | — | Khách (in-app + email) |
 | **T10** | `READY_FOR_PICKUP` $\rightarrow$ `COMPLETED` | Farmer | Khách nhận hàng và thanh toán | — | — |
-| **T11** | `READY_FOR_PICKUP` $\rightarrow$ `NO_SHOW` | Farmer | Sau `pickup_end_at` | — (không cộng trả) | — |
-| 🌟 **T12** | `READY_FOR_PICKUP` $\rightarrow$ `DECLINED` | **Admin** | Khi đình chỉ Farmer; bỏ qua `cutoff_at`; giải phóng hàng sạp | **Cộng trả** | Khách (in-app + email) |
-| 🌟 **T13** | `READY_FOR_PICKUP` $\rightarrow$ `CANCELLED` | **Admin** | Khi khóa tài khoản Khách; bỏ qua `cutoff_at` | **Cộng trả** | Farmer (in-app + email báo bán lẻ) |
+| **T11** | `READY_FOR_PICKUP` $\rightarrow$ `NO_SHOW` | Farmer | Sau `pickup_end_at` (không bắt buộc chờ thêm) | **Cộng trả** (về kho online) | — |
+| 🌟 **T12** | `READY_FOR_PICKUP` $\rightarrow$ `DECLINED` | **Admin** (tự động khi đình chỉ Farmer — D-033) | Khi đình chỉ Farmer; bỏ qua `cutoff_at` | **Cộng trả** | Khách (in-app + email) |
+| 🌟 **T13** | `READY_FOR_PICKUP` $\rightarrow$ `CANCELLED` | **Admin** (tự động khi khóa khách — D-033) | Khi khóa tài khoản Khách; bỏ qua `cutoff_at` | **Cộng trả** | Farmer (in-app + email: hàng đã trả về kho online) |
+| **T14** | `ACCEPTED` $\rightarrow$ `NO_SHOW` | Farmer | Sau `pickup_end_at` (Farmer chưa kịp bấm Sẵn sàng mà khách không đến) | **Cộng trả** (về kho online) | — |
 
-*Mọi cạnh không có trong bảng đều bị Gate 1 chặn, trả `400 INVALID_STATUS_TRANSITION`. Sửa đơn khi đang `PLACED` không phải là chuyển trạng thái (vẫn ở `PLACED`, chỉ đổi item).*
+*Mọi cạnh không có trong bảng đều bị Gate 1 chặn, trả `400 INVALID_STATUS_TRANSITION`. Sửa đơn khi đang `PLACED` và mọi sự kiện của yêu cầu thay đổi (D-030) không phải là chuyển trạng thái; ghi 1 dòng lịch sử với `transition = NULL`.*
 
 #### 4. Luật thực thi FSM (theo skill §5)
-* **Gate 1, 2, 3**: Đúng 13 cạnh, đúng Actor (thu hẹp tại `get_queryset()`), đủ điều kiện thời gian/lý do (lỗi 422).
-* **OCC**: Mọi thao tác do Khách hoặc Farmer thực hiện (T2–T6, T9–T11 và sửa đơn) bắt buộc gửi `If-Match: <version>`. Các thao tác do Hệ thống quét lười hoặc Admin kích hoạt khẩn cấp (T8, T12, T13) thực thi dưới khóa dòng `select_for_update()` không cần `If-Match` nhưng vẫn tăng `version`.
+* **Gate 1, 2, 3**: Đúng 13 cạnh đang dùng, đúng Actor (thu hẹp tại `get_queryset()`), đủ điều kiện thời gian/lý do (lỗi 422).
+* **OCC**: Mọi thao tác do Khách hoặc Farmer thực hiện (T2–T6, T9–T11, T14, sửa đơn, gửi / chấp nhận / từ chối yêu cầu thay đổi) bắt buộc gửi `If-Match: <version>`. Các thao tác do Hệ thống quét lười hoặc Admin kích hoạt khẩn cấp (T8, T12, T13) thực thi dưới khóa dòng `select_for_update()` không cần `If-Match` nhưng vẫn tăng `version`.
 * **Lịch sử (`order_status_history`) & `change_reason`**:
   | Cạnh | `change_reason` bắt buộc |
   | :--- | :--- |
   | **T3, T4** | Lý do Farmer nhập qua form, hoặc `FARMER_SUSPENDED_BY_ADMIN` |
   | **T5, T6** | Lý do Khách hủy qua form, hoặc `CUSTOMER_LOCKED_BY_ADMIN` |
-  | **T7** | Tóm tắt thay đổi: *"Customer modified: Tomato 5→8 kg"* |
+  | Sửa đơn `PLACED`, sự kiện yêu cầu thay đổi (`transition = NULL`) | Tóm tắt bằng tiếng Anh, ví dụ *"Customer modified: Tomato 5→8 kg"*, *"Change request approved by farmer"*, *"Change request rejected: <lý do>"*, *"Change request expired"* |
   | **T8** | `SYSTEM_EXPIRED` |
   | **T12** | `FARMER_SUSPENDED_BY_ADMIN` |
   | **T13** | `CUSTOMER_LOCKED_BY_ADMIN` |
+  * Lý do Admin tự nhập khi đình chỉ / khóa **không** ghi vào `change_reason` và không gửi cho khách (D-033).
   * Không dùng trường `cancelled_by`; người thực hiện lấy từ `order_status_history.actor` + `actor_role`.
 * **Luật nghiệp vụ phụ thuộc**:
   * Doanh thu (Revenue Summary / Báo cáo Admin): Chỉ tính đơn `COMPLETED`.
   * Dashboard Farmer: Hiển thị 2 chỉ số Pending Orders tách biệt: *"Awaiting approval"* (`PLACED`) và *"In progress"* (`ACCEPTED` + `READY_FOR_PICKUP`).
   * Review: Chỉ được đánh giá khi đơn `COMPLETED`.
-  * Thống kê từ chối: Đếm `DECLINED`; `EXPIRED` được đếm riêng.
-  * Đơn quá hạn chưa đóng: Đơn `ACCEPTED` hoặc `READY_FOR_PICKUP` đã qua `pickup_end_at` được liệt kê trong hộp thoại áp dụng mẫu tuần (A-004) để Farmer xử lý nhanh tại chỗ.
+  * Thống kê từ chối: Đếm `DECLINED`; `EXPIRED` được đếm riêng. `NO_SHOW` là đơn chưa hoàn thành (không tính doanh thu, tính vào cờ At risk của khách).
+  * Đơn quá hạn chưa đóng: Đơn `ACCEPTED` hoặc `READY_FOR_PICKUP` đã qua `pickup_end_at` được liệt kê trong hộp thoại áp dụng mẫu tuần (A-004) để Farmer xử lý nhanh tại chỗ: đơn `READY_FOR_PICKUP` có nút "Complete" (T10) / "No-show" (T11); đơn `ACCEPTED` có nút "No-show" (T14), còn muốn hoàn tất thì bấm "Ready" (T9) trước.
 
 ---
 
@@ -307,37 +342,56 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 * **Bảng phân định phạm vi khách được sửa**:
   | Được sửa | Không được sửa |
   | :--- | :--- |
-  | • Số lượng từng món.<br>• Thêm hoặc bớt món của cùng Farmer.<br>• Đổi sang khung pickup khác của cùng Farmer (tính lại `cutoff_at`; phải còn trước cutoff ở cả khung cũ lẫn khung mới). | • Đổi sang Farmer khác.<br>• Xóa sạch toàn bộ món (trả lỗi, hướng dẫn khách dùng nút Hủy đơn). |
-* **Quy trình 5 bước thực thi Service Sửa Đơn (với OCC)**:
-  1. Khóa đơn hàng, kiểm tra `version` với header `If-Match`.
-  2. Kiểm tra `timezone.now() < order.cutoff_at`.
-  3. Khóa các `Product` liên quan theo `.order_by("id")`, tính phần chênh lệch từng món. Món nào tăng thì kiểm tra kho khả dụng, thiếu trả `INSUFFICIENT_STOCK`.
-  4. Cập nhật kho và các `order_items`.
-  5. Nếu đơn đang `ACCEPTED` $\rightarrow$ chuyển về `PLACED`, ghi `order_status_history.change_reason` tóm tắt (ví dụ: *"Customer modified: Tomato 5→8 kg"*).
+  | • Số lượng từng món (món giữ nguyên giữ đơn giá snapshot cũ; món mới thêm lấy giá hiện tại).<br>• Thêm hoặc bớt món của cùng Farmer (tối thiểu 1 món).<br>• Đổi sang khung pickup khác của cùng Farmer tại cùng chợ.<br>• Ghi chú đơn hàng (tối đa 300 ký tự). | • Đổi sang Farmer khác hoặc chợ khác.<br>• Xóa sạch toàn bộ món (trả lỗi, hướng dẫn khách dùng nút Hủy đơn).<br>• Nhân viên / Admin sửa thay khách (chỉ chính chủ đơn được sửa — D-030). |
+* **Quy tắc thời gian khi sửa** *(D-030)*:
+  1. Khách chỉ sửa hoặc gửi yêu cầu thay đổi khi `now < cutoff_at` của đơn hiện tại; quá giờ → `422 CUTOFF_PASSED`.
+  2. Ngày nhận mới phải từ **hôm nay trở đi** (khóa ngày trong quá khứ) và **không quá `BOOKING_HORIZON_DAYS` (7) ngày tính từ hôm nay**, để tránh dời đơn quá xa.
+  3. Ngày nhận mới phải hợp lệ theo A-019 (ngày chợ họp, ngày hoạt động của Farmer, không trùng kỳ đóng cửa / nghỉ, khung và chợ đang bật) và `cutoff_at` của khung mới chưa qua; vi phạm → `422 SLOT_NOT_AVAILABLE`.
+* **Kiểm tra sản phẩm khi sửa** *(D-030)*: món thêm mới hoặc tăng số lượng phải đang bán công khai (không lưu trữ, không bị Admin gỡ, đang mở bán, Farmer `APPROVED`) → vi phạm `422 PRODUCT_NOT_AVAILABLE`; món đã ngừng bán chỉ được giữ nguyên hoặc giảm. Kho khả dụng phải đủ cho phần tăng → thiếu `400 INSUFFICIENT_STOCK`.
+* **Trường hợp 1 — Đơn đang `PLACED` (sửa trực tiếp)**:
+  1. Khóa đơn, kiểm tra `version` với `If-Match` (sai → `409 RESOURCE_MODIFIED`).
+  2. Kiểm tra thời gian, khung nhận mới và sản phẩm như trên; **không trừ kho** (đơn `PLACED` chưa trừ kho — D-029).
+  3. Cập nhật `order_items`, `total_amount`, khung nhận (tính lại 3 mốc thời gian, chụp lại `stall_label`) và ghi chú.
+  4. Tăng `version` 1 lần, ghi 1 dòng lịch sử `PLACED → PLACED` (`transition = NULL`, tóm tắt thay đổi), báo Farmer `ORDER_MODIFIED`.
+* **Trường hợp 2 — Đơn đang `ACCEPTED` (gửi yêu cầu thay đổi)**:
+  1. Khóa đơn, kiểm tra `version`.
+  2. Kiểm tra thời gian, khung nhận mới, sản phẩm và kho khả dụng cho phần tăng như trên. **Không trừ kho, không đổi nội dung đơn**; đơn vẫn `ACCEPTED` với nội dung cũ và số hàng đã trừ.
+  3. Lưu yêu cầu vào cột `orders.pending_change` (danh sách món đầy đủ sau khi sửa, khung / ngày nhận mới nếu đổi, ghi chú mới, thời điểm gửi). Đã có yêu cầu đang chờ thì **thay thế** yêu cầu cũ.
+  4. Tăng `version`, ghi 1 dòng lịch sử (`transition = NULL`, *"Change request submitted: …"*), báo Farmer `ORDER_MODIFIED`.
+* **Farmer xử lý yêu cầu thay đổi** (trước `pickup_start_at` của đơn hiện tại, gửi `If-Match`):
+  | Lựa chọn | Kết quả | Kho | Thông báo khách |
+  | :--- | :--- | :--- | :--- |
+  | **Chấp nhận** (FA-34) | Áp dụng nội dung mới: món, số lượng, khung nhận, 3 mốc thời gian, `stall_label`, ghi chú, `total_amount`; xóa `pending_change`; đơn vẫn `ACCEPTED` | Khóa sản phẩm theo `id`, trừ thêm phần tăng, trả lại phần giảm; thiếu hàng → `400 INSUFFICIENT_STOCK` (yêu cầu vẫn giữ để Farmer chọn cách khác) | `ORDER_CHANGE_APPROVED` (in-app) |
+  | **Từ chối thay đổi** (FA-35, lý do tùy chọn ≤ 500) | Xóa `pending_change`; đơn giữ nguyên nội dung cũ | Không đổi | `ORDER_CHANGE_REJECTED` (in-app) |
+  | **Hủy cả đơn** (FA-24, T4, lý do bắt buộc 5–500) | Đơn → `DECLINED`; xóa `pending_change` | Cộng trả toàn bộ số đã trừ | `ORDER_DECLINED` (in-app + email) |
+* **Yêu cầu tự hủy**: tới `pickup_start_at` của đơn hiện tại mà Farmer chưa xử lý → xóa `pending_change`, đơn giữ nguyên, ghi lịch sử *"Change request expired"* (`actor_role = SYSTEM`), báo khách `ORDER_CHANGE_REJECTED` với lý do *"The farmer did not respond before the pickup time."*. Việc hủy được thực hiện trong service quét lười (A-005) và cũng được kiểm tra ngay khi đơn bị thao tác.
+* **Ràng buộc liên quan**: khi còn yêu cầu đang chờ, Farmer không được bấm Sẵn sàng (T9 → `422 FAILED_PRECONDITION`, phải xử lý yêu cầu trước). Khách hủy đơn (T6), Farmer hủy đơn (T4) hoặc Admin đình chỉ / khóa (T4/T6/T12/T13) đều xóa `pending_change`.
 
 ---
 
 ### 📌 A-004: Mẫu Tồn Kho Hàng Tuần (Weekly Stock Template)
 * **Vì sao không dùng Celery Beat**: Mỗi Farmer có ngày họp chợ khác nhau (`operating days`), không có mốc "đầu tuần" chung. Nếu Celery reset lúc 00:00 thứ Hai mà Farmer đang họp chợ sáng thứ Hai thì tồn kho bị ghi đè làm bán vượt hàng. Thêm vào đó server Render free bị ngủ (sleep) nên lịch chạy nền rất dễ bị bỏ qua.
 * **Cái bẫy ghi đè & Công thức bù trừ chính xác**:
-  $$\text{tồn\_kho\_mới} = \max(\text{số\_lượng\_mẫu} - \text{số\_lượng\_đang\_giữ\_bởi\_đơn\_mở},\; 0)$$
-  *(Đơn mở: `PLACED`, `ACCEPTED`, `READY_FOR_PICKUP`)*.
+  $$\text{tồn\_kho\_mới} = \max(\text{số\_lượng\_mẫu} - \text{số\_lượng\_đang\_giữ},\; 0)$$
+  *(cập nhật v1.7 — D-029: "đang giữ" chỉ gồm đơn `ACCEPTED`, `READY_FOR_PICKUP` có `pickup_end_at > now`; đơn `PLACED` chưa trừ kho nên không trừ, chỉ hiển thị để đối soát; đơn đã quá giờ nhận không giữ hàng của tuần mới)*.
 * **Năm điểm thiết kế cụ thể**:
   1. Không cần bảng riêng: Thêm trường `weekly_default_quantity = models.PositiveIntegerField(null=True, blank=True)` vào `Product`. Mẫu của Farmer là tập sản phẩm có trường này khác `NULL`.
-  2. Màn hình "Mẫu tồn kho tuần": Bảng danh sách sản phẩm với cột "Default quantity" sửa được tại chỗ; nút *"Apply to this week"* mở hộp thoại xác nhận hiện trước kết quả: *"Tomato: 20 − 5 held = 15"*.
+  2. Màn hình "Mẫu tồn kho tuần": Bảng danh sách sản phẩm với cột "Default quantity" sửa được tại chỗ; nút *"Apply to this week"* mở hộp thoại xác nhận hiện trước kết quả: *"Tomato: 20 − 5 held = 15"*, kèm cột tham khảo "Awaiting approval" (tổng số lượng trong các đơn `PLACED`).
   3. Endpoint: `POST /api/farmer/products/apply-weekly-template/`. Service mở `transaction.atomic()`, gọi `expire_overdue_orders` trước, khóa Product bằng `.order_by("id").select_for_update()`, tính lại tồn kho theo công thức trên rồi lưu.
   4. Không động vào cờ "tạm ngừng bán": Sản phẩm đã đánh dấu tạm ngừng thì giữ nguyên cờ, chỉ số lượng thay đổi.
-  5. Hộp thoại xác nhận liệt kê các đơn `ACCEPTED` và `READY_FOR_PICKUP` đã qua `pickup_end_at` chưa đóng để Farmer xử lý nhanh tại chỗ.
+  5. Hộp thoại xác nhận liệt kê các đơn `ACCEPTED` và `READY_FOR_PICKUP` đã qua `pickup_end_at` chưa đóng để Farmer xử lý nhanh tại chỗ (nút theo A-002 §4).
 
 ---
 
 ### 📌 A-005: Xử Lý Đơn Quá Hạn & Cơ Chế Quét Lười (Overdue Orders & Lazy Evaluation)
 * **Điểm chốt hết hạn**: Là **giờ bắt đầu khung pickup** (`pickup_start_at`), không phải cutoff. Cutoff là hạn của khách; sau cutoff Farmer mới bắt đầu soạn hàng nên Farmer duyệt sau cutoff vẫn hợp lệ.
-* **Trạng thái `EXPIRED`**: Là trạng thái kết thúc thứ 8. Không dùng `DECLINED` thay vì `DECLINED` là Farmer chủ động từ chối. Chuyển `PLACED` $\rightarrow$ `EXPIRED` do hệ thống thực hiện (`order_status_history`: `actor_role = SYSTEM`, `actor` để trống, `change_reason = "SYSTEM_EXPIRED"`) và cộng trả kho.
+* **Trạng thái `EXPIRED`**: Là trạng thái kết thúc thứ 8. Không dùng `DECLINED` thay vì `DECLINED` là Farmer chủ động từ chối. Chuyển `PLACED` $\rightarrow$ `EXPIRED` do hệ thống thực hiện (`order_status_history`: `actor_role = SYSTEM`, `actor` để trống, `change_reason = "SYSTEM_EXPIRED"`). *(cập nhật v1.7 — D-029)* Không đổi kho (đơn chưa từng bị trừ kho) và không tính lỗi cho khách.
 * **Service quét lười `expire_overdue_orders(*, farmer_id)` được gọi tại đúng 3 điểm**:
-  1. Đầu service checkout, với từng Farmer có trong giỏ hàng (giải phóng hàng tồn bị giam trước khi kiểm tra kho cho khách mới).
+  1. Đầu service checkout, với từng Farmer có trong giỏ hàng (dọn đơn chờ quá hạn trước khi đếm giới hạn đơn và kiểm tra kho).
   2. Đầu service áp dụng mẫu tồn kho (A-004).
   3. Khi Farmer mở danh sách đơn hoặc dashboard (đảm bảo chỉ số Pending Orders luôn đúng).
+* **Việc service làm thêm** *(D-030)*: xóa các yêu cầu thay đổi (`orders.pending_change`) của đơn đã tới `pickup_start_at` và báo khách.
+* **Giới hạn đã chấp nhận**: không có lịch chạy tự động; nếu không có sự kiện nào ở 3 điểm trên (và không ai chạy lệnh `expire_orders`), trạng thái và thông báo "hết hạn" có thể đến muộn. WebSocket chỉ phát khi trạng thái trong CSDL đã đổi.
 * **Phía Khách hàng**: Serializer tự suy ra nhãn *"Expired"* nếu đơn còn `PLACED` mà đã qua giờ pickup (thao tác thuần đọc, không ghi DB).
 * **Management Command**: Tạo thêm lệnh `python manage.py expire_orders` gọi lại service trên để hỗ trợ chạy thủ công hoặc cài cron sau này.
 
@@ -345,18 +399,20 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 
 ### 📌 A-006: Thông Báo Đa Kênh (Notifications: In-App Realtime & Email Background)
 * **Quyết định kênh**: Dùng cả hai kênh. **In-app** (lưu DB, WebSocket qua Channels/Redis) là kênh đảm bảo. **Email** (Gmail SMTP) là kênh phụ.
-* **Bảng danh sách 10 sự kiện thông báo**:
+* **Bảng danh sách sự kiện thông báo** *(cập nhật v1.7)*:
   | Sự kiện | Người nhận | In-app | Email | Nguồn |
   | :--- | :---: | :---: | :---: | :--- |
   | Đơn mới (`PLACED`) | Farmer | ✅ | — | Suy ra từ *"view incoming pre-orders"* |
-  | Khách sửa đơn (`ACCEPTED` $\rightarrow$ `PLACED`) | Farmer | ✅ | — | A-003 |
+  | Khách sửa đơn `PLACED` hoặc gửi yêu cầu thay đổi cho đơn `ACCEPTED` (`ORDER_MODIFIED`) | Farmer | ✅ | — | A-003, D-030 |
+  | Farmer chấp nhận yêu cầu thay đổi (`ORDER_CHANGE_APPROVED`) | Khách | ✅ | — | D-030 |
+  | Farmer từ chối hoặc yêu cầu tự hủy (`ORDER_CHANGE_REJECTED`) | Khách | ✅ | — | D-030 |
   | Khách hủy đơn (T5, T6 do Khách) | Farmer | ✅ | ✅ | A-003; Farmer cần biết sớm để không soạn hàng |
-  | Đơn bị hủy do Admin khóa khách (T5, T6, T13) | Farmer | ✅ | ✅ | D-015; báo Farmer giải phóng hàng, bán lẻ tại sạp |
+  | Đơn bị hủy do Admin khóa khách (T5, T6, T13) | Farmer | ✅ | ✅ | D-015, D-033; báo Farmer hàng của đơn đã duyệt / sẵn sàng đã trả về kho online |
   | Chợ đổi lịch làm tắt khung nhận hàng (`MARKET_SCHEDULE_CHANGED`) | Farmer | ✅ | — | D-022 |
   | `ACCEPTED` | Khách | ✅ | ✅ | SRS: *"order confirmations"* |
   | `READY_FOR_PICKUP` | Khách | ✅ | ✅ | SRS: *"orders ready for pickup"* |
   | `DECLINED` (T3, T4 do Farmer; T3, T4, T12 do Admin đình chỉ Farmer) | Khách | ✅ | ✅ | Giả định: tránh khách ra chợ lấy đơn đã hủy |
-  | `EXPIRED` | Khách | ✅ | ✅ | Giả định: thông báo đơn hết hạn (A-005) |
+  | `EXPIRED` | Khách | ✅ | ✅ | Giả định: thông báo đơn hết hạn vì Farmer chưa duyệt (A-005); không ảnh hưởng khách |
   | Restock món yêu thích (Farmer bổ sung hàng làm tồn kho từ 0 lên >0 — D-025) | Khách đã yêu thích món | ✅ | — | SRS: *"restock alerts"* |
   | Thông báo toàn sàn | Toàn bộ User | Bảng riêng `announcements` | — | SRS: Admin *"publish announcements"* |
 * **Cấu trúc dữ liệu & API**:
@@ -376,7 +432,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 
 ---
 
-### 📌 A-007: Trợ Lý AI Chatbot (AI Assistant - Bonus Feature)
+### 📌 A-007: Trợ Lý AI Chatbot (AI Assistant — bắt buộc theo D-034)
 * **Giải pháp kỹ thuật**: Tự xây dựng chatbot bằng **Gemini API (dòng Flash)** qua SDK `google-genai` kết hợp **Function Calling** đọc dữ liệu thật của hệ thống. Không dùng tawk.to/Zapier vì widget bên ngoài không đọc được tồn kho động.
 * **Bản chất**: Retrieval có cấu trúc qua công cụ (RAG qua SQL/ORM), không dùng vector DB, không dùng embedding. Dữ liệu có cấu trúc thì truy vấn ORM chuẩn xác tuyệt đối.
 * **Sơ đồ luồng xử lý**:
@@ -422,7 +478,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
   | :--- | :--- | :--- |
   | Bản đồ chợ và sạp, marker | OpenStreetMap + React-Leaflet | Miễn phí, không key, không billing |
   | Farmer và Admin ghim vị trí | Component MapPicker: bấm hoặc kéo marker để điền tọa độ | Nhập tọa độ trực quan |
-  | Tìm tọa độ từ địa chỉ | Nominatim (tùy chọn), gọi khi bấm nút "Search by address" | Giới hạn 1 request/giây |
+  | Tìm tọa độ từ địa chỉ | Nominatim: backend tự gọi khi Farmer đăng ký / đổi địa chỉ (D-032); Admin bấm "Search by address" ở form chợ | Giới hạn 1 request/giây, timeout 5 giây |
   | Tìm chợ gần tôi | Geolocation API trình duyệt + tính Haversine ở backend | Trả trường `distance_km`, sắp xếp gần $\rightarrow$ xa |
   | Chỉ đường | Link ngoài: `https://www.google.com/maps/dir/?api=1&destination=<lat>,<lng>` | Mở app Google Maps trên điện thoại |
   | Contact Us | Iframe: `https://www.google.com/maps?q=<lat>,<lng>&output=embed` | Đúng câu chữ SRS |
@@ -430,7 +486,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
   | Bảng | Cột vị trí | Ràng buộc kỹ thuật |
   | :--- | :--- | :--- |
   | `markets` | `address`, `latitude`, `longitude` | Cả 3 bắt buộc |
-  | `farmer_profiles` | `address`, `latitude`, `longitude` | `address` bắt buộc; tọa độ nullable (phải cùng có hoặc cùng null) |
+  | `farmer_profiles` | `address`, `latitude`, `longitude` | `address` bắt buộc; tọa độ nullable (phải cùng có hoặc cùng null), **hệ thống tự tra từ địa chỉ** (D-032), Farmer có thể kéo ghim chỉnh lại |
   | `farmer_markets` (trung gian) | `stall_label` bắt buộc, ≤ 100 ký tự (ví dụ: "Row B, Stall 12, near the main gate") | Không lưu tọa độ (D-026) |
   | `customer_profiles` | `address` dạng chữ | Bắt buộc theo SRS |
   *(Quy cách: `DecimalField(max_digits=9, decimal_places=6)`, độ chính xác ~0.1m. Điểm nhận hàng của đơn hàng suy ra từ tọa độ Chợ)*.
@@ -450,8 +506,8 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
   | Tầng | Ý nghĩa | Người nhập | Căn cứ SRS | Bảng |
   | :--- | :--- | :--- | :--- | :--- |
   | Chợ | Ngày mở cửa và giờ mở cửa (một cặp giờ chung cho mọi ngày mở cửa) | Admin | *"operating days, timings"* (Manage Markets) | `markets`, `market_operating_days` |
-  | Farmer | Ngày có mặt và khung giờ nhận hàng tại từng chợ | Farmer | *"operating days, pickup time windows"* | `farmer_markets`, `pickup_slots` |
-* **Ràng buộc**: khung của Farmer phải rơi vào ngày chợ mở và nằm trong `open_time`–`close_time` của chợ (U-04). Farmer không tự tạo chợ; chợ chưa có trong danh sách thì liên hệ Admin qua Contact Us.
+  | Farmer | Ngày hoạt động (D-031) và khung giờ nhận hàng tại từng chợ | Farmer | *"operating days, pickup time windows"* | `farmer_profiles.operating_days`, `farmer_markets`, `pickup_slots` |
+* **Ràng buộc**: khung của Farmer phải rơi vào ngày vừa là ngày chợ mở vừa là ngày hoạt động của Farmer (D-031) và nằm trong `open_time`–`close_time` của chợ (U-04). Farmer không tự tạo chợ; chợ chưa có trong danh sách thì liên hệ Admin qua Contact Us.
 * **Đổi lịch lâu dài (AD-16)**: Admin được sửa ngày / giờ mở cửa. Khung nào nằm ngoài lịch mới thì tự `is_active = false` và gửi `MARKET_SCHEDULE_CHANGED` cho Farmer liên quan. Đơn đã đặt giữ nguyên (snapshot D-007). Response trả `deactivated_slot_count`.
 * **Ngừng hoạt động chợ (AD-17)**: chặn `422 RESOURCE_IN_USE` nếu còn đơn mở tại chợ. Khi đã ngừng: ẩn khỏi trang công khai, không nhận đơn mới (`SLOT_NOT_AVAILABLE`), khung giờ giữ nguyên để kích hoạt lại sau.
 * **Không làm**: giờ mở cửa khác nhau theo từng ngày; giờ đặc biệt ngày lễ (coi là đóng cửa qua A-019 hoặc mở bình thường).
@@ -470,7 +526,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
   2. Còn đơn mở có `pickup_date` trong khoảng thì chặn `422 RESOURCE_IN_USE` kèm danh sách đơn; Farmer từ chối các đơn đó trước (T3/T4, có lý do). Không tự hủy hàng loạt.
   3. Khung giờ (`pickup_slots`) giữ nguyên, tự hoạt động lại sau kỳ nghỉ; không ai phải bật lại.
   4. Được xóa kỳ nghỉ nếu mở cửa / bán lại sớm.
-* **Một ngày nhận hàng hợp lệ khi thỏa đủ**: (1) ngày chợ mở (`market_operating_days`); (2) chợ không đóng cửa (`market_closures`); (3) Farmer không nghỉ (`farmer_closures`); (4) khung `is_active` và chợ `is_active`; (5) trong `BOOKING_HORIZON_DAYS` và trước `cutoff_at`. Áp dụng ở PU-08 và khi tạo / sửa đơn; vi phạm trả `SLOT_NOT_AVAILABLE`.
+* **Một ngày nhận hàng hợp lệ khi thỏa đủ**: (1) ngày chợ mở (`market_operating_days`) **và** là ngày hoạt động của Farmer (`farmer_profiles.operating_days`, D-031); (2) chợ không đóng cửa (`market_closures`); (3) Farmer không nghỉ (`farmer_closures`); (4) khung `is_active` và chợ `is_active`; (5) từ hôm nay đến `BOOKING_HORIZON_DAYS` ngày tới và trước `cutoff_at`. Áp dụng ở PU-08, khi tạo đơn, khi sửa đơn và khi gửi / chấp nhận yêu cầu thay đổi; vi phạm trả `SLOT_NOT_AVAILABLE`.
 * **Hiển thị**: badge "Away 10/06 – 16/06" trên card / hồ sơ Farmer; badge "Closed 28/01 – 04/02" trên card / trang chợ; công cụ chatbot `get_market_info`, `get_farmer_availability` trả thêm kỳ nghỉ sắp tới.
 
 ---
@@ -484,7 +540,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 
 ### 📌 A-021: Điều Kiện Gửi Cảnh Báo Có Hàng Lại (Restock Alert Trigger)
 * **Chỉ gửi** khi Farmer chủ động bổ sung hàng làm tồn kho sản phẩm công khai từ `0` lên `> 0`: FA-14 (sửa tồn kho) và FA-18 (áp dụng mẫu tuần).
-* **Không gửi** khi hàng quay lại do đơn bị hủy (T5, T6, T13), từ chối (T3, T4, T12), hết hạn (T8) hoặc giảm số lượng khi sửa đơn.
+* **Không gửi** khi hàng quay lại do đơn bị hủy (T6, T13), từ chối (T4, T12), khách không đến (T11, T14) hoặc Farmer chấp nhận yêu cầu giảm số lượng (D-030).
 * **Lý do**: tránh bắn thông báo liên tục khi kho dao động quanh 0 do đơn đặt / hủy; người nhận vào xem thì hàng thường đã hết.
 
 ---
@@ -501,7 +557,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 #### 1. Nhóm Chặn (Phải chốt trước Pass 3)
 * **A-009 (Khung pickup - Pickup Slots)**:
   * Khung pickup lặp lại hàng tuần, gắn với cặp Farmer–Chợ trong bảng `pickup_slots` gồm các trường: `farmer_market_id`, `day_of_week` (1–7), `start_time`, `end_time`.
-  * Khách chọn ngày cụ thể + 1 khung pickup hợp lệ (ngày chọn phải đúng thứ trong tuần và trong vòng $N$ ngày tới).
+  * Khách chọn ngày cụ thể + 1 khung pickup hợp lệ (ngày chọn phải đúng thứ trong tuần, là ngày chợ họp và ngày hoạt động của Farmer, và trong vòng $N$ ngày tới — A-019).
 * **A-010 (Phạm vi tồn kho & Đơn vị tính)**:
   * Mỗi sản phẩm có **1 kho chung cho mọi chợ**.
   * `stock_quantity` là số nguyên `IntegerField` (khớp bảng mẫu SRS).
@@ -509,8 +565,9 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 * **A-011 (Vòng đời Farmer & Khóa tài khoản)**:
   * Vòng đời Farmer: `PENDING` $\rightarrow$ `APPROVED` $\rightleftarrows$ `SUSPENDED` / `REJECTED`.
   * Farmer chưa duyệt thì đăng nhập được nhưng không đăng bán sản phẩm được.
-  * Farmer bị đình chỉ: Ẩn khỏi public; toàn bộ đơn mở tự chuyển `DECLINED` (đơn `PLACED`, `ACCEPTED` qua T3, T4; `READY_FOR_PICKUP` qua T12 với lý do: *"FARMER_SUSPENDED_BY_ADMIN"*), cộng trả kho, thông báo khách.
-  * Khách bị khóa: Đặt `is_active=False`; toàn bộ đơn mở tự chuyển `CANCELLED` (đơn `PLACED`, `ACCEPTED` qua T5, T6; `READY_FOR_PICKUP` qua T13 với lý do: *"CUSTOMER_LOCKED_BY_ADMIN"*), cộng trả kho, thông báo Farmer giải phóng hàng bán tại sạp.
+  * Farmer bị đình chỉ: Ẩn khỏi public; toàn bộ đơn mở tự chuyển `DECLINED` (đơn `PLACED`, `ACCEPTED` qua T3, T4; `READY_FOR_PICKUP` qua T12 với lý do: *"FARMER_SUSPENDED_BY_ADMIN"*), cộng trả kho cho đơn `ACCEPTED` / `READY_FOR_PICKUP` (D-029), thông báo khách.
+  * Khách bị khóa: Đặt `is_active=False`; toàn bộ đơn mở tự chuyển `CANCELLED` (đơn `PLACED`, `ACCEPTED` qua T5, T6; `READY_FOR_PICKUP` qua T13 với lý do: *"CUSTOMER_LOCKED_BY_ADMIN"*), cộng trả kho cho đơn `ACCEPTED` / `READY_FOR_PICKUP` (D-029), thông báo Farmer hàng đã trả về kho online.
+  * Admin không hủy / sửa từng đơn riêng lẻ (D-033).
 
 #### 2. Nhóm Mở (Chốt kỹ thuật)
 * **A-012 (Quy tắc đánh giá & Nhận xét)**:
@@ -541,21 +598,22 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 
 ## 3. BẢNG PHÂN ĐỊNH PHẠM VI HỆ THỐNG ĐÓNG BĂNG (SCOPE FREEZE)
 
-### 🟢 Phân hệ Bắt buộc (Must-Have — Cốt tử hoàn thành)
+### 🟢 Phân hệ Bắt buộc (Must-Have — toàn bộ tính năng trong tài liệu, D-034)
 1. **Xác thực & Tài khoản (IAM)**: Đăng ký (Customer, Farmer), Đăng nhập JWT đa phiên, Profile, Phân quyền PBAC 3 Roles.
 2. **Quản lý Danh mục Chợ (Admin & Public)**: CRUD chợ, địa chỉ, ngày mở cửa, giờ mở cửa, lịch đóng cửa tạm thời (`market_closures`), tọa độ OpenStreetMap + Leaflet.
-3. **Quản lý Nông dân & Sạp hàng (Farmer, Admin & Public)**: Hồ sơ nông dân, sạp chợ (`stall_label`), giờ `order_cutoff_hours`, khung giờ nhận hàng (`pickup_slots`), lịch nghỉ bán (`farmer_closures`), Admin duyệt/đình chỉ Farmer.
-4. **Quản lý Sản phẩm & Kho hàng (Farmer & Public)**: CRUD sản phẩm (kèm ảnh, danh mục, đơn vị tính TextChoices, số lượng `INT`), Mẫu tồn kho hàng tuần (`weekly_default_quantity`), nút nạp mẫu trừ hàng đơn mở.
-5. **Duyệt hàng & Đặt hàng trước (Customer)**: Tìm kiếm, lọc đa tiêu chí, giỏ hàng Zustand client gom nhiều Farmer, checkout sinh $N$ đơn độc lập (All-or-Nothing, khóa kho chống Deadlock).
-6. **Quản lý Vòng đời Đơn hàng (FSM 8 trạng thái)**: Luồng FSM chuẩn 13 cạnh, kiểm soát sửa/hủy trước cutoff, Farmer duyệt/từ chối, chuyển sẵn sàng nhận hàng, xác nhận hoàn thành, quét lười đơn quá hạn (`EXPIRED`), và các cạnh can thiệp khẩn cấp của Admin khi đình chỉ Farmer hoặc khóa Khách (T12, T13).
+3. **Quản lý Nông dân & Sạp hàng (Farmer, Admin & Public)**: Hồ sơ nông dân, ngày hoạt động (D-031), tọa độ tự tra từ địa chỉ (D-032), sạp chợ (`stall_label`), giờ `order_cutoff_hours`, khung giờ nhận hàng (`pickup_slots`), lịch nghỉ bán (`farmer_closures`), Admin duyệt/đình chỉ Farmer.
+4. **Quản lý Sản phẩm & Kho hàng (Farmer & Public)**: CRUD sản phẩm (kèm ảnh, danh mục, đơn vị tính TextChoices, số lượng `INT`), Mẫu tồn kho hàng tuần (`weekly_default_quantity`), nút nạp mẫu trừ hàng đơn đã duyệt / sẵn sàng.
+5. **Duyệt hàng & Đặt hàng trước (Customer)**: Tìm kiếm, lọc đa tiêu chí, giỏ hàng Zustand client gom nhiều Farmer, checkout sinh $N$ đơn độc lập (All-or-Nothing, kiểm tra kho khả dụng; kho chỉ trừ khi Farmer duyệt — D-029).
+6. **Quản lý Vòng đời Đơn hàng (FSM 8 trạng thái)**: Luồng FSM chuẩn 13 cạnh (T1–T6, T8–T14), kiểm soát sửa/hủy trước cutoff, yêu cầu thay đổi đơn đã duyệt (D-030), Farmer duyệt/từ chối, chuyển sẵn sàng nhận hàng, xác nhận hoàn thành, quét lười đơn quá hạn (`EXPIRED`), và các cạnh can thiệp khẩn cấp của Admin khi đình chỉ Farmer hoặc khóa Khách (T12, T13).
 7. **Đánh giá & Nhận xét (Customer & Farmer)**: Đánh giá sao (1–5) và bình luận sau khi `COMPLETED`, Farmer phản hồi đánh giá, Admin ẩn đánh giá vi phạm (`is_hidden_by_admin`).
 8. **Bảng điều khiển & Báo cáo (Admin & Farmer)**: Dashboard chỉ số thống kê, doanh thu theo chợ/nông dân (chỉ tính đơn `COMPLETED`), xuất báo cáo Excel (`openpyxl`), ghi nhật ký an ninh (`audit_logs`).
 9. **Trang thông tin tĩnh**: About Us, Contact Us có iframe Google Maps; ghi chú rõ việc hỗ trợ dùng chung tài khoản gia đình trên nhiều thiết bị.
 
-### 🟡 Phân hệ Điểm cộng (Bonus Features — Triển khai sau khi Must-Have hoàn tất)
-1. **Thông báo Đa kênh Thời gian thực**: In-app Notification chuông rung qua WebSocket (Channels + Daphne + Upstash Redis) + Gửi email tự động qua Gmail SMTP nền.
-2. **Trợ lý ảo AI Chatbot**: Chatbot thông minh tích hợp Gemini Flash + Function Calling tra cứu sản phẩm, lịch chợ, khung giờ và đơn hàng.
-3. **Danh sách Yêu thích & Đặt lại nhanh (Quick Reorder)**: 3 bảng yêu thích riêng (Chợ, Nông dân, Sản phẩm); đặt lại nhanh các món từ đơn cũ.
+*(cập nhật v1.7 — D-034: bỏ nhóm "Điểm cộng"; 3 phân hệ dưới đây chuyển thành bắt buộc)*
+
+10. **Thông báo Đa kênh Thời gian thực**: In-app Notification chuông rung qua WebSocket (Channels + Daphne + Upstash Redis) + Gửi email tự động qua Gmail SMTP nền.
+11. **Trợ lý ảo AI Chatbot**: Chatbot thông minh tích hợp Gemini Flash + Function Calling tra cứu sản phẩm, lịch chợ, khung giờ và đơn hàng.
+12. **Danh sách Yêu thích & Đặt lại nhanh (Quick Reorder)** kèm cảnh báo có hàng lại: 3 bảng yêu thích riêng (Chợ, Nông dân, Sản phẩm); đặt lại nhanh các món từ đơn cũ.
 
 ### 🔴 Phân hệ Loại trừ (Out-of-Scope — Tuyệt đối không phát sinh mã nguồn)
 1. Cổng thanh toán trực tuyến (VNPay, MoMo, Stripe, thẻ tín dụng).
@@ -572,7 +630,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | Mã FR | Yêu cầu | UC | Nguồn SRS | Loại | Quyết định |
 | :---: | :--- | :---: | :--- | :---: | :---: |
 | FR-01 | Khách hàng đăng ký: họ tên, SĐT, email, địa chỉ | UC-01 | §1.6 Customer — Registration and Login | SRS | — |
-| FR-02 | Nông dân đăng ký: tên sạp, người liên hệ, SĐT, email, địa chỉ; chờ Admin duyệt | UC-01 | §1.6 Farmer — Registration and Profile | SRS | D-015 |
+| FR-02 | Nông dân đăng ký: tên sạp, người liên hệ, SĐT, email, địa chỉ, ngày hoạt động (≥ 1 ngày); tọa độ tự tra từ địa chỉ; chờ Admin duyệt | UC-01 | §1.6 Farmer — Registration and Profile | SRS | D-015, D-031, D-032 |
 | FR-03 | Đăng nhập an toàn, đăng xuất, vào dashboard riêng theo role | UC-02 | §1.6 Customer / Admin Login | SRS | — |
 | FR-04 | Phân quyền: 3 role `CUSTOMER`, `FARMER`, `ADMIN` chỉ dùng tính năng của mình; Guest chỉ xem trang công khai | UC-02 | §1.6 Role-Based Access Control; §1.7 Security | SRS | D-002 |
 | FR-05 | Trang About Us: đội ngũ + nền tảng (kèm FAQ dùng chung tài khoản) | UC-03 | §1.6 About Us | SRS | D-021 |
@@ -592,7 +650,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | FR-18 | Chọn ngày + khung giờ nhận trong khung của Nông dân | UC-07 | §1.6 Place Pre-Orders for Pickup | SRS | D-013 |
 | FR-19 | Đặt đơn theo tồn kho khả dụng (N đơn độc lập, giữ hàng ngay) | UC-07 | §1.6 Place Pre-Orders for Pickup | SRS | D-004, D-005 |
 | FR-20 | Xem trạng thái đơn (placed → accepted → ready → completed) | UC-08 | §1.6 Place Pre-Orders; Manage Orders | SRS | D-006 |
-| FR-21 | Sửa đơn trước giờ cutoff | UC-08 | §1.6 Manage Orders | SRS | D-007 |
+| FR-21 | Sửa đơn trước giờ cutoff (đơn đã duyệt: gửi yêu cầu thay đổi chờ Farmer quyết định) | UC-08 | §1.6 Manage Orders | SRS | D-007, D-030 |
 | FR-22 | Hủy đơn trước giờ cutoff | UC-08 | §1.6 Manage Orders | SRS | D-006 |
 | FR-23 | Xem lịch sử đơn và đặt lại nhanh | UC-09 | §1.6 Order History and Favorites | SRS | D-019 |
 | FR-24 | Yêu thích Nông dân / sản phẩm + cảnh báo có hàng lại | UC-09, 12 | §1.6 Order History and Favorites | SRS | D-019, D-010 |
@@ -608,11 +666,11 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 ### 4.3 Nông dân
 | Mã FR | Yêu cầu | UC | Nguồn SRS | Loại | Quyết định |
 | :---: | :--- | :---: | :--- | :---: | :---: |
-| FR-40 | Hoàn thiện hồ sơ: chợ tham gia, ngày hoạt động, vị trí (địa chỉ, ghim, lat/lng) | UC-13 | §1.6 Farmer Registration and Profile Management | SRS | D-012 |
+| FR-40 | Hoàn thiện hồ sơ: chợ tham gia, sửa ngày hoạt động, vị trí (địa chỉ; tọa độ tự tra, chỉnh ghim nếu muốn) | UC-13 | §1.6 Farmer Registration and Profile Management | SRS | D-012, D-031, D-032 |
 | FR-41 | Thêm / sửa / xem / xóa sản phẩm (tên, danh mục, giá, đơn vị, số lượng, mô tả, ảnh) | UC-15 | §1.6 Manage Weekly Stock and Pricing | SRS | D-014, D-017 |
 | FR-42 | Mẫu tồn kho hàng tuần + điều chỉnh | UC-14 | §1.6 Manage Weekly Stock and Pricing | SRS | D-008 |
 | FR-43 | Đánh dấu hết hàng / tạm ngừng bán | UC-15 | §1.6 Manage Weekly Stock and Pricing | SRS | — |
-| FR-44 | Xem đơn đến, duyệt / từ chối, đánh dấu sẵn sàng | UC-17 | §1.6 Manage pre-orders | SRS | D-006 |
+| FR-44 | Xem đơn đến, duyệt (trừ kho) / từ chối, đánh dấu sẵn sàng, xử lý yêu cầu thay đổi của khách | UC-17 | §1.6 Manage pre-orders | SRS | D-006, D-029, D-030 |
 | FR-45 | Thiết lập giờ cutoff (1–72 giờ) + quản lý khung nhận hàng + lịch nghỉ bán | UC-16 | §1.6 Manage pre-orders; §1.1 "closed for the week" | SRS | D-007, D-013, D-023 |
 | FR-46 | Lịch sử bán, sản phẩm bán chạy, Tổng đơn, Đơn chờ, Doanh thu | UC-18 | §1.6 View Order History and Insights | SRS | D-006 |
 | FR-47 | Xem và phản hồi đánh giá | UC-19 | §1.6 Respond to Reviews | SRS | D-016 |
@@ -635,7 +693,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 ### 4.5 Hệ thống
 | Mã FR | Yêu cầu | UC | Nguồn SRS | Loại | Quyết định |
 | :---: | :--- | :---: | :--- | :---: | :---: |
-| FR-59 | Đơn `PLACED` quá `pickup_start_at` tự chuyển `EXPIRED`, hoàn kho, báo khách | UC-34 | — | Giả định | D-009 |
+| FR-59 | Đơn `PLACED` quá `pickup_start_at` tự chuyển `EXPIRED` (không đổi kho), báo khách; yêu cầu thay đổi quá hạn tự hủy | UC-34 | — | Giả định | D-009, D-029, D-030 |
 
 ---
 
@@ -659,7 +717,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 
 # 🎨 PASS 3: THIẾT KẾ MÀN HÌNH & LUỒNG GIAO DIỆN (FRONTEND UI/UX FLOW & DATA SPEC)
 ## DỰ ÁN MARKETLINK — TECHWIZ 7
-> **Đầu vào**: Use Case UC-01 → UC-27 (Pass 1) và Decision Log D-001 → D-026 (Pass 2, bản sửa: FSM 13 cạnh T1–T13).
+> **Đầu vào**: Use Case UC-01 → UC-34 (Pass 1) và Decision Log D-001 → D-035 (Pass 2; FSM 13 cạnh T1–T6, T8–T14 — v1.7).
 > **Tác nhân & định tuyến**: 3 role đăng nhập `CUSTOMER`, `FARMER`, `ADMIN` + tác nhân `Guest` (chưa đăng nhập, không phải role trong CSDL). Route và thư mục `pages/` đặt tên đúng theo 4 tác nhân này.
 > **Phạm vi**: 100% tính năng được thi công, không loại bỏ phân hệ nào.
 > **Stack giao diện (D-001)**: React 19 + Vite, CSS3 thuần (CSS Modules + design tokens CSS Custom Properties), Radix UI primitives (headless), TanStack Query/Table, React Hook Form + Zod, Zustand, React-Leaflet (D-012), Recharts.
@@ -677,7 +735,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | Mã FR | Yêu cầu (SRS §1.6) | UC | Quyết định | Màn hình |
 | :---: | :--- | :---: | :---: | :--- |
 | FR-01 | Customer đăng ký: họ tên, SĐT, email, địa chỉ | UC-01 | — | G-10 |
-| FR-02 | Farmer đăng ký: tên sạp, người liên hệ, SĐT, email, địa chỉ | UC-01 | D-015 | G-11 |
+| FR-02 | Farmer đăng ký: tên sạp, người liên hệ, SĐT, email, địa chỉ, ngày hoạt động | UC-01 | D-015, D-031, D-032 | G-11 |
 | FR-03 | Đăng nhập an toàn, đăng xuất, chuyển tới dashboard riêng theo role | UC-02 | D-027 | G-09, A-00, C-00, F-01, A-01 |
 | FR-04 | Phân quyền: mỗi role `CUSTOMER` / `FARMER` / `ADMIN` chỉ truy cập nhánh route của mình; Guest chỉ truy cập trang công khai | UC-02 | D-002 | `RoleRoute`, `GuestOnlyRoute` |
 | FR-05 | Trang About Us (đội ngũ + nền tảng, FAQ dùng chung tài khoản) | UC-03 | D-021 | G-07 |
@@ -697,7 +755,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 | FR-18 | Chọn ngày + khung pickup trong khung của Farmer | UC-07 | D-013 | C-02 |
 | FR-19 | Đặt đơn đặt trước theo tồn kho khả dụng (N đơn độc lập) | UC-07 | D-004, D-005 | C-02, C-03 |
 | FR-20 | Xem trạng thái đơn (placed → completed) | UC-08 | D-006 | C-04, C-05 |
-| FR-21 | Sửa đơn trước cutoff | UC-08 | D-007 | C-06 |
+| FR-21 | Sửa đơn trước cutoff (đơn đã duyệt: gửi yêu cầu thay đổi) | UC-08 | D-007, D-030 | C-06, C-05 |
 | FR-22 | Hủy đơn trước cutoff | UC-08 | D-006 | C-05 |
 | FR-23 | Lịch sử đơn + đặt lại nhanh | UC-09 | D-019 | C-04, C-05 |
 | FR-24 | Yêu thích Farmer / sản phẩm + cảnh báo có hàng lại | UC-09 | D-019, D-010 | C-08, N-01 |
@@ -713,11 +771,11 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 ### 0.3 Farmer
 | Mã FR | Yêu cầu | UC | Quyết định | Màn hình |
 | :---: | :--- | :---: | :---: | :--- |
-| FR-40 | Hồ sơ sạp: chợ tham gia, ngày hoạt động, vị trí (ghim, lat/lng) | UC-13 | D-012 | F-08 |
+| FR-40 | Hồ sơ sạp: chợ tham gia, ngày hoạt động, vị trí (tự tra từ địa chỉ, chỉnh ghim nếu muốn) | UC-13 | D-012, D-031, D-032 | F-08, F-07 |
 | FR-41 | Thêm/sửa/xem/xóa sản phẩm (tên, danh mục, giá, đơn vị, số lượng, mô tả, ảnh) | UC-15 | D-014, D-017 | F-04, F-05 |
 | FR-42 | Mẫu tồn kho hàng tuần + điều chỉnh | UC-14 | D-008 | F-06 |
 | FR-43 | Đánh dấu hết hàng / tạm ngừng bán | UC-15 | — | F-04 |
-| FR-44 | Xem đơn đến, duyệt / từ chối, đánh dấu sẵn sàng (+ hoàn tất, không đến) | UC-17 | D-006 | F-02, F-03 |
+| FR-44 | Xem đơn đến, duyệt / từ chối, đánh dấu sẵn sàng (+ hoàn tất, không đến), xử lý yêu cầu thay đổi | UC-17 | D-006, D-029, D-030 | F-02, F-03 |
 | FR-45 | Thiết lập cutoff (1–72 giờ) + quản lý khung pickup + lịch nghỉ bán | UC-16 | D-007, D-013, D-023 | F-07 |
 | FR-46 | Lịch sử bán, sản phẩm bán chạy, Tổng đơn, Đơn chờ, Doanh thu | UC-18 | D-006 | F-01, F-02 |
 | FR-47 | Xem và phản hồi đánh giá | UC-19 | D-016 | F-09 |
@@ -740,7 +798,7 @@ Trích xuất từ mục 1.5 của SRS (Trang 7–8):
 ### 0.4b Hệ thống
 | Mã FR | Yêu cầu | UC | Quyết định | Màn hình |
 | :---: | :--- | :---: | :---: | :--- |
-| FR-59 | Đơn `PLACED` quá `pickup_start_at` tự chuyển `EXPIRED`, hoàn kho, báo khách | UC-34 | D-009 | Nhãn "Expired" ở C-04, C-05; chỉ số F-01 |
+| FR-59 | Đơn `PLACED` quá `pickup_start_at` tự chuyển `EXPIRED` (không đổi kho), báo khách | UC-34 | D-009, D-029 | Nhãn "Expired" ở C-04, C-05; chỉ số F-01 |
 
 ### 0.5 Yêu cầu phi chức năng
 Nguồn chuẩn: `MarketLink_requirement_analysis.md` Pass 2 §5 (NFR-01 → NFR-12). Các NFR tác động trực tiếp lên giao diện được hiện thực hóa tại: §1.5 (validate), §1.6 (3 trạng thái — NFR-04), §1.7 (mã lỗi — NFR-04, NFR-07), §1.8 (chống bấm đúp), CSS3 mobile-first 640 / 768 / 1024px (NFR-09, NFR-10), Accessibility (NFR-02).
@@ -772,6 +830,8 @@ Nguồn chuẩn: `MarketLink_requirement_analysis.md` Pass 2 §5 (NFR-01 → NFR
 | `EXPIRED` | Expired | Xám nhạt |
 
 Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nhưng chưa bị quét lười → hiển thị "Expired" dựa trên trường `is_overdue` do serializer trả về.
+
+Nhãn phụ yêu cầu thay đổi (D-030): đơn `ACCEPTED` có `pending_change` hiển thị thêm badge "Change requested" (vàng) cho cả Customer và Farmer.
 
 ### 1.3 Huy hiệu trạng thái khác
 | Thực thể | Giá trị → Nhãn |
@@ -994,9 +1054,9 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 - **Đánh giá sản phẩm**: điểm TB, phân bố 5 → 1 sao, danh sách review (tên khách rút gọn, sao, nhận xét, ngày, phản hồi của Farmer nếu có), phân trang 10.
 
 ### G-06 · Hồ sơ Farmer (công khai)
-- **Header**: ảnh sạp, tên sạp, người liên hệ, điểm TB, ♥ yêu thích Farmer; badge "Away dd/mm – dd/mm" nếu có kỳ nghỉ sắp tới (D-023).
+- **Header**: ảnh sạp, tên sạp, người liên hệ, điểm TB, ♥ yêu thích Farmer; chip ngày hoạt động (D-031); badge "Away dd/mm – dd/mm" nếu có kỳ nghỉ sắp tới (D-023).
 - **Tab "This week's products"**: lưới sản phẩm còn bán của Farmer (card như G-04).
-- **Tab "Markets & pickup times"**: bảng mỗi chợ tham gia: tên chợ, `stall_label`, ngày + khung pickup, nút "Directions"; bản đồ marker các chợ + vị trí sạp (nếu Farmer có tọa độ).
+- **Tab "Markets & pickup times"**: bảng mỗi chợ tham gia: tên chợ, `stall_label`, ngày + khung pickup, nút "Directions"; bản đồ marker các chợ + vị trí Farmer (tọa độ tự tra từ địa chỉ — D-032; tra không được thì chỉ hiện các chợ).
 - **Tab "Reviews"**: review về Farmer (D-016) + phản hồi.
 - **Ghi chú**: hiển thị giờ chốt cụ thể của các khung sắp tới lấy từ PU-08 (ví dụ "Order cutoff: Fri 12/06, 18:00"), không hiển thị số giờ `order_cutoff_hours` (D-007).
 
@@ -1046,7 +1106,8 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 | Người liên hệ | text | * | 2–100 ký tự |
 | Số điện thoại | tel | * | Regex VN |
 | Email | email | * | Duy nhất |
-| Địa chỉ | textarea | * | 5–255 ký tự |
+| Địa chỉ | textarea | * | 5–255 ký tự; hệ thống tự tra tọa độ từ địa chỉ này (D-032), Farmer không phải nhập tọa độ |
+| Ngày hoạt động | Checkbox group Thứ 2 → Chủ nhật | * | ≥ 1 ngày (D-031); sửa lại được ở F-08 |
 | Mật khẩu / Xác nhận | password | * | Như G-10 |
 - Thành công → Success screen: "Registration successful. Your account is awaiting administrator approval. Meanwhile, you can complete your stall profile." + nút "Go to dashboard".
 
@@ -1076,12 +1137,13 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
   | Trường | Kiểu | Bắt buộc | Quy tắc |
   | :--- | :--- | :---: | :--- |
   | Chợ nhận hàng | Select | * | Các chợ Farmer tham gia có khung pickup |
-  | Ngày nhận | Date chips | * | Chỉ những ngày khớp `day_of_week` của khung, trong `BOOKING_HORIZON_DAYS` ngày tới (D-013); loại ngày chợ đóng cửa và ngày Farmer nghỉ bán (D-023) |
+  | Ngày nhận | Date chips | * | Chỉ những ngày từ hôm nay trong `BOOKING_HORIZON_DAYS` ngày tới, khớp `day_of_week` của khung, là ngày chợ họp **và** ngày hoạt động của Farmer (D-013, D-031); loại ngày chợ đóng cửa và ngày Farmer nghỉ bán (D-023) |
   | Khung giờ | Radio | * | Các `pickup_slots` của ngày đã chọn; khung đã qua cutoff hiện disabled kèm tooltip "Pre-order cutoff has passed" |
   | Ghi chú cho Farmer | textarea | — | ≤ 300 ký tự |
 - **Hiển thị sau khi chọn khung**: "Edit/cancel until: `cutoff_at`", bản đồ nhỏ vị trí chợ + `stall_label`.
 - **Tóm tắt bên phải**: danh sách nhóm, tổng tiền, "You are placing N separate orders for N farmers".
 - **CTA**: "Confirm N orders" → ConfirmDialog tóm tắt → `POST` một lần (D-004) với `Idempotency-Key`.
+- **Ghi chú dưới nút xác nhận** (D-029): "Stock is reserved only when the farmer accepts your order."
 - **Xử lý lỗi**: `INSUFFICIENT_STOCK` → quay về từng dòng thiếu; `OPEN_ORDER_LIMIT_EXCEEDED` → dialog (§1.7); slot hết hạn → yêu cầu chọn lại.
 
 ### C-03 · Đặt hàng thành công
@@ -1103,22 +1165,23 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 - **Bảng món**: tên, đơn giá (snapshot), số lượng, đơn vị, thành tiền; tổng cộng; chú thích "Pay on pickup".
 - **Timeline (Audit Trail)**: mỗi bước: trạng thái, thời gian, người thực hiện (Bạn / Nông dân / Hệ thống), lý do (khi từ chối / hệ thống tự hủy / tóm tắt sửa đơn).
 - **Lý do từ chối** (`DECLINED`): khung đỏ nổi bật.
+- **Khối "Change request"** (D-030, khi đơn `ACCEPTED` có `pending_change`): hiển thị so sánh nội dung hiện tại và nội dung đề nghị, trạng thái "Waiting for the farmer" và hạn xử lý (`pickup_start_at`). Kết quả chấp nhận / từ chối hiện trên Timeline.
 - **Nút hành động theo trạng thái**: xem ma trận §7.1.
-- **Dialog hủy đơn**: "Cancel order #1024? The items will be returned to the farmer. This cannot be undone." → nút đỏ "Cancel order".
+- **Dialog hủy đơn**: "Cancel order #1024? This cannot be undone." → nút đỏ "Cancel order". Hủy đơn cũng hủy yêu cầu thay đổi đang chờ (nếu có).
 - **Đặt lại** (D-019): nạp món vào giỏ theo giá hiện tại; toast liệt kê món bị bỏ qua (hết hàng / ngừng bán); chuyển tới C-01.
 
-### C-06 · Sửa đơn (D-007)
+### C-06 · Sửa đơn (D-007, D-030)
 - **Điều kiện vào trang**: đơn `PLACED`/`ACCEPTED` và `now < cutoff_at`; ngược lại chuyển về C-05 kèm toast.
-- **Cảnh báo đầu trang** (khi đơn đang `ACCEPTED`): "This order has been accepted by the farmer. After editing, it will return to Pending."
+- **Cảnh báo đầu trang** (khi đơn đang `ACCEPTED`): "This order has been accepted. Your changes will be sent to the farmer for approval. Until the farmer approves, your current order stays as it is." Nếu đã có yêu cầu đang chờ: "Submitting again will replace your previous change request."
 - **Chỉnh sửa**:
   | Thao tác | Quy tắc |
   | :--- | :--- |
-  | Đổi số lượng từng món | Stepper 1..(tồn kho hiện tại + số đang giữ của chính món đó trong đơn) |
+  | Đổi số lượng từng món | Stepper 1..(số hiện có trong đơn + tồn kho khả dụng hiện tại); món đã ngừng bán chỉ được giữ hoặc giảm (D-030) |
   | Xóa món | Cho phép khi còn ≥ 1 món; xóa món cuối → nút bị khóa, gợi ý "Use Cancel order" |
-  | Thêm món | Modal chọn sản phẩm **cùng Farmer**, còn hàng |
-  | Đổi khung nhận | Chọn chợ / ngày / khung của cùng Farmer; khung mới phải còn trước cutoff |
+  | Thêm món | Modal chọn sản phẩm **cùng Farmer**, đang bán công khai, còn hàng |
+  | Đổi khung nhận | Chọn ngày / khung của cùng Farmer tại cùng chợ; ngày từ hôm nay đến 7 ngày tới, là ngày chợ họp và ngày hoạt động của Farmer; khung mới phải còn trước cutoff (A-003) |
 - **Tóm tắt thay đổi** trước khi lưu: "Tomato 5 → 8 kg; added Water spinach 2 bunch; total $8.40 → $12.95".
-- **CTA**: "Save changes" (gửi `If-Match`), "Discard". 409 → dialog tải lại.
+- **CTA**: "Save changes" (đơn `PLACED`) / "Send change request" (đơn `ACCEPTED`), gửi `If-Match`; "Discard". 409 → dialog tải lại.
 
 ### C-07 · Đánh giá đơn hàng (D-016)
 - Chỉ mở khi đơn `COMPLETED`.
@@ -1152,26 +1215,35 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 - **Cảnh báo**: "X orders are past pickup time but still open" (đơn `ACCEPTED`/`READY` đã qua `pickup_end_at`) → link F-02.
 - **Đơn sắp tới**: 5 đơn gần giờ nhận nhất.
 
-### F-02 · Đơn hàng Farmer (FR-44, FR-46)
-- **Tabs**: Chờ duyệt · Đã xác nhận · Sẵn sàng · Lịch sử (kết thúc).
+### F-02 · Đơn hàng Farmer (FR-44, FR-46 — FA-19)
+- **Tabs**: Chờ duyệt · Đã xác nhận · Sẵn sàng · Lịch sử (kết thúc). Tab "Đã xác nhận" có bộ lọc nhanh "Change requested" kèm số đếm (D-030).
+- **Quy tắc sắp xếp chuẩn theo từng tab**:
+  - **Tab "Chờ duyệt" (`PLACED`)**: Sắp xếp `created_at ASC` (nguyên tắc FIFO — ai đặt trước duyệt trước để giữ công bằng).
+  - **Tab "Đã xác nhận" & "Sẵn sàng" (`ACCEPTED`, `READY_FOR_PICKUP`)**: Sắp xếp `pickup_start_at ASC` (đơn nào khách sắp đến nhận trước thì xếp lên đầu để Farmer chuẩn bị hàng trước).
+  - **Tab "Lịch sử" (`COMPLETED`, `CANCELLED`, `DECLINED`, `NO_SHOW`, `EXPIRED`)**: Sắp xếp `-created_at` (đơn mới nhất lên đầu).
 - **Bộ lọc**: ngày nhận (khoảng), chợ, trạng thái (tab Lịch sử), tìm theo mã đơn / tên khách.
 - **Cột bảng**: Mã đơn · Khách hàng (tên, SĐT) · Chợ · Ngày + khung nhận · Số món · Tổng tiền · Trạng thái · Cutoff · Hành động.
-- **Hành động trên dòng**: nút theo ma trận §7.1 (Duyệt / Từ chối / Sẵn sàng / Hoàn tất / Không đến).
+- **Hành động trên dòng**: nút theo ma trận §8.1 (Duyệt / Từ chối / Sẵn sàng / Hoàn tất / Không đến / Xem yêu cầu thay đổi).
+- **Đối soát kho khi duyệt** (D-029): tab "Chờ duyệt" hiển thị cảnh báo "Not enough stock" trên dòng nếu tồn kho hiện tại không đủ cho đơn; hệ thống không tự từ chối, Farmer tự quyết định.
 - **Nhóm đơn cùng khách** (D-005 v1.5): các đơn của cùng một khách có cùng ngày nhận hiển thị liền nhau kèm nhãn "2 orders from Le Minh Chau for Sat 26/09", để Farmer soạn và giao một lần.
 - **Chế độ "Packing list"** (tab Đã xác nhận): gom tổng số lượng từng sản phẩm cho một ngày + chợ ("Tomato: 23 kg across 6 orders") giúp Farmer chuẩn bị. *(Dữ liệu suy ra từ đơn, không phát sinh bảng mới.)*
 - **Phân trang**: 20.
 
-### F-03 · Chi tiết đơn (Farmer)
+### F-03 · Chi tiết đơn (Farmer — FA-22)
 - Như C-05 nhưng hiển thị thông tin khách (tên, SĐT, email), ghi chú của khách.
-- Timeline có dòng "Customer modified: ..." (T7) để Farmer thấy thay đổi.
-- **Dialog Từ chối** (T3/T4): textarea "Decline reason" * (5–500 ký tự) + gợi ý nhanh (chip: "Out of stock", "Not enough time to prepare", "Suspicious order"). Nút đỏ "Decline order".
-- **Dialog Sẵn sàng** (T9): "Mark order #1024 as packed? The customer will be notified." Nút bị khóa trước `cutoff_at` kèm tooltip "Available after HH:mm dd/MM".
+- Timeline có dòng "Customer modified: ..." và các sự kiện yêu cầu thay đổi để Farmer thấy thay đổi.
+- **Khối "Change request"** (D-030, khi có `pending_change`): bảng so sánh hiện tại → đề nghị (món, số lượng, khung nhận, tổng tiền), cột "Stock available" cho phần tăng, hạn xử lý `pickup_start_at`. Ba nút:
+  - "Approve changes" (FA-34): "Apply the customer's changes? Extra quantity will be deducted from stock and reduced quantity returned." Thiếu hàng → toast `INSUFFICIENT_STOCK`.
+  - "Keep original order" (FA-35): lý do tùy chọn ≤ 500 ký tự gửi cho khách.
+  - "Cancel whole order": mở Dialog Từ chối (T4).
+- **Dialog Từ chối** (T3/T4): textarea "Decline reason" * (5–500 ký tự) + gợi ý nhanh (chip: "Out of stock", "Not enough time to prepare", "Suspicious order") + **Checkbox tiện ích: `[x] Đồng thời đánh dấu hết hàng (tồn kho = 0) cho các món này`** (tích hợp FA-16 để chống khách khác tiếp tục đặt món đã hết) + dòng nhắc "Please call the customer to explain." kèm số điện thoại khách. Nút bật tới trước `pickup_start_at`, không khóa sớm hơn (D-029). Nút đỏ "Decline order".
+- **Dialog Sẵn sàng** (T9): "Mark order #1024 as packed? The customer will be notified." Nút bị khóa trước `cutoff_at` kèm tooltip "Available after HH:mm dd/MM", và khóa khi còn yêu cầu thay đổi đang chờ (tooltip "Resolve the change request first").
 - **Dialog Hoàn tất** (T10): "Customer picked up and paid $X?"
-- **Dialog Không đến** (T11): chỉ bật sau `pickup_end_at`; "Items will not be returned to online stock."
+- **Dialog Không đến** (T11 từ `READY_FOR_PICKUP`, T14 từ `ACCEPTED`): chỉ bật sau `pickup_end_at` (không bắt buộc chờ thêm); "Did you try to call the customer? The items will be returned to your online stock and this order will count as not picked up."
 
 ### F-04 · Sản phẩm của tôi (FR-41, FR-43)
 - **Thanh công cụ**: tìm kiếm, lọc danh mục, lọc trạng thái (Còn hàng / Hết hàng / Tạm ngừng / Bị gỡ / Đã lưu trữ), nút "+ Add product" (khóa nếu Farmer chưa `APPROVED`, tooltip giải thích).
-- **Cột bảng**: Ảnh · Tên · Danh mục · Giá / đơn vị · Tồn kho (sửa nhanh tại chỗ) · Số lượng mặc định tuần · Trạng thái · Hành động.
+- **Cột bảng**: Ảnh · Tên · Danh mục · Giá / đơn vị · Tồn kho khả dụng (sửa nhanh tại chỗ) · Chờ duyệt (tổng số lượng trong đơn `PLACED`, chỉ để đối soát — D-029) · Số lượng mặc định tuần · Trạng thái · Hành động.
 - **Hành động**:
   | Nút | Hiệu ứng | Xác nhận |
   | :--- | :--- | :--- |
@@ -1198,11 +1270,11 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 - CTA: "Save product", "Cancel".
 
 ### F-06 · Mẫu tồn kho hàng tuần (D-008)
-- **Bảng**: Sản phẩm · Tồn kho hiện tại · Đang giữ bởi đơn mở · Số lượng mặc định (sửa tại chỗ, lưu từng dòng) · Trạng thái bán.
+- **Bảng**: Sản phẩm · Tồn kho hiện tại · Đang giữ (đơn `ACCEPTED` / `READY_FOR_PICKUP` chưa qua giờ nhận) · Chờ duyệt (đơn `PLACED`, tham khảo) · Số lượng mặc định (sửa tại chỗ, lưu từng dòng) · Trạng thái bán.
 - **Nút chính "Apply to this week"** → Dialog xem trước:
   - Bảng: Sản phẩm · Mẫu · Đang giữ · Tồn kho mới (`max(mẫu − đang giữ, 0)`), ví dụ "Tomato: 20 − 5 = 15".
   - Ghi chú: sản phẩm đang "Paused" vẫn được cập nhật số lượng nhưng giữ nguyên cờ tạm ngừng.
-  - Khối cảnh báo: danh sách đơn `ACCEPTED`/`READY_FOR_PICKUP` đã qua `pickup_end_at` chưa đóng, mỗi dòng có nút nhanh "Complete" / "No-show".
+  - Khối cảnh báo: danh sách đơn `ACCEPTED`/`READY_FOR_PICKUP` đã qua `pickup_end_at` chưa đóng; đơn `READY_FOR_PICKUP` có nút nhanh "Complete" (T10) / "No-show" (T11); đơn `ACCEPTED` có nút "No-show" (T14).
   - CTA: "Confirm and apply".
 - **Sau khi áp dụng**: toast "Stock updated for X products".
 
@@ -1216,11 +1288,11 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 - **Khối "Pickup slots" theo từng chợ**:
   | Cột | Kiểu | Quy tắc |
   | :--- | :--- | :--- |
-  | Thứ | Select Thứ 2 → Chủ nhật | Chỉ những ngày chợ họp (theo `operating_days` của chợ) |
+  | Thứ | Select Thứ 2 → Chủ nhật | Chỉ những ngày vừa là ngày chợ họp vừa là ngày hoạt động của Farmer (D-031) |
   | Giờ bắt đầu | time | Trong giờ mở cửa chợ |
   | Giờ kết thúc | time | > giờ bắt đầu, trong giờ đóng cửa chợ |
   | Hành động | Sửa / Xóa | Xóa có ConfirmDialog |
-- **Ngày hoạt động của Farmer** (SRS "operating days"): hiển thị tự tổng hợp từ các khung nhận hàng, dạng chip "T3, T5, T7".
+- **Ngày hoạt động của Farmer** (SRS "operating days", D-031): hiển thị dạng chip "Tue, Thu, Sat" lấy từ hồ sơ; nút "Edit" dẫn tới F-08.
 - **Khung bị tắt do chợ đổi lịch** (D-022): hiển thị nhãn "Disabled due to market schedule change"; Farmer sửa lại cho khớp lịch mới rồi bật lại.
 - **Khối "Time off"** (D-023): danh sách kỳ nghỉ sắp tới + nút "+ Add time off".
   | Trường | Kiểu | Bắt buộc | Validate |
@@ -1237,11 +1309,13 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 | Người liên hệ | text | * | 2–100 |
 | Số điện thoại | tel | * | Regex VN |
 | Email | email (readonly) | — | Không đổi được |
-| Địa chỉ | textarea | * | 5–255 |
+| Địa chỉ | textarea | * | 5–255; đổi địa chỉ thì hệ thống tự tra lại tọa độ (D-032) |
+| Ngày hoạt động | Checkbox group Thứ 2 → Chủ nhật | * | ≥ 1 ngày (D-031). Bỏ một ngày: các khung giờ ngày đó tự tắt; còn đơn mở vào thứ đó thì báo `RESOURCE_IN_USE` kèm danh sách đơn |
 | Giới thiệu sạp | textarea | — | ≤ 1.000 |
 | Ảnh sạp | file | — | jpg/png/webp ≤ 2MB |
-| Vị trí trên bản đồ | `MapPicker` (bấm / kéo marker) + nút "Search by address" (Nominatim) | — | Lat/Lng cùng có hoặc cùng trống (D-012) |
-| Vĩ độ / Kinh độ | number (readonly, điền từ MapPicker, có nút xóa) | — | 6 chữ số thập phân |
+| Vị trí trên bản đồ | `MapPicker` hiển thị vị trí hệ thống đã tra từ địa chỉ; Farmer **có thể** kéo marker để chỉnh (không bắt buộc) | — | Lat/Lng cùng có hoặc cùng trống (D-012, D-032) |
+| Vĩ độ / Kinh độ | number (readonly, không nhập tay) | — | 6 chữ số thập phân |
+- Tra tọa độ không được: hiện dòng nhắc "We could not find your location from this address. Please check the address or drag the pin on the map."
 - Hiển thị trạng thái duyệt hiện tại + lý do (nếu `REJECTED`/`SUSPENDED`).
 
 ### F-09 · Đánh giá (FR-47)
@@ -1279,7 +1353,7 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
   | :--- | :--- | :--- |
   | `PENDING` | Duyệt | Xác nhận thường |
   | `PENDING` | Từ chối | Lý do * |
-  | `APPROVED` | Đình chỉ | Lý do * + cảnh báo: "X open orders will be declined, stock will be restored and customers notified. The stall will be hidden from public pages." |
+  | `APPROVED` | Đình chỉ | Lý do * + cảnh báo: "X open orders will be declined and customers notified. Stock of accepted orders will be returned. The stall will be hidden from public pages." |
   | `SUSPENDED` | Khôi phục | Xác nhận thường |
 
 ### A-03 · Hồ sơ nông dân (Admin xem)
@@ -1287,9 +1361,9 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 
 ### A-04 · Quản lý khách hàng (FR-52)
 - **Tìm kiếm**: tên, email, SĐT. **Lọc**: Hoạt động / Đã khóa / At risk (D-028).
-- **Cờ "At risk"** (D-028): badge cam khi khách có ≥ `AT_RISK_THRESHOLD` đơn `NO_SHOW`/`EXPIRED` trong `AT_RISK_WINDOW_DAYS` ngày; khách At risk xếp lên đầu. Admin xem rồi quyết định khóa.
+- **Cờ "At risk"** (D-028): badge cam khi khách có ≥ `AT_RISK_THRESHOLD` (3) đơn `NO_SHOW` trong `AT_RISK_WINDOW_DAYS` (30) ngày (chỉ đếm đơn `NO_SHOW`, không đếm `EXPIRED` vì hết hạn do Farmer không duyệt đơn trước giờ nhận, không phải lỗi khách); khách At risk xếp lên đầu. Admin xem rồi quyết định khóa.
 - **Cột**: Họ tên · Email · SĐT · Ngày đăng ký · Tổng đơn · Đơn mở · Số lần `NO_SHOW` · Trạng thái · Lý do khóa (khi Đã khóa, D-024) · Hành động.
-- **Khóa tài khoản**: Lý do * + cảnh báo "X open orders will be cancelled and stock restored. The customer will not be able to sign in." (D-015).
+- **Khóa tài khoản**: Lý do * + cảnh báo "X open orders will be cancelled. Stock of accepted orders will be returned to the farmers. The customer will not be able to sign in." (D-015, D-029).
 - **Kích hoạt lại**: xác nhận thường.
 - **Xem chi tiết** (drawer): thông tin + danh sách đơn gần đây.
 
@@ -1379,13 +1453,13 @@ Nhãn phụ phía Customer (D-009): đơn `PLACED` đã qua `pickup_start_at` nh
 ### 8.1 Nút hiển thị theo trạng thái × vai trò
 | Trạng thái | Customer (C-04, C-05) | Farmer (F-02, F-03) |
 | :--- | :--- | :--- |
-| `PLACED` | Sửa, Hủy (T5) *(trước `cutoff_at`)* | Duyệt (T2), Từ chối (T3) *(trước `pickup_start_at`)* |
-| `ACCEPTED` | Sửa (→ về Chờ duyệt, T7), Hủy (T6) *(trước `cutoff_at`)* | Từ chối (T4) *(trước `cutoff_at`)*, Sẵn sàng (T9) *(sau `cutoff_at`)* |
+| `PLACED` | Sửa (áp dụng ngay), Hủy (T5) *(trước `cutoff_at`)* | Duyệt (T2, trừ kho), Từ chối (T3) *(trước `pickup_start_at`)* |
+| `ACCEPTED` | Gửi yêu cầu thay đổi (D-030), Hủy (T6) *(trước `cutoff_at`)* | Từ chối (T4) *(trước `pickup_start_at`)*, Sẵn sàng (T9) *(sau `cutoff_at`, không có yêu cầu thay đổi đang chờ)*, Chấp nhận / Giữ đơn cũ cho yêu cầu thay đổi *(trước `pickup_start_at`)*, Không đến (T14) *(sau `pickup_end_at`)* |
 | `READY_FOR_PICKUP` | Chỉ đường | Hoàn tất (T10), Không đến (T11) *(sau `pickup_end_at`)* |
 | `COMPLETED` | Đánh giá, Đặt lại | — |
 | `CANCELLED` / `DECLINED` / `NO_SHOW` / `EXPIRED` | Đặt lại | — |
 
-**Admin không thao tác trên từng đơn.** Các cạnh Admin (T3, T4, T12 khi đình chỉ Farmer tại A-02/A-03; T5, T6, T13 khi khóa Customer tại A-04) được kích hoạt hàng loạt từ một hộp thoại xác nhận, hiển thị trước số đơn bị ảnh hưởng theo từng trạng thái. Timeline đơn hiển thị người thực hiện "Administrator" và lý do `FARMER_SUSPENDED_BY_ADMIN` / `CUSTOMER_LOCKED_BY_ADMIN` dưới dạng câu tiếng Anh.
+**Admin không thao tác trên từng đơn (D-033).** Các cạnh Admin (T3, T4, T12 khi đình chỉ Farmer tại A-02/A-03; T5, T6, T13 khi khóa Customer tại A-04) được kích hoạt hàng loạt từ một hộp thoại xác nhận, hiển thị trước số đơn bị ảnh hưởng theo từng trạng thái. Timeline đơn hiển thị người thực hiện "Administrator" và lý do `FARMER_SUSPENDED_BY_ADMIN` / `CUSTOMER_LOCKED_BY_ADMIN` dưới dạng câu tiếng Anh.
 
 ### 8.2 Quy tắc hiển thị nút phụ thuộc thời gian
 - Nút ngoài khung thời gian **vẫn hiển thị nhưng disabled** kèm tooltip mốc giờ (Farmer cần biết khi nào làm được), trừ nút Sửa/Hủy của Customer đã quá cutoff thì **ẩn** và thay bằng dòng "Edit/cancel deadline has passed".
@@ -1417,19 +1491,24 @@ G-04/G-05/G-06 ──[+ Giỏ]──► Guest? ──► G-09 (next=trang hiện
 
 ### 9.2 Luồng xử lý đơn (Farmer ⇄ Customer)
 ```text
-F-02 [Duyệt] ──► ACCEPTED ──► Khách nhận in-app + email "Order accepted"
+F-02 [Duyệt] ──► kiểm tra & trừ kho ──► ACCEPTED ──► Khách nhận in-app + email "Order accepted"
      [Từ chối + lý do] ──► DECLINED ──► Khách nhận in-app + email + lý do
-Khách sửa đơn ACCEPTED (C-06) ──► PLACED ──► Farmer nhận "Order modified" → duyệt lại
+Khách sửa đơn PLACED (C-06) ──► áp dụng ngay ──► Farmer nhận "Order modified"
+Khách sửa đơn ACCEPTED (C-06) ──► yêu cầu thay đổi (đơn giữ nguyên) ──► Farmer nhận "Order modified"
+     F-03 [Chấp nhận] ──► trừ/trả chênh lệch, áp dụng nội dung mới ──► Khách nhận "Change approved"
+     F-03 [Giữ đơn cũ] ──► Khách nhận "Change rejected"
+     F-03 [Hủy cả đơn] ──► DECLINED (T4), hoàn kho ──► Khách nhận in-app + email
+     Tới giờ nhận chưa xử lý ──► yêu cầu tự hủy ──► Khách nhận "Change rejected"
 Sau cutoff: F-02 [Sẵn sàng] ──► READY_FOR_PICKUP ──► Khách nhận in-app + email
 Tại chợ: [Hoàn tất] ──► COMPLETED ──► C-07 mở cho khách đánh giá
-Quá giờ nhận: [Không đến] ──► NO_SHOW
-Farmer không duyệt kịp: quét lười ──► EXPIRED ──► Khách nhận in-app + email
+Quá giờ nhận, gọi khách không được: [Không đến] ──► NO_SHOW ──► hàng trả về kho online, tính cờ At risk
+Farmer không duyệt kịp: quét lười ──► EXPIRED (không đổi kho, không tính lỗi khách) ──► Khách nhận in-app + email
 ```
 
 ### 9.3 Luồng mẫu tồn kho tuần (Farmer)
 ```text
 F-06: sửa "Default quantity" từng dòng ──► [Áp dụng cho tuần này]
-      ──► Dialog xem trước (mẫu − đang giữ = mới) + đơn quá hạn chưa đóng
+      ──► Dialog xem trước (mẫu − đang giữ bởi đơn đã duyệt/sẵn sàng = mới; cột chờ duyệt để tham khảo) + đơn quá hạn chưa đóng
       ──► [Xác nhận] ──► tồn kho cập nhật ──► restock alert cho món 0 → >0
 ```
 
@@ -1438,7 +1517,7 @@ F-06: sửa "Default quantity" từng dòng ──► [Áp dụng cho tuần nà
 G-11 đăng ký ──► PENDING (F-01 banner chờ duyệt, khóa tạo sản phẩm)
 A-02 [Duyệt] ──► APPROVED ──► Farmer nhận thông báo, mở khóa chức năng
 A-02 [Từ chối + lý do] ──► REJECTED
-A-02 [Đình chỉ + lý do] ──► dialog đếm đơn mở ──► SUSPENDED: đơn mở bị từ chối, hoàn kho, khách được báo, sạp ẩn
+A-02 [Đình chỉ + lý do] ──► dialog đếm đơn mở ──► SUSPENDED: đơn mở bị từ chối, hoàn kho cho đơn đã duyệt / sẵn sàng, khách được báo, sạp ẩn
 A-02 [Khôi phục] ──► APPROVED
 ```
 
@@ -1454,7 +1533,7 @@ A-02 [Khôi phục] ──► APPROVED
 | `farmers/` | `FarmerCard`, `FarmerFilters`, `FarmerHeader`, `PickupSlotTable`, `FarmerStatusBadge` | G-03, G-06, G-13, F-07, A-02 |
 | `products/` | `ProductCard`, `ProductFilters`, `ProductForm`, `StockBadge`, `QuantityStepper` | G-04, G-05, F-04, F-05 |
 | `cart/` | `useCartStore` (Zustand persist), `CartGroup`, `CartLine` | C-01, C-02, Header |
-| `orders/` | `OrderStatusBadge`, `OrderTable`, `OrderTimeline`, `OrderActions` (theo §8), `PickupSelector`, `DeclineDialog`, `CutoffCountdown` | C-02 → C-06, F-02, F-03 |
+| `orders/` | `OrderStatusBadge`, `OrderTable`, `OrderTimeline`, `OrderActions` (theo §8), `PickupSelector`, `DeclineDialog`, `CutoffCountdown`, `ChangeRequestPanel` (D-030) | C-02 → C-06, F-02, F-03 |
 | `weekly-stock/` | `WeeklyTemplateTable`, `ApplyTemplateDialog` | F-06 |
 | `reviews/` | `RatingStars`, `ReviewList`, `ReviewForm`, `ReplyForm` | G-05, G-06, C-07, F-09, A-08 |
 | `favorites/` | `FavoriteButton`, `useFavorites` | G-02 → G-06, C-08 |
@@ -1476,15 +1555,15 @@ A-02 [Khôi phục] ──► APPROVED
 | :--- | :--- | :--- |
 | User | email, role, is_active | G-09, A-00, A-04 |
 | CustomerProfile | full_name, phone, address, deactivation_reason | G-10, C-10, A-04 |
-| FarmerProfile | stall_name, contact_person, phone, address, description, image, latitude, longitude, status, status_reason, order_cutoff_hours, rating_avg*, rating_count* | G-11, F-08, F-07, A-02 |
+| FarmerProfile | stall_name, contact_person, phone, address, operating_days, description, image, latitude, longitude, status, status_reason, order_cutoff_hours, rating_avg*, rating_count* | G-11, F-08, F-07, A-02 |
 | Market | name, address, operating_days, open_time, close_time, description, latitude, longitude, map_provider, is_active, distance_km* , farmer_count* | A-06, G-02 |
 | FarmerMarket | farmer, market, stall_label | F-07, G-06 |
 | PickupSlot | farmer_market, day_of_week, start_time, end_time | F-07, C-02 |
 | MarketClosure | market, start_date, end_date, reason | A-06, G-02, G-03 |
 | FarmerClosure | farmer, start_date, end_date, reason | F-07, G-06, G-13 |
 | Category | name, icon, display_order, is_active, product_count* | A-07 |
-| Product | name, category, price, unit, stock_quantity, weekly_default_quantity, description, image, is_available, is_archived, is_hidden_by_admin, hidden_reason, held_quantity*, rating_avg* | F-04 → F-06, G-04 |
-| Order | id, customer, farmer, market, pickup_date, pickup_start_at, pickup_end_at, cutoff_at, status, note, total_amount, version, created_at, is_overdue*, decline_reason (từ history) | C-02 → C-06, F-02, F-03 |
+| Product | name, category, price, unit, stock_quantity, weekly_default_quantity, description, image, is_available, is_archived, is_hidden_by_admin, hidden_reason, held_quantity*, pending_quantity*, rating_avg* | F-04 → F-06, G-04 |
+| Order | id, customer, farmer, market, pickup_date, pickup_start_at, pickup_end_at, cutoff_at, status, note, total_amount, version, pending_change, created_at, is_overdue*, decline_reason (từ history) | C-02 → C-06, F-02, F-03 |
 | OrderItem | product, product_name, unit, unit_price (snapshot), quantity, line_total | C-05, F-03 |
 | Order history | from_status, to_status, transition, actor, actor_role, change_reason, created_at | Timeline C-05, F-03 |
 | ProductReview / FarmerReview | order, target, rating, comment, reply, replied_at, is_hidden_by_admin, hidden_reason, created_at | C-07, G-05, G-06, F-09, A-08 |
@@ -1513,7 +1592,7 @@ A-02 [Khôi phục] ──► APPROVED
 
 # 🗄️ PASS 4 (PHẦN A): THIẾT KẾ CƠ SỞ DỮ LIỆU (ERD & DATA DICTIONARY)
 ## DỰ ÁN MARKETLINK — TECHWIZ 7
-> **Đầu vào**: SRS §1.8 (Database Design mẫu) · UC-01 → UC-34, FR-01 → FR-59, NFR-01 → NFR-12 (`MarketLink_requirement_analysis.md`) · Decision Log D-001 → D-026 (FSM 13 cạnh) · Kiểm kê dữ liệu UI (Pass 3 §11).
+> **Đầu vào**: SRS §1.8 (Database Design mẫu) · UC-01 → UC-34, FR-01 → FR-59, NFR-01 → NFR-12 (`MarketLink_requirement_analysis.md`) · Decision Log D-001 → D-035 (FSM 13 cạnh, v1.7) · Kiểm kê dữ liệu UI (Pass 3 §11).
 > **CSDL**: MySQL 8.4 LTS · InnoDB · `utf8mb4` / `utf8mb4_0900_ai_ci` · Django 5.2 ORM · `DEFAULT_AUTO_FIELD = BigAutoField` · `TIME_ZONE = "Asia/Ho_Chi_Minh"`, `USE_TZ = True`.
 > **Phạm vi phần A**: ERD, từ điển dữ liệu, ràng buộc toàn vẹn, index, kiểm soát đồng thời. **Phần B (API Contract Freeze 10 điểm)** làm sau khi Lead duyệt phần A.
 > **Trạng thái**: ✅ Lead Architect đã duyệt hướng thiết kế (bản nền Pass 4 + 3 điểm gộp từ thiết kế của Lead: `order_status_history`, `pickup_slots.is_active`, `markets.image`).
@@ -1660,15 +1739,16 @@ erDiagram
 | address | VARCHAR(255) | ✗ | | |
 | description | TEXT | ✓ | | |
 | image | VARCHAR(255) | ✓ | | Đường dẫn ảnh (tên UUID) |
-| latitude | DECIMAL(9,6) | ✓ | CHECK cùng NULL hoặc cùng có với `longitude` | D-012 |
+| latitude | DECIMAL(9,6) | ✓ | CHECK cùng NULL hoặc cùng có với `longitude` | D-012; hệ thống tự tra từ `address` (D-032), Farmer có thể chỉnh bằng ghim |
 | longitude | DECIMAL(9,6) | ✓ | | |
 | status | VARCHAR(20) | ✗ | default `PENDING` | `PENDING`, `APPROVED`, `SUSPENDED`, `REJECTED` (D-015) |
 | status_reason | VARCHAR(500) | ✓ | | Bắt buộc khi `REJECTED` / `SUSPENDED` (service) |
 | order_cutoff_hours | SMALLINT UNSIGNED | ✗ | default 12, CHECK 1–72 | D-007: không cho phép 0 |
+| operating_days | JSON | ✗ | default `[]`; service: ≥ 1 phần tử, số nguyên 1–7, không trùng | **Mới v1.7 (D-031)**: ngày hoạt động của Farmer, ví dụ `[2, 4, 6]`; khai khi đăng ký, sửa ở F-08 |
 - **Index**: `(status)` cho lọc công khai chỉ `APPROVED` và tab Admin A-02.
 - **Lịch sử**: `farmer_profile_histories` (django-simple-history) lưu người đổi trạng thái, thời điểm, `history_change_reason` → hiển thị ở A-03.
 - **Không có `version`**: Farmer chỉ sửa trường hồ sơ, Admin chỉ sửa `status`; thao tác đổi trạng thái của Admin chạy dưới `select_for_update()` (xem §5).
-- **`operating_days` không lưu cột**: SRS "operating days" được suy ra từ `pickup_slots` (Pass 3, F-07), tránh 2 nguồn dữ liệu lệch nhau.
+- **`operating_days` lưu cột JSON** *(cập nhật v1.7 — D-031, thay DB-03)*: Farmer khai trực tiếp; không thêm bảng. Khung giờ (`pickup_slots.day_of_week`) phải thuộc tập này, nên hai nguồn không lệch nhau. Lọc "Farmer có mặt ngày X" (PU-05, PU-06) dùng `JSON_CONTAINS(operating_days, X)` kết hợp có ít nhất 1 khung bật ngày X; số Farmer nhỏ nên không cần index riêng.
 
 ### 3.2 App `markets`
 
@@ -1767,7 +1847,7 @@ erDiagram
 | image | VARCHAR(255) | ✓ | | |
 | price | DECIMAL(10,2) | ✗ | CHECK 0.01 ≤ price ≤ 10000.00 | Giá hiện tại; đơn dùng giá snapshot |
 | unit | VARCHAR(10) | ✗ | | `KG`, `BUNCH`, `PIECE`, `PACK` (D-014) |
-| stock_quantity | INT UNSIGNED | ✗ | default 0 | Tồn kho **khả dụng** (đã trừ phần giữ bởi đơn mở, D-005) |
+| stock_quantity | INT UNSIGNED | ✗ | default 0 | Tồn kho **khả dụng** (đã trừ phần của đơn Farmer đã duyệt; đơn `PLACED` chưa trừ — D-029) |
 | weekly_default_quantity | INT UNSIGNED | ✓ | | NULL = không thuộc mẫu tuần (D-008) |
 | is_available | BOOLEAN | ✗ | default TRUE | FALSE = tạm ngừng bán (FR-43) |
 | is_archived | BOOLEAN | ✗ | default FALSE | "Xóa" của Farmer (D-017) |
@@ -1777,7 +1857,7 @@ erDiagram
 | hidden_by_id | BIGINT | ✓ | FK → `users.id` **SET_NULL** | `related_name="hidden_products"` |
 - **Index**: `(farmer_id, is_archived)` · `(category_id, is_archived, is_hidden_by_admin)` · `(price)` · `(created_at)`.
 - **"Còn bán công khai"** = `is_archived=0 AND is_hidden_by_admin=0 AND farmer.status='APPROVED'`; hết hàng khi `stock_quantity = 0`.
-- **Vì sao không có history**: trừ kho dùng `select_for_update()` theo lô (D-004); không cần audit trail giá. `held_quantity` (Pass 3, F-06) là trường tính: tổng `order_items.quantity` của đơn mở.
+- **Vì sao không có history**: trừ kho dùng `select_for_update()` theo lô (D-004); không cần audit trail giá. `held_quantity` (Pass 3, F-06) là trường tính: tổng `order_items.quantity` của đơn `ACCEPTED` / `READY_FOR_PICKUP` (đã trừ kho — D-029); `pending_quantity` là trường tính: tổng số lượng trong đơn `PLACED` (chỉ để đối soát).
 
 ### 3.4 App `orders`
 
@@ -1797,16 +1877,18 @@ erDiagram
 | status | VARCHAR(20) | ✗ | default `PLACED` | 8 trạng thái (D-006) |
 | note | VARCHAR(300) | ✓ | | Ghi chú cho Farmer |
 | total_amount | DECIMAL(10,2) | ✗ | CHECK ≥ 0 | Tổng các `line_total`, tính lại mỗi lần sửa |
-| version | INT UNSIGNED | ✗ | default 1 | OCC (`If-Match`) — tăng ở mọi lần ghi, kể cả T8, T12, T13 |
+| version | INT UNSIGNED | ✗ | default 1 | OCC (`If-Match`) — tăng ở mọi lần ghi, kể cả T8, T12, T13 và các sự kiện yêu cầu thay đổi |
+| pending_change | JSON | ✓ | | **Mới v1.7 (D-030)**: yêu cầu thay đổi đang chờ Farmer quyết định; NULL khi không có. Dạng `{ "items": [{"product_id", "quantity"}], "pickup_slot_id", "pickup_date", "note", "requested_at" }` (danh sách món đầy đủ sau khi sửa; khung / ghi chú chỉ có khi đổi). Món mới lấy giá hiện tại tại thời điểm Farmer chấp nhận |
 - **Index**:
   | Index | Phục vụ |
   | :--- | :--- |
   | `(farmer_id, status, pickup_start_at)` | Danh sách đơn Farmer theo tab (F-02), đếm Pending (F-01), quét lười theo Farmer (D-009) |
-  | `(customer_id, status)` | Đơn của tôi (C-04), đếm đơn mở toàn hệ thống (D-005: ≤ 5) |
+  | `(customer_id, status)` | Đơn của tôi (C-04), đếm đơn `PLACED` toàn hệ thống (D-005: ≤ 10) |
   | `(customer_id, farmer_id, status)` | Nhóm đơn cùng khách ở F-02; lịch sử mua theo Farmer |
   | `(status, pickup_start_at)` | Quét `PLACED` quá hạn toàn hệ thống (lệnh `expire_orders`) |
   | `(market_id, status, pickup_date)` | Báo cáo doanh thu theo chợ (A-09) |
   | `(created_at)` | Sắp xếp / lọc theo ngày |
+- **Vì sao dùng cột JSON cho yêu cầu thay đổi** (D-030): mỗi đơn tối đa 1 yêu cầu đang chờ và yêu cầu chỉ sống tới giờ nhận; lịch sử đã nằm ở `order_status_history`, nên một bảng riêng sẽ chỉ làm phình CSDL.
 - **Lý do không trỏ trực tiếp `pickup_slot` làm nguồn thời gian**: Farmer sửa hoặc xóa khung giờ giữa tuần không được làm thay đổi đơn đã đặt (D-007) và không được làm sai báo cáo theo chợ.
 
 #### `order_items`
@@ -1831,10 +1913,10 @@ erDiagram
 | order_id | BIGINT | ✗ | FK → `orders.id` **CASCADE** | `related_name="status_history"` (dòng con thuần) |
 | from_status | VARCHAR(20) | ✓ | | NULL ở T1 (tạo đơn) |
 | to_status | VARCHAR(20) | ✗ | | Bằng `from_status` khi sửa đơn đang `PLACED` (không đổi trạng thái) |
-| transition | VARCHAR(10) | ✓ | | Mã cạnh `T1`…`T13`; NULL khi chỉ sửa món ở `PLACED` |
+| transition | VARCHAR(10) | ✓ | | Mã cạnh `T1`…`T14` (T7 bãi bỏ v1.7); NULL khi sửa đơn `PLACED` hoặc sự kiện yêu cầu thay đổi (D-030) |
 | actor_id | BIGINT | ✓ | FK → `users.id` **SET_NULL** | `related_name="order_status_actions"`; NULL khi `actor_role = SYSTEM` |
 | actor_role | VARCHAR(20) | ✗ | | `CUSTOMER`, `FARMER`, `ADMIN`, `SYSTEM` |
-| change_reason | TEXT | ✓ | | Bắt buộc (service) ở T3, T4 (lý do Farmer nhập, ≤ 500 ký tự), T7 và sửa đơn (tóm tắt: *"Customer modified: Tomato 5→8 kg"*), T8 `SYSTEM_EXPIRED`, cạnh Admin `FARMER_SUSPENDED_BY_ADMIN` / `CUSTOMER_LOCKED_BY_ADMIN` |
+| change_reason | TEXT | ✓ | | Bắt buộc (service) ở T3, T4 (lý do Farmer nhập, ≤ 500 ký tự), sửa đơn `PLACED` và sự kiện yêu cầu thay đổi (tóm tắt tiếng Anh: *"Customer modified: Tomato 5→8 kg"*, *"Change request …"*), T8 `SYSTEM_EXPIRED`, cạnh Admin `FARMER_SUSPENDED_BY_ADMIN` / `CUSTOMER_LOCKED_BY_ADMIN` |
 | request_id | CHAR(36) | ✓ | | Truy vết `X-Request-ID` (NFR-04); NULL khi chạy từ lệnh `expire_orders` |
 | created_at | DATETIME(6) | ✗ | | Không có `updated_at` |
 - **Index**: `(order_id, created_at)` cho Timeline.
@@ -1937,9 +2019,9 @@ erDiagram
 | `OrderStatus` | `orders.status` | `PLACED`, `ACCEPTED`, `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED`, `DECLINED`, `NO_SHOW`, `EXPIRED` |
 | `OPEN_STATUSES` | *(hằng số code)* | `PLACED`, `ACCEPTED`, `READY_FOR_PICKUP` |
 | `ActorRole` | `order_status_history.actor_role` | `CUSTOMER`, `FARMER`, `ADMIN`, `SYSTEM` |
-| `Transition` | `order_status_history.transition` | `T1` … `T13` (D-006) |
+| `Transition` | `order_status_history.transition` | `T1` … `T6`, `T8` … `T14` (D-006; `T7` bãi bỏ, `T14` mới — v1.7) |
 | `ChangeReason` (mã hệ thống) | `order_status_history.change_reason` | `SYSTEM_EXPIRED`, `FARMER_SUSPENDED_BY_ADMIN`, `CUSTOMER_LOCKED_BY_ADMIN` (lý do do người nhập là text tự do) |
-| `NotificationType` | `notifications.type` | Khách: `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`, `RESTOCK`. Farmer: `ORDER_PLACED`, `ORDER_MODIFIED`, `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`, `ACCOUNT_STATUS_CHANGED`, `MARKET_SCHEDULE_CHANGED` (D-022) |
+| `NotificationType` | `notifications.type` | Khách: `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`, `RESTOCK`. Farmer: `ORDER_PLACED`, `ORDER_MODIFIED`, `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`, `ACCOUNT_STATUS_CHANGED`, `MARKET_SCHEDULE_CHANGED` (D-022). Mới v1.7 (D-030), gửi Khách: `ORDER_CHANGE_APPROVED`, `ORDER_CHANGE_REJECTED` |
 | `AnnouncementAudience` | `announcements.audience` | `ALL`, `CUSTOMER`, `FARMER` |
 | `AuditAction` | `audit_logs.action` | `LOGIN`, `LOGIN_FAILED`, `LOGOUT`, `PASSWORD_CHANGED`, `ACCESS_DENIED`, `EXPORT_DATA`, `FARMER_APPROVED`, `FARMER_REJECTED`, `FARMER_SUSPENDED`, `FARMER_REINSTATED`, `CUSTOMER_DEACTIVATED`, `CUSTOMER_ACTIVATED`, `PRODUCT_HIDDEN`, `PRODUCT_RESTORED`, `REVIEW_HIDDEN`, `REVIEW_RESTORED` |
 
@@ -1951,7 +2033,7 @@ erDiagram
 | Thực thể | Kịch bản ma trận | Cơ chế | Lỗi khi xung đột |
 | :--- | :--- | :--- | :--- |
 | `orders` | 2 — nhiều Role cùng sửa (Khách, Farmer, Admin, Hệ thống) | **OCC** `version` + `If-Match`; ghi dưới `select_for_update(of=("self",))` | `409 RESOURCE_MODIFIED` / `428` thiếu header |
-| `products.stock_quantity` | 3 — tài nguyên hữu hạn | **Pessimistic** `select_for_update()` theo `order_by("id")` | `400 INSUFFICIENT_STOCK` |
+| `products.stock_quantity` | 3 — tài nguyên hữu hạn | **Pessimistic** `select_for_update()` theo `order_by("id")` khi trừ / cộng kho (Farmer duyệt, chấp nhận yêu cầu thay đổi, hủy / từ chối / không đến đơn đã duyệt); tạo đơn chỉ đọc (D-029) | `400 INSUFFICIENT_STOCK` |
 | `customer_profiles` (đếm đơn chưa duyệt) | 3 — bất biến "≤ 10 đơn `PLACED` / khách" (v1.5) | `select_for_update()` dòng profile trước khi đếm | `422 OPEN_ORDER_LIMIT_EXCEEDED` |
 | `farmer_profiles.status` | Admin đổi trạng thái | `select_for_update()` + FSM đơn giản 4 trạng thái | `400 INVALID_STATUS_TRANSITION` |
 | Review `reply` | Farmer phản hồi 1 lần | `select_for_update()` + kiểm tra `reply IS NULL` | `422 FAILED_PRECONDITION` |
@@ -1960,9 +2042,11 @@ erDiagram
 ### 5.2 Các thao tác nghiệp vụ bắt buộc `transaction.atomic()`
 | Thao tác | Bảng ghi | Thứ tự khóa (chống deadlock) |
 | :--- | :--- | :--- |
-| Checkout N đơn (T1) | `orders`, `order_items`, `products`, `order_status_history`, `notifications` | 1. `customer_profiles` → 2. quét lười theo từng Farmer → 3. `products` gom mọi nhóm, `order_by("id")` |
-| Sửa đơn (T7 / sửa khi `PLACED`) | `orders`, `order_items`, `products`, `order_status_history` | 1. `orders` (kiểm `version`) → 2. `products` `order_by("id")` |
-| Hủy / Từ chối / Hết hạn (T3–T6, T8) | `orders`, `products`, `order_status_history` | 1. `orders` → 2. `products` `order_by("id")` |
+| Checkout N đơn (T1) | `orders`, `order_items`, `order_status_history`, `notifications` (không ghi `products` — D-029) | 1. quét lười theo từng Farmer (transaction riêng, trước) → 2. `customer_profiles` → 3. đọc tồn kho `products`, không khóa |
+| Farmer duyệt đơn (T2) | `orders`, `products`, `order_status_history` | 1. `orders` (kiểm `version`) → 2. `products` của đơn `order_by("id")` |
+| Sửa đơn `PLACED` / gửi yêu cầu thay đổi (D-030) | `orders`, `order_items`, `order_status_history` (không ghi `products`) | 1. `orders` (kiểm `version`) → 2. đọc tồn kho, không khóa |
+| Farmer chấp nhận yêu cầu thay đổi (FA-34) | `orders`, `order_items`, `products`, `order_status_history` | 1. `orders` (kiểm `version`) → 2. `products` cũ ∪ mới `order_by("id")` |
+| Hủy / Từ chối / Hết hạn / Không đến (T3–T6, T8, T11, T14) | `orders`, `products` (chỉ T4, T6, T11, T14), `order_status_history` | 1. `orders` → 2. `products` `order_by("id")` |
 | Đình chỉ Farmer (T3, T4, T12 hàng loạt) | `farmer_profiles`, `orders`, `products`, `order_status_history`, `audit_logs` | 1. `farmer_profiles` → 2. đơn mở `order_by("id")` → 3. `products` `order_by("id")` |
 | Khóa Khách (T5, T6, T13 hàng loạt) | `users`, `orders`, `products`, `order_status_history`, `audit_logs` | 1. `users` → 2. đơn mở `order_by("id")` → 3. `products` `order_by("id")` |
 | Áp dụng mẫu tuần (D-008) | `products`, (quét lười) `orders` | 1. quét lười → 2. `products` của Farmer `order_by("id")` |
@@ -1976,11 +2060,11 @@ erDiagram
 ### 5.3 Bảng tác động tồn kho (tham chiếu A-001b, nhắc lại để thi công)
 | Sự kiện | `products.stock_quantity` |
 | :--- | :--- |
-| T1 tạo đơn | − số lượng |
-| Sửa đơn | ± chênh lệch từng món |
-| T3, T4, T5, T6, T8, T12, T13 | + trả lại |
-| T2, T9, T10, T11 | không đổi |
-| Áp dụng mẫu tuần | = `max(weekly_default_quantity − held, 0)` |
+| T2 Farmer duyệt đơn | − số lượng |
+| Farmer chấp nhận yêu cầu thay đổi | − phần tăng / + phần giảm từng món |
+| T4, T6, T11, T12, T13, T14 (đơn đã bị trừ kho) | + trả lại |
+| T1, T3, T5, T8, T9, T10, sửa đơn `PLACED`, gửi / từ chối / tự hủy yêu cầu thay đổi | không đổi |
+| Áp dụng mẫu tuần | = `max(weekly_default_quantity − held, 0)`; `held` chỉ gồm đơn `ACCEPTED` / `READY_FOR_PICKUP` chưa qua giờ nhận |
 
 ---
 
@@ -1988,16 +2072,18 @@ erDiagram
 | Bất biến | Tầng CSDL | Tầng Service |
 | :--- | :--- | :--- |
 | Email duy nhất | UNIQUE | Chuẩn hóa lowercase |
-| Tồn kho không âm | `INT UNSIGNED` | Kiểm tra trước khi trừ, dưới khóa |
+| Tồn kho không âm | `INT UNSIGNED` | Kiểm tra trước khi trừ (khi Farmer duyệt / chấp nhận yêu cầu thay đổi), dưới khóa |
 | Rating 1–5 | CHECK | Serializer |
 | Giờ kết thúc > giờ bắt đầu (chợ, slot, đơn) | CHECK | Serializer |
 | `cutoff_at ≤ pickup_start_at` | CHECK | Tính tự động |
 | Tọa độ Farmer cùng NULL / cùng có | CHECK | Serializer |
 | 1 review / món, 1 review Farmer / đơn | UNIQUE (1-1) | Chỉ khi `COMPLETED`, đúng chủ đơn |
 | 1 dòng / sản phẩm trong đơn | UNIQUE `(order_id, product_id)` | — |
-| ≤ 10 đơn `PLACED` / khách | *(MySQL không hỗ trợ unique có điều kiện)* | Khóa `customer_profiles` rồi đếm (D-005, v1.5) |
+| ≤ 10 đơn `PLACED` / khách | *(MySQL không hỗ trợ unique có điều kiện)* | Khóa `customer_profiles` rồi đếm, bỏ đơn đã qua `pickup_start_at` (D-005, v1.5, v1.7) |
 | Mọi món trong đơn thuộc cùng Farmer của đơn | — | Validate theo nhóm (D-004) |
-| Slot thuộc Farmer, đúng thứ, trong giờ chợ | — | Validate khi tạo slot / đặt đơn |
+| Slot thuộc Farmer, đúng thứ, là ngày chợ họp và ngày hoạt động của Farmer, trong giờ chợ | — | Validate khi tạo slot / đặt đơn / sửa đơn (D-031) |
+| `farmer_profiles.operating_days` ≥ 1 ngày, giá trị 1–7 | — | Serializer (D-031) |
+| Mỗi đơn tối đa 1 yêu cầu thay đổi đang chờ | 1 cột `orders.pending_change` | Yêu cầu mới ghi đè yêu cầu cũ dưới khóa đơn (D-030) |
 | Chỉ Farmer `APPROVED` được tạo sản phẩm / nhận đơn | — | Policy |
 | Chuyển trạng thái đơn đúng 13 cạnh | — | FSM Triple-Gate (D-006) |
 | `order_cutoff_hours` trong 1–72 | CHECK | Serializer (D-007) |
@@ -2014,10 +2100,10 @@ erDiagram
 | FR-01, 02, 03, 04, 31 | `roles`, `users`, `customer_profiles`, `farmer_profiles` |
 | FR-05, 06 | *(tĩnh)* |
 | FR-10, 11, 13, 25 | `markets`, `market_operating_days`, `farmer_markets`, `favorite_markets` |
-| FR-12, 16, 40, 45 | `farmer_profiles`, `farmer_markets`, `pickup_slots` (`is_active`), `farmer_closures` |
+| FR-12, 16, 40, 45 | `farmer_profiles` (`operating_days`, tọa độ tự tra), `farmer_markets`, `pickup_slots` (`is_active`), `farmer_closures` |
 | FR-14, 15, 41, 42, 43, 56 | `products`, `categories` |
 | FR-17 | *(client — Zustand persist, D-004)* |
-| FR-18, 19, 20, 21, 22, 44, 49, 59 | `orders`, `order_items`, `order_status_history`, `products` |
+| FR-18, 19, 20, 21, 22, 44, 49, 59 | `orders` (kể cả `pending_change`), `order_items`, `order_status_history`, `products` |
 | FR-23, 32, 46 | `orders`, `order_items` (truy vấn tổng hợp) |
 | FR-24 | `favorite_farmers`, `favorite_products`, `notifications` |
 | FR-26, 27, 47 | `product_reviews`, `farmer_reviews` |
@@ -2039,7 +2125,7 @@ erDiagram
 | :--- | :---: | :--- |
 | `roles` | 3 | Bắt buộc, nạp bằng data migration |
 | Admin | 1 | Tạo bằng lệnh seed (hoặc `createsuperuser`); email + mật khẩu ghi trong ReadMe (SRS §1.9). Không có API tạo Admin (D-027) |
-| Farmer | 12 | Đủ 4 trạng thái: 9 `APPROVED`, 1 `PENDING`, 1 `SUSPENDED`, 1 `REJECTED` |
+| Farmer | 12 | Đủ 4 trạng thái: 9 `APPROVED`, 1 `PENDING`, 1 `SUSPENDED`, 1 `REJECTED`; mỗi Farmer có `operating_days` và tọa độ (seed ghi sẵn, không gọi Nominatim) |
 | Customer | 20 | 1 tài khoản bị khóa |
 | `markets` | 6 | Tọa độ thật tại TP.HCM; 1 chợ `is_active=false` |
 | `categories` | 6 | Vegetables, Fruits, Dairy & Eggs, Bakery, Spices, Others |
@@ -2056,7 +2142,7 @@ erDiagram
 | :---: | :--- | :--- |
 | DB-01 | `orders` lưu snapshot `market_id`, `stall_label`, `pickup_start_at`, `pickup_end_at`; `pickup_slot_id` chỉ là tham chiếu mềm `SET_NULL` | Áp dụng — bảo vệ D-007 và báo cáo theo chợ |
 | DB-02 | Ngày họp chợ lưu bảng `market_operating_days` (không JSON / bitmask) | Áp dụng |
-| DB-03 | "Ngày hoạt động" của Farmer suy ra từ `pickup_slots`, không lưu cột riêng | Áp dụng |
+| DB-03 | ~~"Ngày hoạt động" của Farmer suy ra từ `pickup_slots`~~ → *(v1.7)* lưu cột JSON `farmer_profiles.operating_days` (D-031) | ✅ Đã chốt (thay thế) |
 | DB-04 | Review không lưu trùng `product_id` / `customer_id` (suy ra qua đơn) | Áp dụng (3NF) |
 | DB-05 | `products` không gắn history; `farmer_profiles` dùng django-simple-history (lịch sử duyệt A-03) | Áp dụng |
 | DB-06 | Lịch sử đơn dùng bảng tự thiết kế `order_status_history` thay cho simple-history; cập nhật câu chữ D-006 | ✅ Đã chốt |
@@ -2064,6 +2150,8 @@ erDiagram
 | DB-08 | Thêm `market_closures`, `farmer_closures` (khoảng ngày) thay vì tắt / bật slot thủ công | ✅ Đã chốt (D-023) |
 | DB-09 | Thêm `customer_profiles.deactivation_reason` | ✅ Đã chốt (D-024) |
 | DB-10 | Bảng append-only kế thừa `CreatedAtModel` (không có `updated_at`) | ✅ Đã chốt |
+| DB-11 | Yêu cầu thay đổi đơn lưu ở cột JSON `orders.pending_change`, không thêm bảng (D-030) | ✅ Đã chốt (v1.7) |
+| DB-12 | Tổng số bảng giữ nguyên 24; v1.7 chỉ thêm 2 cột (`farmer_profiles.operating_days`, `orders.pending_change`) | ✅ Đã chốt (v1.7) |
 
 ~~~ Hết Pass 4 phần A — Chờ Lead Architect duyệt trước khi sang phần B (API Contract Freeze) ~~~
 
@@ -2071,7 +2159,7 @@ erDiagram
 
 # 📡 PASS 4 (PHẦN B): ĐÓNG BĂNG HỢP ĐỒNG API (API CONTRACT FREEZE — 10 ĐIỂM)
 ## DỰ ÁN MARKETLINK — TECHWIZ 7
-> **Đầu vào**: Pass 3 (màn hình G/C/F/A) · Pass 4A (24 bảng) · Decision Log D-001 → D-026 · FSM 13 cạnh T1–T13.
+> **Đầu vào**: Pass 3 (màn hình G/C/F/A) · Pass 4A (24 bảng) · Decision Log D-001 → D-035 · FSM 13 cạnh T1–T6, T8–T14 (v1.7).
 > **Phạm vi**: Toàn bộ REST endpoint + kênh WebSocket thông báo.
 > **Kỷ luật Freeze**: Sau khi Lead Architect chốt, **không** đổi tên trường, kiểu dữ liệu, URL, mã lỗi. Mọi thay đổi phải qua Lead và ghi vào §8 (Change Log).
 > **Trạng thái**: đóng băng.
@@ -2229,7 +2317,7 @@ erDiagram
 | :---: | :--- | :--- | :--- |
 | 400 | `VALIDATION_ERROR` | Dữ liệu sai định dạng / thiếu trường | Lỗi inline theo `errors` |
 | 400 | `EMAIL_EXISTS` | Email đã đăng ký | Lỗi dưới ô email |
-| 400 | `INSUFFICIENT_STOCK` | Thiếu hàng khi đặt / sửa đơn | Tô đỏ dòng theo `errors` |
+| 400 | `INSUFFICIENT_STOCK` | Thiếu hàng khi đặt / sửa đơn / gửi yêu cầu thay đổi (kiểm tra khả dụng), hoặc khi Farmer duyệt đơn / chấp nhận yêu cầu thay đổi (trừ kho — D-029) | Tô đỏ dòng theo `errors` |
 | 400 | `INVALID_STATUS_TRANSITION` | Gate 1: cạnh FSM không tồn tại | Toast + refetch |
 | 401 | `NOT_AUTHENTICATED` | Thiếu / hết hạn access token | Interceptor refresh |
 | 401 | `INVALID_CREDENTIALS` | Sai email / mật khẩu | Lỗi trên form, không refresh |
@@ -2244,17 +2332,17 @@ erDiagram
 | 409 | `IDEMPOTENCY_IN_PROGRESS` | Cùng `Idempotency-Key` đang xử lý | Chờ, không gửi lại |
 | 409 | `CONFLICT_RETRY` | Deadlock MySQL sau 1 lần retry | Toast "Please try again" |
 | 422 | `OPEN_ORDER_LIMIT_EXCEEDED` | Vượt `MAX_PLACED_ORDERS_PER_CUSTOMER` (10) đơn chưa duyệt (D-005, v1.5) | Dialog giới hạn |
-| 422 | `CUTOFF_PASSED` | Sửa / hủy / đặt sau `cutoff_at`; Farmer từ chối đơn `ACCEPTED` sau cutoff | Toast + refetch |
+| 422 | `CUTOFF_PASSED` | Khách sửa / gửi yêu cầu thay đổi / hủy / đặt sau `cutoff_at` *(v1.7: không còn dùng cho Farmer từ chối đơn `ACCEPTED`)* | Toast + refetch |
 | 422 | `CUTOFF_NOT_REACHED` | Đánh dấu Sẵn sàng trước `cutoff_at` (T9) | Toast |
-| 422 | `PICKUP_ALREADY_STARTED` | Duyệt / từ chối đơn `PLACED` sau `pickup_start_at` | Toast + refetch |
-| 422 | `PICKUP_NOT_ENDED` | Đánh dấu Không đến trước `pickup_end_at` (T11) | Toast |
-| 422 | `SLOT_NOT_AVAILABLE` | Khung giờ tắt / sai thứ / ngoài `BOOKING_HORIZON_DAYS` / chợ ngừng hoạt động / chợ đóng cửa hoặc Farmer nghỉ ngày đó (D-023) | Yêu cầu chọn lại |
+| 422 | `PICKUP_ALREADY_STARTED` | Duyệt / từ chối đơn (T2, T3, T4) hoặc xử lý yêu cầu thay đổi sau `pickup_start_at` | Toast + refetch |
+| 422 | `PICKUP_NOT_ENDED` | Đánh dấu Không đến trước `pickup_end_at` (T11, T14) | Toast |
+| 422 | `SLOT_NOT_AVAILABLE` | Khung giờ tắt / sai thứ / ngày trong quá khứ / ngoài `BOOKING_HORIZON_DAYS` / không phải ngày chợ họp hoặc ngày hoạt động của Farmer (D-031) / chợ ngừng hoạt động / chợ đóng cửa hoặc Farmer nghỉ ngày đó (D-023) | Yêu cầu chọn lại |
 | 422 | `PRODUCT_NOT_AVAILABLE` | Sản phẩm lưu trữ / tạm ngừng / bị gỡ / Farmer không `APPROVED` | Tô xám dòng |
 | 422 | `REVIEW_NOT_ALLOWED` | Đơn chưa `COMPLETED` hoặc đã đánh giá | Toast |
 | 422 | `REPLY_ALREADY_EXISTS` | Farmer phản hồi lần 2 | Toast |
-| 422 | `RESOURCE_IN_USE` | Xóa danh mục còn sản phẩm; gỡ chợ khỏi Farmer khi còn đơn mở; xóa khung giờ còn đơn mở; ngừng hoạt động chợ còn đơn mở (D-022); tạo kỳ nghỉ khi còn đơn mở trong khoảng (D-023) | Toast + danh sách liên quan |
+| 422 | `RESOURCE_IN_USE` | Bỏ ngày hoạt động khi còn đơn mở vào thứ đó (D-031); Xóa danh mục còn sản phẩm; gỡ chợ khỏi Farmer khi còn đơn mở; xóa khung giờ còn đơn mở; ngừng hoạt động chợ còn đơn mở (D-022); tạo kỳ nghỉ khi còn đơn mở trong khoảng (D-023) | Toast + danh sách liên quan |
 | 422 | `IDEMPOTENCY_KEY_REUSED` | Cùng `Idempotency-Key` nhưng body khác lần trước | Sinh key mới, gửi lại |
-| 422 | `FAILED_PRECONDITION` | Điều kiện tiên quyết khác (dự phòng) | Toast `message` |
+| 422 | `FAILED_PRECONDITION` | Điều kiện tiên quyết khác: đánh dấu Sẵn sàng khi còn yêu cầu thay đổi đang chờ; chấp nhận / từ chối khi không có yêu cầu (D-030); dự phòng | Toast `message` |
 | 428 | `PRECONDITION_REQUIRED` | Thiếu `If-Match` / `Idempotency-Key` | Lỗi lập trình |
 | 429 | `THROTTLED` | Vượt giới hạn tần suất | Toast |
 | 500 | `INTERNAL_SERVER_ERROR` | Lỗi không lường trước | Toast + mã sự cố |
@@ -2297,7 +2385,7 @@ FarmerSummary = {
   id: integer, stall_name: string, image: string | null
   rating_avg: number | null, rating_count: integer
   markets: { market_id: integer, market_name: string, stall_label: string | null }[]
-  operating_days: integer[]            // suy ra từ pickup_slots đang bật
+  operating_days: integer[]            // farmer_profiles.operating_days (D-031)
   in_stock_product_count: integer
   upcoming_closures: Closure[]          // kỳ nghỉ bán trong BOOKING_HORIZON_DAYS tới (D-023)
   distance_km: number | null
@@ -2348,7 +2436,8 @@ ProductDetail = ProductCard & {
 }
 FarmerProduct = ProductDetail & {      // phía Farmer
   weekly_default_quantity: integer | null
-  held_quantity: integer               // đang giữ bởi đơn mở
+  held_quantity: integer               // đã trừ kho bởi đơn ACCEPTED / READY_FOR_PICKUP (D-029)
+  pending_quantity: integer            // tổng số lượng trong đơn PLACED, chỉ để đối soát
   is_archived: boolean
   is_hidden_by_admin: boolean, hidden_reason: string | null
   created_at: datetime, updated_at: datetime
@@ -2364,6 +2453,7 @@ OrderSummary = {
   id: integer
   status: OrderStatus
   is_overdue: boolean                  // PLACED đã qua pickup_start_at nhưng chưa quét (D-009)
+  has_pending_change: boolean          // ACCEPTED có yêu cầu thay đổi đang chờ (D-030)
   version: integer
   customer: { id: integer, full_name: string, phone: string }      // Farmer, Admin thấy; Customer thấy chính mình
   farmer: { id: integer, stall_name: string, phone: string }
@@ -2381,6 +2471,15 @@ OrderDetail = OrderSummary & {
   note: string | null
   items: OrderItem[]
   status_history: StatusHistory[]
+  pending_change: {                    // D-030; null khi không có
+    items: { product_id: integer, product_name: string, unit: Unit, quantity: integer,
+             current_quantity: integer, stock_available: integer }[]
+    pickup_slot_id: integer | null, pickup_date: "YYYY-MM-DD" | null
+    pickup_start_at: datetime | null, pickup_end_at: datetime | null, cutoff_at: datetime | null
+    note: string | null
+    estimated_total: string             // tính theo giá hiện tại, chỉ để tham khảo
+    requested_at: datetime, expires_at: datetime   // expires_at = pickup_start_at hiện tại
+  } | null
   allowed_actions: OrderAction[]       // backend tính theo role + trạng thái + thời gian; FE chỉ dùng để hiển thị
   review_state: {                      // chỉ phía Customer, khi COMPLETED
     farmer_reviewed: boolean
@@ -2400,7 +2499,8 @@ StatusHistory = {
   change_reason: string | null         // mã hệ thống được dịch sang câu tiếng Anh khi trả về
   created_at: datetime
 }
-OrderAction = "MODIFY" | "CANCEL" | "ACCEPT" | "DECLINE" | "READY" | "COMPLETE" | "NO_SHOW" | "REVIEW" | "REORDER"
+OrderAction = "MODIFY" | "REQUEST_CHANGE" | "CANCEL" | "ACCEPT" | "DECLINE" | "READY" | "COMPLETE" | "NO_SHOW"
+            | "APPROVE_CHANGE" | "REJECT_CHANGE" | "REVIEW" | "REORDER"
 ```
 
 ### 3.5 Đánh giá
@@ -2426,6 +2526,7 @@ RatingSummary = { rating_avg: number | null, rating_count: integer, distribution
 NotificationType = "ORDER_ACCEPTED" | "ORDER_READY" | "ORDER_DECLINED" | "ORDER_EXPIRED" | "RESTOCK"
                  | "ORDER_PLACED" | "ORDER_MODIFIED" | "ORDER_CANCELLED"
                  | "ORDER_CANCELLED_CUSTOMER_LOCKED" | "ACCOUNT_STATUS_CHANGED" | "MARKET_SCHEDULE_CHANGED"
+                 | "ORDER_CHANGE_APPROVED" | "ORDER_CHANGE_REJECTED"      // v1.7, D-030
 Notification = { id, type: NotificationType, title: string, message: string,
                  target_url: string | null, is_read: boolean, read_at: datetime | null, created_at: datetime }
 Announcement = { id, title: string, content: string, audience: "ALL" | "CUSTOMER" | "FARMER",
@@ -2445,7 +2546,7 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | Mã | Method & URL | Auth / Scope | Request | `data` trả về | OK | Lỗi riêng | Màn hình |
 | :---: | :--- | :--- | :--- | :--- | :---: | :--- | :--- |
 | AU-01 | `POST /api/auth/register/customer/` | AllowAny · throttle `register` | `{ email, password, confirm_password, full_name, phone, address }` | `{ access, refresh, user: Me }` (tự đăng nhập) | 201 | `EMAIL_EXISTS` | G-10 |
-| AU-02 | `POST /api/auth/register/farmer/` | AllowAny · throttle `register` | `{ email, password, confirm_password, stall_name, contact_person, phone, address }` | `{ access, refresh, user: Me }` (`farmer_status = PENDING`) | 201 | `EMAIL_EXISTS` | G-11 |
+| AU-02 | `POST /api/auth/register/farmer/` | AllowAny · throttle `register` | `{ email, password, confirm_password, stall_name, contact_person, phone, address, operating_days: integer[] (≥ 1, giá trị 1–7) }` | `{ access, refresh, user: Me }` (`farmer_status = PENDING`) | 201 | `EMAIL_EXISTS` | G-11 |
 | AU-03 | `POST /api/auth/login/` | AllowAny · throttle `login` | `{ email, password }` | `{ access, refresh, user: Me }` | 200 | `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED` | G-09 |
 | AU-04 | `POST /api/auth/refresh/` | AllowAny | `{ refresh }` | `{ access, refresh }` (rotation) | 200 | `TOKEN_INVALID`, `ACCOUNT_LOCKED` | Interceptor |
 | AU-05 | `POST /api/auth/logout/` | Authenticated | `{ refresh }` | — | 204 | — | Header |
@@ -2454,6 +2555,7 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | AU-08 | `POST /api/auth/ws-ticket/` | Authenticated (Customer, Farmer) | — | `{ ticket: uuid, expires_in: 30 }` | 200 | — | N-01 |
 | AU-09 | `POST /api/auth/admin/login/` | AllowAny · throttle `admin_login` | `{ email, password }` | `{ access, refresh, user: Me }` | 200 | `INVALID_CREDENTIALS` | A-00 |
 - Quy tắc validate: §1.5 Pass 3 (email chuẩn hóa lowercase; mật khẩu ≥ 8 ký tự, có chữ và số; SĐT regex VN).
+- AU-02 (D-031, D-032): `operating_days` bắt buộc ≥ 1 ngày; sau khi tạo tài khoản, backend tự tra tọa độ từ `address` (ngoài transaction, lỗi thì để trống, không làm hỏng đăng ký).
 - AU-01 / AU-02 (D-028): số điện thoại được chuẩn hóa về dạng `0xxxxxxxxx` trước khi kiểm tra và lưu; trùng với tài khoản khác cùng role (kể cả tài khoản đã bị khóa) → `400 VALIDATION_ERROR`, `errors.phone = ["This phone number is already registered."]`.
 - AU-03 và AU-09 ghi `audit_logs` `LOGIN` / `LOGIN_FAILED` (AU-09 thêm `details.portal = "ADMIN"`); AU-05 ghi `LOGOUT`; AU-07 ghi `PASSWORD_CHANGED`.
 - **Tách cổng (D-027)**: AU-03 trả `401 INVALID_CREDENTIALS` với tài khoản `ADMIN`; AU-09 trả `401 INVALID_CREDENTIALS` với tài khoản không phải `ADMIN` — kể cả khi mật khẩu đúng, để không tiết lộ loại tài khoản.
@@ -2462,14 +2564,14 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 ### 4.2 Công khai — `/api/public/`
 | Mã | Method & URL | Auth / Scope | Query / Request | `data` trả về | OK | Lỗi riêng | Màn hình |
 | :---: | :--- | :--- | :--- | :--- | :---: | :--- | :--- |
-| PU-01 | `GET /api/public/config/` | AllowAny | — | `{ ai_chat_enabled, booking_horizon_days: 7, max_open_orders_total: 5, max_open_orders_per_farmer: 1, max_upload_mb: 2 }` | 200 | — | App |
+| PU-01 | `GET /api/public/config/` | AllowAny | — | `{ ai_chat_enabled, booking_horizon_days: 7, max_placed_orders_per_customer: 10, max_upload_mb: 2 }` *(v1.7: bỏ giới hạn theo Farmer, D-005 v1.5)* | 200 | — | App |
 | PU-02 | `GET /api/public/categories/` | AllowAny · chỉ `is_active` | — | `Category[]` (không phân trang) | 200 | — | G-01, G-04, F-05 |
 | PU-03 | `GET /api/public/markets/` **[P]** | AllowAny · chỉ `is_active` | `q?`, `day?` (1–7), `lat?`, `lng?`, `ordering?` = `name` \| `distance` (cần lat/lng) | `MarketSummary[]` | 200 | — | G-01, G-02, F-07 |
 | PU-04 | `GET /api/public/markets/<id>/` | AllowAny · chợ `is_active` | `lat?`, `lng?` | `Market` | 200 | — | G-03 |
-| PU-05 | `GET /api/public/markets/<id>/farmers/` **[P]** | AllowAny · Farmer `APPROVED` | `day?` | `FarmerSummary[]` (kèm `stall_label` của chợ này) | 200 | — | G-03 |
+| PU-05 | `GET /api/public/markets/<id>/farmers/` **[P]** | AllowAny · Farmer `APPROVED` | `day?` (ngày hoạt động của Farmer và có khung bật ngày đó — D-031) | `FarmerSummary[]` (kèm `stall_label` của chợ này) | 200 | — | G-03 |
 | PU-06 | `GET /api/public/farmers/` **[P]** | AllowAny · Farmer `APPROVED` | `q?`, `market_id?`, `day?`, `category_id?`, `lat?`, `lng?`, `ordering?` = `rating` \| `in_stock` \| `distance` \| `name` | `FarmerSummary[]` | 200 | — | G-13 |
 | PU-07 | `GET /api/public/farmers/<id>/` | AllowAny · Farmer `APPROVED` | — | `FarmerPublic` | 200 | — | G-06 |
-| PU-08 | `GET /api/public/farmers/<id>/pickup-options/` | AllowAny · Farmer `APPROVED`, slot `is_active`, chợ `is_active`; loại ngày chợ đóng cửa và ngày Farmer nghỉ (D-023); không trả slot có `cutoff_at` đã qua (D-007) | `from?` (mặc định hôm nay), `days?` (≤ `booking_horizon_days`) | `PickupOption[]` | 200 | — | C-02, C-06, G-06 |
+| PU-08 | `GET /api/public/farmers/<id>/pickup-options/` | AllowAny · Farmer `APPROVED`, slot `is_active`, chợ `is_active`; chỉ ngày là ngày chợ họp và ngày hoạt động của Farmer (D-031); loại ngày chợ đóng cửa và ngày Farmer nghỉ (D-023); không trả slot có `cutoff_at` đã qua (D-007) | `from?` (mặc định hôm nay), `days?` (≤ `booking_horizon_days`) | `PickupOption[]` | 200 | — | C-02, C-06, G-06 |
 | PU-09 | `GET /api/public/farmers/<id>/reviews/` **[P10]** | AllowAny · review không bị ẩn | `rating?` | `{ summary: RatingSummary, results: Review[] … }` | 200 | — | G-06 |
 | PU-10 | `GET /api/public/products/` **[P]** | AllowAny · §6.2 "công khai" | `q?`, `category?` (ids), `market_id?`, `day?`, `farmer_id?`, `price_min?`, `price_max?`, `in_stock?` (mặc định `true`), `ids?` (tối đa 50, dùng làm mới giỏ C-01), `ordering?` = `newest` \| `price_asc` \| `price_desc` \| `rating` | `ProductCard[]` | 200 | — | G-01, G-04, G-06, C-01 |
 | PU-11 | `GET /api/public/products/<id>/` | AllowAny · công khai | — | `ProductDetail` | 200 | — | G-05 |
@@ -2487,7 +2589,7 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | CU-04 | `POST /api/customer/orders/` | Customer · throttle `orders` · **`Idempotency-Key`** | §5.1 | `{ orders: OrderSummary[] }` | 201 | `INSUFFICIENT_STOCK`, `OPEN_ORDER_LIMIT_EXCEEDED`, `SLOT_NOT_AVAILABLE`, `PRODUCT_NOT_AVAILABLE`, `CUTOFF_PASSED`, `IDEMPOTENCY_IN_PROGRESS`, `PRECONDITION_REQUIRED` | C-02, C-03 |
 | CU-05 | `GET /api/customer/orders/` **[P]** | Customer · `customer = me` | `tab?` = `open` \| `history`, `status?`, `farmer_id?`, `pickup_from?`, `pickup_to?`, `ordering?` = `pickup_start_at` \| `-created_at` | `OrderSummary[]` | 200 | — | C-04 |
 | CU-06 | `GET /api/customer/orders/<id>/` | Customer · `customer = me` | — | `OrderDetail` | 200 | — | C-05, C-06, C-07 |
-| CU-07 | `PATCH /api/customer/orders/<id>/` | Customer · `customer = me` · **`If-Match`** | §5.2 | `OrderDetail` | 200 | `RESOURCE_MODIFIED`, `CUTOFF_PASSED`, `INSUFFICIENT_STOCK`, `SLOT_NOT_AVAILABLE`, `PRODUCT_NOT_AVAILABLE`, `INVALID_STATUS_TRANSITION` | C-06 |
+| CU-07 | `PATCH /api/customer/orders/<id>/` | Customer · `customer = me` · **`If-Match`** | §5.2 | `OrderDetail` (đơn `PLACED`: đã áp dụng; đơn `ACCEPTED`: có `pending_change`) | 200 | `RESOURCE_MODIFIED`, `CUTOFF_PASSED`, `INSUFFICIENT_STOCK`, `SLOT_NOT_AVAILABLE`, `PRODUCT_NOT_AVAILABLE`, `INVALID_STATUS_TRANSITION` | C-06 |
 | CU-08 | `POST /api/customer/orders/<id>/cancel/` | Customer · `customer = me` · **`If-Match`** | `{ reason?: string ≤ 500 }` | `OrderDetail` (T5 / T6) | 200 | `RESOURCE_MODIFIED`, `CUTOFF_PASSED`, `INVALID_STATUS_TRANSITION` | C-05 |
 | CU-09 | `GET /api/customer/orders/<id>/reorder-preview/` | Customer · `customer = me` | — | `{ items: { product: ProductCard, quantity: integer }[], skipped: { product_id, product_name, reason: "OUT_OF_STOCK" \| "UNAVAILABLE" }[] }` (không ghi DB, giá hiện tại) | 200 | — | C-04, C-05 |
 | CU-10 | `POST /api/customer/orders/<id>/farmer-review/` | Customer · `customer = me` | `{ rating: 1–5, comment?: string ≤ 1000 }` | `Review` | 201 | `REVIEW_NOT_ALLOWED` | C-07 |
@@ -2504,13 +2606,13 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | Mã | Method & URL | Auth / Scope | Query / Request | `data` trả về | OK | Lỗi riêng | Màn hình |
 | :---: | :--- | :--- | :--- | :--- | :---: | :--- | :--- |
 | FA-01 | `GET /api/farmer/dashboard/` | Farmer · chính mình · chạy quét lười (D-009) | `from?`, `to?` (mặc định 7 ngày) | `{ kpis: { total_orders, pending_approval, in_progress, revenue }, revenue_by_day: { date, revenue }[], top_products: { product_id, name, quantity_sold, revenue }[≤5], overdue_open_count: integer, upcoming: OrderSummary[≤5], status: FarmerStatus, status_reason: string \| null }` | 200 | — | F-01 |
-| FA-02 | `GET /api/farmer/profile/` | Farmer · chính mình | — | `FarmerPublic` + `{ email, status, status_reason }` | 200 | — | F-08 |
-| FA-03 | `PATCH /api/farmer/profile/` | Farmer · chính mình · multipart nếu có ảnh | `{ stall_name?, contact_person?, phone?, address?, description?, image?: file, latitude?, longitude?, order_cutoff_hours?: 1–72 }` | như FA-02 | 200 | `VALIDATION_ERROR` (tọa độ thiếu một nửa) | F-07, F-08 |
+| FA-02 | `GET /api/farmer/profile/` | Farmer · chính mình | — | `FarmerPublic` + `{ email, status, status_reason, location_found: boolean }` | 200 | — | F-08 |
+| FA-03 | `PATCH /api/farmer/profile/` | Farmer · chính mình · multipart nếu có ảnh | `{ stall_name?, contact_person?, phone?, address?, operating_days?: integer[] (≥ 1), description?, image?: file, latitude?, longitude?, order_cutoff_hours?: 1–72 }` — đổi `address` thì backend tự tra lại tọa độ (D-032); `latitude`/`longitude` chỉ gửi khi Farmer kéo ghim | như FA-02 + `{ deactivated_slot_count }` khi bỏ ngày hoạt động | 200 | `VALIDATION_ERROR` (tọa độ thiếu một nửa, `operating_days` rỗng), `RESOURCE_IN_USE` (bỏ ngày hoạt động còn đơn mở, `errors.order_ids` — D-031) | F-07, F-08 |
 | FA-04 | `GET /api/farmer/markets/` | Farmer · `farmer = me` | — | `{ id (farmer_market_id), market: MarketSummary, stall_label, slots: PickupSlot[], open_order_count }[]` | 200 | — | F-07 |
 | FA-05 | `POST /api/farmer/markets/` | Farmer · `farmer = me` | `{ market_id, stall_label: 1–100 }` | 1 phần tử như FA-04 | 201 | `VALIDATION_ERROR` (đã tham gia chợ này / chợ ngừng hoạt động) | F-07 |
 | FA-06 | `PATCH /api/farmer/markets/<farmer_market_id>/` | Farmer · `farmer = me` | `{ stall_label }` | như FA-04 | 200 | — | F-07 |
 | FA-07 | `DELETE /api/farmer/markets/<farmer_market_id>/` | Farmer · `farmer = me` | — | — | 204 | `RESOURCE_IN_USE` (còn đơn mở tại chợ) | F-07 |
-| FA-08 | `POST /api/farmer/pickup-slots/` | Farmer · `farmer_market.farmer = me` | `{ farmer_market_id, day_of_week, start_time, end_time }` | `PickupSlot` | 201 | `VALIDATION_ERROR` (không phải ngày chợ họp / ngoài giờ chợ / trùng khung) | F-07 |
+| FA-08 | `POST /api/farmer/pickup-slots/` | Farmer · `farmer_market.farmer = me` | `{ farmer_market_id, day_of_week, start_time, end_time }` | `PickupSlot` | 201 | `VALIDATION_ERROR` (không phải ngày chợ họp / không phải ngày hoạt động của Farmer / ngoài giờ chợ / trùng khung) | F-07 |
 | FA-09 | `PATCH /api/farmer/pickup-slots/<id>/` | Như FA-08 | `{ day_of_week?, start_time?, end_time?, is_active? }` | `PickupSlot` | 200 | như FA-08 | F-07 |
 | FA-10 | `DELETE /api/farmer/pickup-slots/<id>/` | Như FA-08 | — | — | 204 | `RESOURCE_IN_USE` (còn đơn mở dùng khung này → gợi ý tắt `is_active`) | F-07 |
 | FA-11 | `GET /api/farmer/products/` **[P]** | Farmer · `farmer = me` | `q?`, `category_id?`, `state?` = `in_stock` \| `out_of_stock` \| `unavailable` \| `hidden` \| `archived` | `FarmerProduct[]` | 200 | — | F-04 |
@@ -2519,23 +2621,25 @@ AuditLog = { id, user: { id, email } | null, action: string, endpoint: string | 
 | FA-14 | `PATCH /api/farmer/products/<id>/` | Farmer `APPROVED` · `farmer = me` · multipart | Các trường của FA-12 (tùy chọn) | `FarmerProduct` + `{ restock_notified: integer }` | 200 | `FARMER_NOT_APPROVED`, `FAILED_PRECONDITION` (sản phẩm bị Admin gỡ / đã lưu trữ) | F-04, F-05 |
 | FA-15 | `DELETE /api/farmer/products/<id>/` | Farmer · `farmer = me` | — | — (đặt `is_archived = true`, D-017) | 204 | — | F-04 |
 | FA-16 | `POST /api/farmer/products/<id>/mark-sold-out/` | Farmer · `farmer = me` | — | `FarmerProduct` (`stock_quantity = 0`) | 200 | — | F-04 |
-| FA-17 | `GET /api/farmer/products/weekly-template-preview/` | Farmer `APPROVED` · chạy quét lười | — | `{ rows: { product_id, name, weekly_default_quantity, held_quantity, current_stock, new_stock, is_available }[], overdue_orders: OrderSummary[] }` | 200 | `FARMER_NOT_APPROVED` | F-06 |
+| FA-17 | `GET /api/farmer/products/weekly-template-preview/` | Farmer `APPROVED` · chạy quét lười | — | `{ rows: { product_id, name, weekly_default_quantity, held_quantity, pending_quantity, current_stock, new_stock, is_available }[], overdue_orders: OrderSummary[] }` (`held_quantity` chỉ gồm đơn `ACCEPTED` / `READY_FOR_PICKUP` chưa qua giờ nhận — D-029) | 200 | `FARMER_NOT_APPROVED` | F-06 |
 | FA-18 | `POST /api/farmer/products/apply-weekly-template/` | Farmer `APPROVED` | `{}` | `{ updated_count, restock_notified }` | 200 | `FARMER_NOT_APPROVED` | F-06 |
-| FA-19 | `GET /api/farmer/orders/` **[P]** | Farmer · `farmer = me` · chạy quét lười | `tab?` = `placed` \| `accepted` \| `ready` \| `history`, `status?`, `market_id?`, `pickup_from?`, `pickup_to?`, `q?` (mã đơn / tên khách), `overdue?` (`true` = ACCEPTED/READY đã qua `pickup_end_at`) | `OrderSummary[]` | 200 | — | F-02 |
-| FA-20 | `GET /api/farmer/orders/tab-counts/` | Farmer · `farmer = me` | — | `{ placed, accepted, ready, overdue }` | 200 | — | F-02 |
+| FA-19 | `GET /api/farmer/orders/` **[P]** | Farmer · `farmer = me` · chạy quét lười | `tab?` = `placed` \| `accepted` \| `ready` \| `history`, `status?`, `market_id?`, `pickup_from?`, `pickup_to?`, `q?` (mã đơn / tên khách), `overdue?` (`true` = ACCEPTED/READY đã qua `pickup_end_at`), `change_requested?` (`true` = có yêu cầu thay đổi đang chờ) | `OrderSummary[]` — sắp xếp theo tab: `placed` `created_at` tăng dần; `accepted`, `ready` `pickup_start_at` tăng dần; `history` `created_at` giảm dần | 200 | — | F-02 |
+| FA-20 | `GET /api/farmer/orders/tab-counts/` | Farmer · `farmer = me` | — | `{ placed, accepted, ready, overdue, change_requests }` | 200 | — | F-02 |
 | FA-21 | `GET /api/farmer/orders/picking-list/` | Farmer · `farmer = me` | `pickup_date` (bắt buộc), `market_id?` | `{ pickup_date, market_id, rows: { product_id, product_name, unit, total_quantity, order_count }[] }` (U-03) | 200 | — | F-02 |
 | FA-22 | `GET /api/farmer/orders/<id>/` | Farmer · `farmer = me` | — | `OrderDetail` | 200 | — | F-03 |
-| FA-23 | `POST /api/farmer/orders/<id>/accept/` | Farmer · `farmer = me` · **`If-Match`** | `{}` | `OrderDetail` (T2) | 200 | `RESOURCE_MODIFIED`, `INVALID_STATUS_TRANSITION`, `PICKUP_ALREADY_STARTED`, `FARMER_SUSPENDED` | F-02, F-03 |
-| FA-24 | `POST /api/farmer/orders/<id>/decline/` | Như FA-23 | `{ reason: string 5–500 }` | `OrderDetail` (T3 / T4) | 200 | như FA-23 + `CUTOFF_PASSED` (T4) | F-02, F-03 |
+| FA-23 | `POST /api/farmer/orders/<id>/accept/` | Farmer · `farmer = me` · **`If-Match`** | `{}` | `OrderDetail` (T2, trừ kho — D-029) | 200 | `RESOURCE_MODIFIED`, `INVALID_STATUS_TRANSITION`, `PICKUP_ALREADY_STARTED`, `FARMER_SUSPENDED`, `INSUFFICIENT_STOCK` | F-02, F-03 |
+| FA-24 | `POST /api/farmer/orders/<id>/decline/` | Như FA-23 | `{ reason: string 5–500, mark_sold_out?: boolean }` (`mark_sold_out = true` → đặt `stock_quantity = 0` cho các món trong đơn, như FA-16) | `OrderDetail` (T3 / T4; T4 cũng xóa yêu cầu thay đổi) | 200 | `RESOURCE_MODIFIED`, `INVALID_STATUS_TRANSITION`, `PICKUP_ALREADY_STARTED` (T3, T4), `FARMER_SUSPENDED` | F-02, F-03 |
 | FA-25 | `POST /api/farmer/orders/<id>/ready/` | Như FA-23 | `{}` | `OrderDetail` (T9) | 200 | như FA-23 + `CUTOFF_NOT_REACHED` | F-02, F-03 |
 | FA-26 | `POST /api/farmer/orders/<id>/complete/` | Như FA-23 | `{}` | `OrderDetail` (T10) | 200 | `RESOURCE_MODIFIED`, `INVALID_STATUS_TRANSITION` | F-02, F-03, F-06 |
-| FA-27 | `POST /api/farmer/orders/<id>/no-show/` | Như FA-23 | `{}` | `OrderDetail` (T11) | 200 | như FA-26 + `PICKUP_NOT_ENDED` | F-02, F-03, F-06 |
+| FA-27 | `POST /api/farmer/orders/<id>/no-show/` | Như FA-23 | `{}` | `OrderDetail` (T11 từ `READY_FOR_PICKUP` / T14 từ `ACCEPTED`; cộng trả kho — D-029) | 200 | như FA-26 + `PICKUP_NOT_ENDED` | F-02, F-03, F-06 |
 | FA-28 | `GET /api/farmer/reviews/` **[P]** | Farmer · review thuộc sạp / sản phẩm của me | `type?` = `FARMER` \| `PRODUCT`, `rating?`, `replied?` | `Review[]` | 200 | — | F-09 |
 | FA-29 | `POST /api/farmer/farmer-reviews/<id>/reply/` | Farmer · `order.farmer = me` | `{ reply: string 1–500 }` | `Review` | 200 | `REPLY_ALREADY_EXISTS`, `FAILED_PRECONDITION` (review bị ẩn) | F-09 |
 | FA-30 | `POST /api/farmer/product-reviews/<id>/reply/` | Farmer · `product.farmer = me` | `{ reply: string 1–500 }` | `Review` | 200 | như FA-29 | F-09 |
 | FA-31 | `GET /api/farmer/closures/` | Farmer · `farmer = me` | `include_past?` (mặc định `false`) | `Closure[]` | 200 | — | F-07 |
 | FA-32 | `POST /api/farmer/closures/` | Farmer · `farmer = me` | `{ start_date, end_date, reason?: ≤ 200 }` | `Closure` | 201 | `VALIDATION_ERROR` (ngày quá khứ / `end_date < start_date` / chồng lấn), `RESOURCE_IN_USE` (còn đơn mở trong khoảng, `errors.order_ids`) | F-07 |
 | FA-33 | `DELETE /api/farmer/closures/<id>/` | Farmer · `farmer = me` | — | — | 204 | — | F-07 |
+| FA-34 | `POST /api/farmer/orders/<id>/change-request/approve/` | Như FA-23 | `{}` | `OrderDetail` (nội dung mới, `pending_change = null`; trừ / trả chênh lệch kho — D-030) | 200 | `RESOURCE_MODIFIED`, `FAILED_PRECONDITION` (không có yêu cầu), `PICKUP_ALREADY_STARTED`, `INSUFFICIENT_STOCK`, `SLOT_NOT_AVAILABLE`, `PRODUCT_NOT_AVAILABLE`, `FARMER_SUSPENDED` | F-03 |
+| FA-35 | `POST /api/farmer/orders/<id>/change-request/reject/` | Như FA-23 | `{ reason?: string ≤ 500 }` | `OrderDetail` (giữ nội dung cũ, `pending_change = null`) | 200 | `RESOURCE_MODIFIED`, `FAILED_PRECONDITION` (không có yêu cầu), `PICKUP_ALREADY_STARTED`, `FARMER_SUSPENDED` | F-03 |
 - **Farmer `SUSPENDED`**: mọi endpoint ghi của `/api/farmer/` trả 403 `FARMER_SUSPENDED`; endpoint đọc vẫn dùng được (Pass 3 §2.2).
 - **Farmer `PENDING` / `REJECTED`**: được sửa hồ sơ, chợ, khung giờ; không tạo / sửa sản phẩm, không áp dụng mẫu tuần (`FARMER_NOT_APPROVED`).
 
@@ -2657,14 +2761,15 @@ Content-Type: application/json
 **Thứ tự xử lý (All-or-Nothing)**
 1. Kiểm tra `Idempotency-Key` trong Redis (khóa `idem:<user_id>:<key>`): đang xử lý → 409 `IDEMPOTENCY_IN_PROGRESS`; đã hoàn tất → trả lại **nguyên** phản hồi cũ (201) kèm header `Idempotent-Replayed: true`; cùng khóa nhưng body khác → 422 `IDEMPOTENCY_KEY_REUSED`.
 2. Validate cấu trúc (serializer) → 400 `VALIDATION_ERROR`.
-3. `transaction.atomic()`:
-   1. Khóa `customer_profiles` của khách; đếm đơn `PLACED` hiện có + số đơn sắp tạo (1 / Farmer trong giỏ) → vượt `MAX_PLACED_ORDERS_PER_CUSTOMER` → 422 `OPEN_ORDER_LIMIT_EXCEEDED`.
-   2. Gọi `expire_overdue_orders(farmer_id)` cho từng Farmer trong giỏ.
-   3. Tính `pickup_start_at`, `pickup_end_at`, `cutoff_at` cho từng nhóm; `now ≥ cutoff_at` → 422 `CUTOFF_PASSED`; slot / ngày sai → 422 `SLOT_NOT_AVAILABLE`.
-   4. Khóa mọi `products` của tất cả nhóm theo `order_by("id")`; sản phẩm không thuộc Farmer của nhóm → 400 `VALIDATION_ERROR`; không còn bán công khai → 422 `PRODUCT_NOT_AVAILABLE`; thiếu hàng → 400 `INSUFFICIENT_STOCK` (liệt kê **mọi** dòng thiếu trong `errors`).
-   5. Trừ kho, tạo `orders` + `order_items` (snapshot giá, tên, đơn vị, chợ, sạp, thời gian), ghi `order_status_history` (T1, `actor_role = CUSTOMER`).
+3. Gọi `expire_overdue_orders(farmer_id)` cho từng Farmer trong giỏ, mỗi Farmer một transaction riêng và commit trước bước 4 (không giữ khóa của quét lười trong transaction checkout).
+4. `transaction.atomic()`:
+   1. Khóa `customer_profiles` của khách; đếm đơn `PLACED` có `pickup_start_at > now` + số đơn sắp tạo (1 / Farmer trong giỏ) → vượt `MAX_PLACED_ORDERS_PER_CUSTOMER` → 422 `OPEN_ORDER_LIMIT_EXCEEDED`.
+   2. *(đã chuyển lên bước 3)*
+   3. Tính `pickup_start_at`, `pickup_end_at`, `cutoff_at` cho từng nhóm; `now ≥ cutoff_at` → 422 `CUTOFF_PASSED`; slot / ngày sai (A-019, gồm ngày hoạt động của Farmer) → 422 `SLOT_NOT_AVAILABLE`.
+   4. Đọc mọi `products` của tất cả nhóm (**không khóa** — D-029); sản phẩm không thuộc Farmer của nhóm → 400 `VALIDATION_ERROR`; không còn bán công khai → 422 `PRODUCT_NOT_AVAILABLE`; thiếu hàng → 400 `INSUFFICIENT_STOCK` (liệt kê **mọi** dòng thiếu trong `errors`).
+   5. **Không trừ kho**; tạo `orders` + `order_items` (snapshot giá, tên, đơn vị, chợ, sạp, thời gian), ghi `order_status_history` (T1, `actor_role = CUSTOMER`).
    6. `notify()` Farmer `ORDER_PLACED` (in-app) qua `on_commit`.
-4. Lưu phản hồi vào Redis 24h.
+5. Lưu phản hồi vào Redis 24h.
 
 **Response 201**
 ```json
@@ -2682,7 +2787,7 @@ Content-Type: application/json
   "data": { "available": { "102": 3, "230": 0 } } }
 ```
 
-### 5.2 CU-07 — Sửa đơn (D-007)
+### 5.2 CU-07 — Sửa đơn (D-007, D-030)
 **Request** (`If-Match: "3"`)
 ```json
 {
@@ -2695,29 +2800,34 @@ Content-Type: application/json
 | Trường | Quy tắc |
 | :--- | :--- |
 | `items?` | **Danh sách đầy đủ sau khi sửa** (khai báo, không phải chênh lệch). Tối thiểu 1 phần tử; mọi sản phẩm thuộc cùng Farmer của đơn. Muốn bỏ hết món → dùng CU-08 |
-| `pickup_slot_id?`, `pickup_date?` | Đổi khung phải gửi **cả hai**; slot thuộc cùng Farmer; phải còn trước cutoff của **cả** khung cũ lẫn khung mới |
+| `pickup_slot_id?`, `pickup_date?` | Đổi khung phải gửi **cả hai**; slot thuộc cùng Farmer tại cùng chợ; `pickup_date` từ hôm nay đến 7 ngày tới, hợp lệ theo A-019; phải còn trước cutoff của **cả** khung cũ lẫn khung mới |
 | `note?` | ≤ 300 |
 - **Điều kiện**: đơn `PLACED` hoặc `ACCEPTED`, `now < cutoff_at` (cũ).
-- **Kho**: tính chênh lệch từng món dưới khóa `products` `order_by("id")`; món giữ nguyên giữ `unit_price` cũ, món mới lấy giá hiện tại.
-- **Trạng thái**: `ACCEPTED` → `PLACED` (T7, `actor_role = SYSTEM`, `change_reason` = tóm tắt thay đổi); đơn đang `PLACED` ghi 1 dòng history `PLACED → PLACED`, `transition = null`.
+- **Sản phẩm**: món thêm mới hoặc tăng số lượng phải đang bán công khai; món đã ngừng bán chỉ được giữ hoặc giảm → vi phạm `422 PRODUCT_NOT_AVAILABLE`.
+- **Kho**: chỉ kiểm tra tồn kho khả dụng đủ cho phần tăng (không khóa, không trừ) → thiếu `400 INSUFFICIENT_STOCK`.
+- **Đơn `PLACED`**: áp dụng ngay; món giữ nguyên giữ `unit_price` cũ, món mới lấy giá hiện tại; ghi 1 dòng history `PLACED → PLACED`, `transition = null`.
+- **Đơn `ACCEPTED`**: **không đổi nội dung đơn**; lưu vào `orders.pending_change` (ghi đè yêu cầu cũ nếu có); ghi 1 dòng history `ACCEPTED → ACCEPTED`, `transition = null`, *"Change request submitted: …"*. Farmer xử lý qua FA-34 / FA-35 / FA-24 (A-003).
 - **Response**: `OrderDetail` với `version` mới. Farmer nhận `ORDER_MODIFIED` (in-app).
 
 ### 5.3 Endpoint hành động FSM (D-006 · Triple-Gate)
 | Cạnh | Endpoint | Actor | Gate 1 (400) — từ trạng thái | Gate 3 (422) — điều kiện | `If-Match` | Kho | Thông báo (email) |
 | :---: | :--- | :--- | :--- | :--- | :---: | :---: | :--- |
-| T1 | CU-04 | Customer | (tạo) | trước `cutoff_at`; D-005 | — (`Idempotency-Key`) | − | Farmer `ORDER_PLACED` |
-| T2 | FA-23 accept | Farmer | `PLACED` | trước `pickup_start_at` → `PICKUP_ALREADY_STARTED` | ✅ | — | Khách `ORDER_ACCEPTED` ✉ |
-| T3 | FA-24 decline | Farmer | `PLACED` | trước `pickup_start_at`; `reason` bắt buộc | ✅ | + | Khách `ORDER_DECLINED` ✉ |
-| T4 | FA-24 decline | Farmer | `ACCEPTED` | trước `cutoff_at` → `CUTOFF_PASSED`; `reason` bắt buộc | ✅ | + | Khách `ORDER_DECLINED` ✉ |
-| T5 | CU-08 cancel | Customer | `PLACED` | trước `cutoff_at` | ✅ | + | Farmer `ORDER_CANCELLED` ✉ |
+| T1 | CU-04 | Customer | (tạo) | trước `cutoff_at`; D-005 | — (`Idempotency-Key`) | — (chỉ kiểm tra) | Farmer `ORDER_PLACED` |
+| T2 | FA-23 accept | Farmer | `PLACED` | trước `pickup_start_at` → `PICKUP_ALREADY_STARTED`; đủ kho → thiếu `400 INSUFFICIENT_STOCK` | ✅ | − | Khách `ORDER_ACCEPTED` ✉ |
+| T3 | FA-24 decline | Farmer | `PLACED` | trước `pickup_start_at`; `reason` bắt buộc | ✅ | — | Khách `ORDER_DECLINED` ✉ |
+| T4 | FA-24 decline | Farmer | `ACCEPTED` | trước `pickup_start_at` → `PICKUP_ALREADY_STARTED`; `reason` bắt buộc | ✅ | + | Khách `ORDER_DECLINED` ✉ |
+| T5 | CU-08 cancel | Customer | `PLACED` | trước `cutoff_at` | ✅ | — | Farmer `ORDER_CANCELLED` ✉ |
 | T6 | CU-08 cancel | Customer | `ACCEPTED` | trước `cutoff_at` | ✅ | + | Farmer `ORDER_CANCELLED` ✉ |
-| T7 | CU-07 (sửa) | System | `ACCEPTED` | trước `cutoff_at` | ✅ | ± | Farmer `ORDER_MODIFIED` |
-| T8 | Quét lười (không endpoint) | System | `PLACED` | đã qua `pickup_start_at` | — | + | Khách `ORDER_EXPIRED` ✉ |
-| T9 | FA-25 ready | Farmer | `ACCEPTED` | sau `cutoff_at` → `CUTOFF_NOT_REACHED` | ✅ | — | Khách `ORDER_READY` ✉ |
+| ~~T7~~ | — | — | — | Bãi bỏ v1.7; sửa đơn đã duyệt dùng yêu cầu thay đổi (CU-07, FA-34, FA-35) | — | — | — |
+| T8 | Quét lười (không endpoint) | System | `PLACED` | đã qua `pickup_start_at` | — | — | Khách `ORDER_EXPIRED` ✉ |
+| T9 | FA-25 ready | Farmer | `ACCEPTED` | sau `cutoff_at` → `CUTOFF_NOT_REACHED`; không có yêu cầu thay đổi đang chờ → `FAILED_PRECONDITION` | ✅ | — | Khách `ORDER_READY` ✉ |
 | T10 | FA-26 complete | Farmer | `READY_FOR_PICKUP` | — | ✅ | — | — |
-| T11 | FA-27 no-show | Farmer | `READY_FOR_PICKUP` | sau `pickup_end_at` → `PICKUP_NOT_ENDED` | ✅ | — | — |
-| T3, T4, T12 | AD-07 suspend | Admin | Mọi đơn mở của Farmer | bỏ qua gate thời gian | — (khóa dòng) | + | Khách `ORDER_DECLINED` ✉ |
-| T5, T6, T13 | AD-12 deactivate | Admin | Mọi đơn mở của Khách | bỏ qua gate thời gian | — (khóa dòng) | + | Farmer `ORDER_CANCELLED_CUSTOMER_LOCKED` ✉ |
+| T11 | FA-27 no-show | Farmer | `READY_FOR_PICKUP` | sau `pickup_end_at` → `PICKUP_NOT_ENDED` | ✅ | + | — |
+| T14 | FA-27 no-show | Farmer | `ACCEPTED` | sau `pickup_end_at` → `PICKUP_NOT_ENDED` | ✅ | + | — |
+| T3, T4, T12 | AD-07 suspend | Admin | Mọi đơn mở của Farmer | bỏ qua gate thời gian | — (khóa dòng) | + cho T4, T12; — cho T3 | Khách `ORDER_DECLINED` ✉ |
+| T5, T6, T13 | AD-12 deactivate | Admin | Mọi đơn mở của Khách | bỏ qua gate thời gian | — (khóa dòng) | + cho T6, T13; — cho T5 | Farmer `ORDER_CANCELLED_CUSTOMER_LOCKED` ✉ |
+| — | FA-34 approve change | Farmer | `ACCEPTED` có `pending_change` | trước `pickup_start_at`; đủ kho cho phần tăng; khung mới còn hợp lệ | ✅ | ± | Khách `ORDER_CHANGE_APPROVED` |
+| — | FA-35 reject change | Farmer | `ACCEPTED` có `pending_change` | trước `pickup_start_at` | ✅ | — | Khách `ORDER_CHANGE_REJECTED` |
 - **Gate 2 (403 `ACTION_NOT_PERMITTED_FOR_ROLE`)** chủ yếu được thực thi bằng việc tách nhánh URL theo role; đơn ngoài phạm vi sở hữu trả **404** (§6).
 - Mọi endpoint hành động trả `OrderDetail` đã cập nhật (có `version` mới và `allowed_actions`).
 
@@ -2727,14 +2837,15 @@ Content-Type: application/json
 | 1 | Khóa `farmer_profiles`; `APPROVED → SUSPENDED`, lưu `status_reason` | Khóa `users`; `is_active → false`; lưu `customer_profiles.deactivation_reason` (D-024) |
 | 2 | Khóa đơn mở của Farmer `order_by("id")` | Khóa đơn mở của Khách `order_by("id")` |
 | 3 | `PLACED → DECLINED` (T3), `ACCEPTED → DECLINED` (T4), `READY_FOR_PICKUP → DECLINED` (T12) | `PLACED → CANCELLED` (T5), `ACCEPTED → CANCELLED` (T6), `READY_FOR_PICKUP → CANCELLED` (T13) |
-| 4 | Khóa `products` liên quan `order_by("id")`, cộng trả kho | như bên trái |
-| 5 | `order_status_history`: `actor_role = ADMIN`, `change_reason = FARMER_SUSPENDED_BY_ADMIN`; tăng `version` | `change_reason = CUSTOMER_LOCKED_BY_ADMIN` |
-| 6 | `notify()` từng khách (in-app + email); Farmer nhận `ACCOUNT_STATUS_CHANGED` | `notify()` từng Farmer (in-app + email) |
+| 4 | Khóa `products` của các đơn `ACCEPTED` / `READY_FOR_PICKUP` `order_by("id")`, cộng trả kho (đơn `PLACED` chưa trừ kho — D-029); xóa `pending_change` | như bên trái |
+| 5 | `order_status_history`: `actor_role = ADMIN`, `change_reason = FARMER_SUSPENDED_BY_ADMIN` (không ghi lý do Admin tự nhập — D-033); tăng `version` | `change_reason = CUSTOMER_LOCKED_BY_ADMIN` |
+| 6 | `notify()` từng khách (in-app + email, câu chữ chuẩn); Farmer nhận `ACCOUNT_STATUS_CHANGED` | `notify()` từng Farmer (in-app + email: hàng của đơn đã duyệt / sẵn sàng đã trả về kho online) |
 | 7 | `audit_logs` `FARMER_SUSPENDED` (`details.affected_orders`) | `audit_logs` `CUSTOMER_DEACTIVATED` |
 - Toàn bộ bước 1 → 5 trong một `transaction.atomic()`; bước 6 qua `on_commit`; bước 7 ghi ngoài transaction nghiệp vụ.
+- Admin không có endpoint hủy / sửa từng đơn (D-033).
 
 ### 5.5 Cảnh báo có hàng lại (RESTOCK · FR-24)
-- Kích hoạt **chỉ** khi Farmer chủ động bổ sung hàng làm `stock_quantity` của sản phẩm công khai đổi từ `0` lên `> 0`: FA-14 hoặc FA-18 (D-025). Không kích hoạt khi kho tăng do đơn bị hủy / từ chối / hết hạn / Admin can thiệp (T3–T8, T12, T13) hoặc do sửa đơn giảm số lượng.
+- Kích hoạt **chỉ** khi Farmer chủ động bổ sung hàng làm `stock_quantity` của sản phẩm công khai đổi từ `0` lên `> 0`: FA-14 hoặc FA-18 (D-025). Không kích hoạt khi kho tăng do đơn bị hủy / từ chối / khách không đến / Admin can thiệp (T4, T6, T11, T12, T13, T14) hoặc do Farmer chấp nhận yêu cầu giảm số lượng.
 - Người nhận: khách trong `favorite_products` của sản phẩm đó. Chỉ in-app (D-010). FA-14 / FA-18 trả số người được báo (`restock_notified`).
 
 ---
@@ -2778,13 +2889,17 @@ Content-Type: application/json
 | CT-04 | Customer gọi API Admin | AD-02 | 403 `PERMISSION_DENIED` + 1 dòng `audit_logs` |
 | CT-05 | Hai tab cùng hủy / sửa một đơn | CU-08 ×2 | Lần 2: 409 `RESOURCE_MODIFIED` |
 | CT-06 | Thiếu `If-Match` | FA-23 | 428 `PRECONDITION_REQUIRED` |
-| CT-07 | Hai khách đặt cùng lúc món còn 1 | CU-04 ×2 song song | Một 201, một 400 `INSUFFICIENT_STOCK`; tồn kho = 0, không âm |
+| CT-07 | Hai khách đặt cùng lúc món còn 1, rồi Farmer duyệt cả hai | CU-04 ×2 song song → FA-23 ×2 | Cả hai CU-04 trả 201, tồn kho vẫn = 1 (chưa trừ). FA-23 đơn thứ nhất 200, tồn kho = 0; FA-23 đơn thứ hai 400 `INSUFFICIENT_STOCK`, đơn vẫn `PLACED`; tồn kho không âm (D-029) |
 | CT-08 | Bấm đặt hàng 2 lần cùng `Idempotency-Key` | CU-04 ×2 | Cùng 1 bộ đơn; lần 2 có `Idempotent-Replayed: true` |
 | CT-09 | Khách đã có 10 đơn `PLACED` đặt thêm đơn | CU-04 | 422 `OPEN_ORDER_LIMIT_EXCEEDED`; đặt thêm đơn cho cùng Farmer khi chưa tới 10 → 201 |
 | CT-10 | Hủy sau cutoff | CU-08 | 422 `CUTOFF_PASSED` |
 | CT-11 | Sẵn sàng trước cutoff | FA-25 | 422 `CUTOFF_NOT_REACHED` |
 | CT-12 | Hoàn tất đơn `PLACED` (nhảy cóc) | FA-26 | 400 `INVALID_STATUS_TRANSITION` |
-| CT-13 | Đình chỉ Farmer có đơn `READY_FOR_PICKUP` | AD-07 | Đơn → `DECLINED` (T12), kho cộng trả, khách nhận email |
+| CT-13 | Đình chỉ Farmer có đơn `READY_FOR_PICKUP` và đơn `PLACED` | AD-07 | Đơn `READY_FOR_PICKUP` → `DECLINED` (T12), kho cộng trả; đơn `PLACED` → `DECLINED` (T3), kho không đổi; khách nhận email câu chữ chuẩn |
+| CT-20 | Khách sửa đơn `ACCEPTED`, Farmer chấp nhận | CU-07 → FA-34 | CU-07: đơn vẫn `ACCEPTED`, nội dung cũ, có `pending_change`, kho không đổi. FA-34: nội dung mới, kho trừ / trả đúng chênh lệch |
+| CT-21 | Yêu cầu thay đổi quá hạn | CU-07, rồi qua `pickup_start_at` | Quét lười xóa `pending_change`, đơn giữ nguyên, khách nhận `ORDER_CHANGE_REJECTED` |
+| CT-22 | Khách không đến | FA-27 sau `pickup_end_at` | Đơn → `NO_SHOW`, kho cộng trả; FA-26 sau đó → 400 `INVALID_STATUS_TRANSITION` |
+| CT-23 | Đơn `PLACED` quá giờ nhận | Quét lười | Đơn → `EXPIRED`, kho không đổi, không tính vào cờ At risk |
 | CT-14 | 6 lần đăng nhập sai | AU-03 | Lần 6: 429 `THROTTLED` |
 | CT-15 | Dùng lại refresh token cũ sau rotation | AU-04 | 401 `TOKEN_INVALID` |
 | CT-16 | Dán lại URL WebSocket đã dùng | WS | Đóng mã `4401` |
@@ -2804,6 +2919,7 @@ Content-Type: application/json
 | v1.4 | — | Đồng bộ tài liệu với code: đường dẫn `marketlink_core/` (thay `core/`, `config/`), module chat `chat_bot/`, `CORS_EXPOSE_HEADERS` thêm `idempotent-replayed` | Lead Architect |
 | v1.5 | — | D-005: giới hạn 10 đơn chưa duyệt (`PLACED`) mỗi khách, bỏ giới hạn theo Farmer; F-02 nhóm đơn cùng khách + ngày nhận. D-028: 1 số điện thoại = 1 tài khoản, khóa tài khoản là chặn email + số điện thoại, cờ At risk ở A-04 (không thêm bảng) | Lead Architect |
 | v1.6 | — | D-028 đã hiện thực phần dữ liệu: `normalize_phone()`, UNIQUE `customer_profiles.phone` / `farmer_profiles.phone`, migration `accounts/0005_unique_phone` | Lead Architect |
+| v1.7 | — | D-029: kho chỉ trừ khi Farmer duyệt (T2), T3/T5/T8 không đổi kho, T11 cộng trả, thêm T14 (`ACCEPTED → NO_SHOW`), T4 được tới `pickup_start_at`, FA-23 thêm `INSUFFICIENT_STOCK`, FA-24 bỏ `CUTOFF_PASSED` và thêm `mark_sold_out`. D-030: yêu cầu thay đổi cho đơn đã duyệt (cột `orders.pending_change`, FA-34, FA-35, `ORDER_CHANGE_APPROVED` / `ORDER_CHANGE_REJECTED`, `OrderDetail.pending_change`, `OrderSummary.has_pending_change`), bãi bỏ T7. D-031: `farmer_profiles.operating_days` (AU-02, FA-03, PU-05, PU-06, PU-08, FA-08). D-032: tọa độ Farmer tự tra từ địa chỉ. D-033: Admin không thao tác từng đơn. D-034: mọi tính năng bắt buộc. D-035: diễn giải "Track Deliveries". PU-01 đổi thành `max_placed_orders_per_customer: 10`. FA-19 quy định thứ tự sắp xếp theo tab, thêm `change_requested`. CT-07, CT-13 sửa; thêm CT-20 → CT-23 | Lead Architect |
 
 ---
 
@@ -2974,7 +3090,7 @@ def run_with_deadlock_retry(fn, *args, **kwargs):
 ```
 
 ### Kiểm chứng
-- Hai khách đặt cùng lúc món còn 1 → một 201, một 400 `INSUFFICIENT_STOCK`, tồn kho không âm (CT-07).
+- Hai khách đặt cùng lúc món còn 1 → cả hai 201, tồn kho vẫn 1 (tạo đơn không trừ kho — D-029). Farmer duyệt đơn thứ nhất → tồn kho 0; duyệt đơn thứ hai → 400 `INSUFFICIENT_STOCK`, đơn vẫn `PLACED`; tồn kho không âm (CT-07). Hai Farmer / hai tab cùng duyệt các đơn chung một món → khóa `products` theo `id`, chỉ đơn đủ hàng được trừ.
 
 ---
 

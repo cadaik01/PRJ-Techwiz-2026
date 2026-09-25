@@ -152,7 +152,7 @@ def run_with_deadlock_retry(fn, *args, **kwargs):
 ```
 
 ### Kiểm chứng
-- Hai khách đặt cùng lúc món còn 1 → một 201, một 400 `INSUFFICIENT_STOCK`, tồn kho không âm (CT-07).
+- Hai khách đặt cùng lúc món còn 1 → cả hai 201, tồn kho vẫn 1 (tạo đơn không trừ kho — D-029). Farmer duyệt đơn thứ nhất → tồn kho 0; duyệt đơn thứ hai → 400 `INSUFFICIENT_STOCK`, đơn vẫn `PLACED`; tồn kho không âm (CT-07). Hai tab cùng duyệt các đơn chung một món → khóa `products` theo `id`, chỉ đơn đủ hàng được trừ.
 
 ---
 
