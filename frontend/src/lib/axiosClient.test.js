@@ -46,6 +46,28 @@ describe('request headers', () => {
     expect(third.headers['Idempotency-Key']).toBeUndefined();
   });
 
+  it('keeps one Idempotency-Key across a retry, so a replay is not a second order', async () => {
+    // CU-04 creates N orders. If the access token dies mid-flight, the retry must carry the same
+    // key, or the server treats it as a fresh checkout and the customer pays for two of everything.
+    localStorage.setItem(STORAGE_KEYS.ACCESS, 'stale');
+    localStorage.setItem(STORAGE_KEYS.REFRESH, 'refresh-1');
+    refreshMock.onPost(/\/auth\/refresh\/$/).reply(200, {
+      success: true, message: 'OK', data: { access: 'fresh', refresh: 'refresh-2' }, errors: {},
+    });
+    mock.onPost('/customer/orders/').reply((config) => (
+      config.headers.Authorization === 'Bearer fresh'
+        ? [201, { success: true, message: 'OK', data: { orders: [] }, errors: {} }]
+        : [401, { success: false, message: 'Expired', data: {}, errors: {}, code: 'TOKEN_EXPIRED' }]
+    ));
+
+    await axiosClient.post('/customer/orders/', { groups: [] }, { idempotent: true });
+
+    expect(mock.history.post).toHaveLength(2);
+    const [first, retry] = mock.history.post;
+    expect(first.headers['Idempotency-Key']).toMatch(/^[0-9a-f-]{36}$/);
+    expect(retry.headers['Idempotency-Key']).toBe(first.headers['Idempotency-Key']);
+  });
+
   it('adds If-Match for optimistic concurrency', async () => {
     mock.onPatch('/customer/orders/7/').reply(200, { success: true, message: 'OK', data: {}, errors: {} });
 

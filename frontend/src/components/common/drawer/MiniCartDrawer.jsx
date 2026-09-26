@@ -4,19 +4,13 @@ import { Button } from '@/components/common/ui/Button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/common/ui/Sheet';
 import { formatMoney } from '@/utils/formatters';
 import { moneyToNumber } from '@/utils/helpers/domain';
-import { useCartStore } from '@/stores/cart.store';
+import { cartCount, cartGroups, cartTotal, useCartStore } from '@/stores/cart.store';
 import './MiniCartDrawer.css';
 export function MiniCartDrawer() {
-    const items = useCartStore((s) => s.items);
-    const count = items.reduce((sum, i) => sum + i.quantity, 0);
-    const total = items.reduce((sum, i) => sum + moneyToNumber(i.price) * i.quantity, 0);
-    const grouped = items.reduce((acc, item) => {
-        const key = String(item.farmer_id);
-        const list = acc[key] ?? [];
-        list.push(item);
-        acc[key] = list;
-        return acc;
-    }, {});
+    const items = useCartStore((s) => s.lines);
+    const count = cartCount(items);
+    const total = cartTotal(items);
+    const groups = cartGroups(items);
     return (<Sheet>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" aria-label="Cart" className="mini-cart__trigger">
@@ -29,10 +23,10 @@ export function MiniCartDrawer() {
           <SheetTitle>Your cart ({count})</SheetTitle>
         </SheetHeader>
         <div className="mini-cart__list">
-          {Object.entries(grouped).map(([farmerId, farmerItems]) => (<div key={farmerId} className="mini-cart__group">
-              <p className="mini-cart__group-title">{farmerItems[0]?.farmer_name}</p>
+          {groups.map((group) => (<div key={group.farmer_id} className="mini-cart__group">
+              <p className="mini-cart__group-title">{group.farmer_stall_name}</p>
               <ul className="mini-cart__items">
-                {farmerItems.map((item) => (<li key={item.product_id} className="mini-cart__line">
+                {group.lines.map((item) => (<li key={item.product_id} className="mini-cart__line">
                     <span className="mini-cart__line-name">
                       {item.quantity}× {item.name}
                     </span>
@@ -50,7 +44,7 @@ export function MiniCartDrawer() {
             <span>{formatMoney(total)}</span>
           </div>
           <Button asChild className="mini-cart__checkout-btn" disabled={items.length === 0}>
-            <Link to="/app/cart">Review cart</Link>
+            <Link to="/customer/cart">Review cart</Link>
           </Button>
         </div>
       </SheetContent>

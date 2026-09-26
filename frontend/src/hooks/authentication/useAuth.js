@@ -91,6 +91,11 @@ export function useAuth() {
             }
         },
     });
+    /** Open a session from an auth payload that was held back (G-11). */
+    function startSession({ access, refresh, user }) {
+        setTokens({ access, refresh, role: user.role });
+        queryClient.setQueryData(QUERY_KEYS.ME, user);
+    }
     const registerCustomerMutation = useMutation({
         mutationFn: authApi.registerCustomer,
         onSuccess: (data) => {
@@ -110,18 +115,10 @@ export function useAuth() {
             }
         },
     });
+    // AU-02 hands back tokens, but G-11 shows the approval notice first: the caller decides when the
+    // session starts, otherwise GuestOnlyRoute would redirect off the notice the moment it renders.
     const registerFarmerMutation = useMutation({
         mutationFn: authApi.registerFarmer,
-        onSuccess: (data) => {
-            setTokens({
-                access: data.access,
-                refresh: data.refresh,
-                role: data.user.role,
-            });
-            queryClient.setQueryData(QUERY_KEYS.ME, data.user);
-            toast.success('Stall submitted — we will review it shortly.');
-            navigate(homePathForRole(data.user.role), { replace: true });
-        },
         onError: (error) => {
             const apiError = ApiError.fromUnknown(error);
             if (Object.keys(apiError.fieldErrors).length === 0) {
@@ -144,6 +141,7 @@ export function useAuth() {
         registerCustomerPending: registerCustomerMutation.isPending,
         registerFarmer: registerFarmerMutation.mutateAsync,
         registerFarmerPending: registerFarmerMutation.isPending,
+        startSession,
         setRole,
     };
 }

@@ -83,7 +83,9 @@ axiosClient.interceptors.request.use((config) => {
         config.url = ensureTrailingSlash(config.url);
     }
     if (config.idempotent) {
-        config.headers['Idempotency-Key'] = uuidv4();
+        // Minted once per attempt and kept on retries: a 401 refresh replays this very config, and a
+        // second key would turn the replay of CU-04 into a second set of orders.
+        config.headers['Idempotency-Key'] = config.headers['Idempotency-Key'] ?? uuidv4();
     }
     if (config.ifMatch) {
         config.headers['If-Match'] = config.ifMatch;

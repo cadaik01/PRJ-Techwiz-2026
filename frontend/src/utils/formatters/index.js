@@ -16,6 +16,10 @@ export function formatDate(value) {
     const date = typeof value === 'string' ? parseISO(value) : value;
     return format(date, 'dd/MM/yyyy', { locale: enUS });
 }
+export function formatTime(value) {
+    const date = typeof value === 'string' ? parseISO(value) : value;
+    return format(date, 'HH:mm', { locale: enUS });
+}
 export function formatRelative(value) {
     const date = typeof value === 'string' ? parseISO(value) : value;
     return formatDistanceToNow(date, { addSuffix: true, locale: enUS });

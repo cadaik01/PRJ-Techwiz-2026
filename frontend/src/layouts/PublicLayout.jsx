@@ -4,8 +4,10 @@ import { ThemeToggle } from '@/components/common/layout/ThemeToggle';
 import { Button } from '@/components/common/ui/Button';
 import { UserMenu } from '@/components/common/UserMenu';
 import { MiniCartDrawer } from '@/components/common/drawer/MiniCartDrawer';
+import { AnnouncementBanner } from '@/components/common/announcements/AnnouncementBanner';
 import { NotificationBell } from '@/components/common/NotificationBell';
 import { usePrefetchRoutes } from '@/hooks/usePrefetchRoutes';
+import { DASHBOARD_PATH } from '@/config/constants';
 import { useAuthStore } from '@/stores/auth.store';
 import { cn } from '@/lib/cn';
 import './PublicLayout.css';
@@ -15,9 +17,9 @@ export function PublicLayout() {
     const accessToken = useAuthStore((s) => s.accessToken);
     const role = useAuthStore((s) => s.role);
     const prefetch = usePrefetchRoutes();
-    const isCustomerApp = location.pathname.startsWith('/app');
+    const isCustomerApp = location.pathname.startsWith(DASHBOARD_PATH.CUSTOMER);
     const isCustomer = Boolean(accessToken) && role === 'CUSTOMER';
-    const appHome = role === 'ADMIN' ? '/admin' : role === 'FARMER' ? '/farmer' : '/app';
+    const appHome = DASHBOARD_PATH[role] ?? '/';
     const navLinkClass = ({ isActive }) => cn('public-layout__nav-link', isActive && 'is-active');
     return (<div className="public-layout">
       <a href="#main-content" className="public-layout__skip-link">
@@ -50,7 +52,7 @@ export function PublicLayout() {
           <div className="public-layout__actions">
             <ThemeToggle />
             {isCustomer ? (<>
-                <NotificationBell role="CUSTOMER" listPath="/app/notifications"/>
+                <NotificationBell role="CUSTOMER" listPath="/customer/notifications"/>
                 <MiniCartDrawer />
                 <UserMenu />
               </>) : accessToken ? (<UserMenu />) : (<>
@@ -78,6 +80,7 @@ export function PublicLayout() {
       </header>
 
       <main id="main-content" className="public-layout__main" tabIndex={-1}>
+        <AnnouncementBanner />
         <Outlet />
       </main>
 

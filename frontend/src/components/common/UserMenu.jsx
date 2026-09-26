@@ -18,10 +18,10 @@ function initials(displayName, email) {
 function linksForRole(role) {
     if (role === 'CUSTOMER') {
         return [
-            { to: '/app/profile', label: 'Your profile', icon: UserRound },
-            { to: '/app/favorites', label: 'Saved favorites', icon: Heart },
+            { to: '/customer/profile', label: 'Your profile', icon: UserRound },
+            { to: '/customer/favorites', label: 'Saved favorites', icon: Heart },
             { to: DASHBOARD_PATH.CUSTOMER, label: 'Your overview', icon: LayoutDashboard },
-            { to: '/app/change-password', label: 'Change password', icon: KeyRound },
+            { to: '/customer/password', label: 'Change password', icon: KeyRound },
         ];
     }
     if (role === 'FARMER') {
