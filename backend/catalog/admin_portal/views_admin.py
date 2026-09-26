@@ -19,7 +19,7 @@ from catalog.selectors import (
 )
 from catalog.services.category_service import delete_category
 from catalog.services.product_moderation_service import hide_product, restore_product
-from catalog.services.stock import get_held_quantities
+from catalog.services.stock import get_open_held_quantities, get_pending_quantities
 from marketlink_core.exceptions import ResourceNotFoundError
 from marketlink_core.permissions import IsAdmin
 from marketlink_core.responses import api_response
@@ -116,7 +116,8 @@ def _int(raw: str | None) -> int | None:
 def _product_context(products) -> dict:
     ids = [product.pk for product in products]
     return {
-        "held_quantities": get_held_quantities(product_ids=ids),
+        "held_quantities": get_open_held_quantities(product_ids=ids),
+        "pending_quantities": get_pending_quantities(product_ids=ids),
         "markets": markets_for_products(product_ids=ids),
     }
 

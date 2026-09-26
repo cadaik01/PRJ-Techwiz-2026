@@ -215,7 +215,10 @@ export interface ProductDetail extends ProductCard {
 
 export interface FarmerProduct extends ProductDetail {
   weekly_default_quantity: number | null;
+  // D-029 v1.8: held is every open ACCEPTED / READY order, pending is the PLACED ones the
+  // farmer has not answered yet, shown only for reconciliation.
   held_quantity: number;
+  pending_quantity: number;
   is_archived: boolean;
   is_hidden_by_admin: boolean;
   hidden_reason: string | null;

@@ -69,20 +69,40 @@ def test_a_product_of_a_suspended_farmer_is_unavailable(admin_client, product, a
 
 
 @pytest.mark.django_db
-def test_held_quantity_counts_only_reservations_still_in_play(
+def test_held_quantity_is_every_open_accepted_or_ready_order(
     admin_client, product, seller_market, make_order_with_item
 ):
-    # Whatever catalog.services.stock.get_held_quantities counts is what AD-20 reports; today
-    # that is the PLACED orders whose pickup time has not passed yet (D-029 reservations).
-    make_order_with_item(product=product, quantity=3, status=OrderStatus.PLACED)
-    make_order_with_item(product=product, quantity=4, status=OrderStatus.COMPLETED)
-    # Past its pickup window, so the reservation no longer holds anything.
+    # D-029 v1.8: stock leaves the shelf when the farmer accepts, so held_quantity counts every
+    # open ACCEPTED or READY order - including one already past its pickup time, whose goods
+    # are still off the shelf.
+    make_order_with_item(product=product, quantity=3, status=OrderStatus.ACCEPTED)
+    make_order_with_item(product=product, quantity=2, status=OrderStatus.READY_FOR_PICKUP)
     make_order_with_item(
-        product=product, quantity=7, status=OrderStatus.PLACED, days_ahead=-2
+        product=product, quantity=7, status=OrderStatus.ACCEPTED, days_ahead=-2
+    )
+    # A finished order released its goods; a PLACED one never took any.
+    make_order_with_item(product=product, quantity=4, status=OrderStatus.COMPLETED)
+    make_order_with_item(product=product, quantity=5, status=OrderStatus.PLACED)
+
+    row = admin_client.get(reverse(LIST_URL_NAME)).data["data"]["results"][0]
+
+    assert row["held_quantity"] == 3 + 2 + 7
+
+
+@pytest.mark.django_db
+def test_pending_quantity_counts_orders_awaiting_the_farmer(
+    admin_client, product, seller_market, make_order_with_item
+):
+    # pending_quantity is for reconciliation only: PLACED orders whose pickup is still ahead.
+    make_order_with_item(product=product, quantity=5, status=OrderStatus.PLACED)
+    make_order_with_item(product=product, quantity=3, status=OrderStatus.ACCEPTED)
+    make_order_with_item(
+        product=product, quantity=9, status=OrderStatus.PLACED, days_ahead=-2
     )
 
     row = admin_client.get(reverse(LIST_URL_NAME)).data["data"]["results"][0]
 
+    assert row["pending_quantity"] == 5
     assert row["held_quantity"] == 3
 
 

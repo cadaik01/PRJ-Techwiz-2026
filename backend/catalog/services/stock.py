@@ -53,12 +53,15 @@ def get_available_stock(*, product: Product) -> int:
 
 
 def get_weekly_pattern_held_quantities(*, product_ids: Iterable[int]) -> dict[int, int]:
+    """Weekly template "held" (A-004, D-029): ACCEPTED / READY orders whose pickup window has not
+    ended yet — orders being picked up right now still hold their goods. Orders past pickup_end_at
+    belong to the previous cycle and are listed separately as overdue."""
     now = timezone.now()
     rows = (
         OrderItem.objects.filter(
             product_id__in=set(product_ids),
             order__status__in=[OrderStatus.ACCEPTED, OrderStatus.READY_FOR_PICKUP],
-            order__pickup_start_at__gt=now,
+            order__pickup_end_at__gt=now,
         )
         .values("product_id")
         .annotate(held=Sum("quantity"))
@@ -79,3 +82,18 @@ def get_pending_quantities(*, product_ids: Iterable[int]) -> dict[int, int]:
     )
     return {row["product_id"]: row["pending"] for row in rows}
 
+
+
+def get_open_held_quantities(*, product_ids: Iterable[int]) -> dict[int, int]:
+    """FarmerProduct.held_quantity (D-029, v1.8): every open ACCEPTED / READY order, including
+    the ones already past their pickup time. Distinct from get_weekly_pattern_held_quantities,
+    which drops those because the weekly template plans the next cycle (A-004)."""
+    rows = (
+        OrderItem.objects.filter(
+            product_id__in=set(product_ids),
+            order__status__in=[OrderStatus.ACCEPTED, OrderStatus.READY_FOR_PICKUP],
+        )
+        .values("product_id")
+        .annotate(total=Sum("quantity"))
+    )
+    return {row["product_id"]: row["total"] for row in rows}

@@ -28,6 +28,7 @@ function toFarmerProduct(
     availability: productAvailability(p.stock_quantity, p.is_available),
     weekly_default_quantity: weeklyDefault,
     held_quantity: held,
+    pending_quantity: 0,
     is_archived: false,
     is_hidden_by_admin: false,
     hidden_reason: null,

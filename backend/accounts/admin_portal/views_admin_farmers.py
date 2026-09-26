@@ -29,7 +29,7 @@ from accounts.services.farmer_status_service import (
 )
 from catalog.admin_portal.serializers_admin import ProductAdminSerializer
 from catalog.selectors import list_products_for_admin, markets_for_products
-from catalog.services.stock import get_held_quantities
+from catalog.services.stock import get_open_held_quantities, get_pending_quantities
 from marketlink_core.exceptions import ResourceNotFoundError
 from marketlink_core.permissions import IsAdmin
 from marketlink_core.responses import api_response
@@ -97,7 +97,8 @@ class AdminFarmerDetailView(APIView):
                     products,
                     many=True,
                     context={
-                        "held_quantities": get_held_quantities(product_ids=product_ids),
+                        "held_quantities": get_open_held_quantities(product_ids=product_ids),
+                        "pending_quantities": get_pending_quantities(product_ids=product_ids),
                         "markets": markets_for_products(product_ids=product_ids),
                     },
                 ).data,

@@ -134,6 +134,7 @@ export function adaptFarmerProduct(raw: unknown): FarmerProduct | null {
     ...detail,
     weekly_default_quantity: readNumber(raw.weekly_default_quantity),
     held_quantity: readNumber(raw.held_quantity) ?? 0,
+    pending_quantity: readNumber(raw.pending_quantity) ?? 0,
     is_archived: raw.is_archived === true,
     is_hidden_by_admin: raw.is_hidden_by_admin === true,
     hidden_reason: typeof raw.hidden_reason === 'string' ? raw.hidden_reason : null,

@@ -611,6 +611,7 @@ export const farmerHandlers = [
       })),
       weekly_default_quantity: body.weekly_default_quantity ?? null,
       held_quantity: 0,
+      pending_quantity: 0,
       is_archived: false,
       is_hidden_by_admin: false,
       hidden_reason: null,
@@ -737,6 +738,7 @@ export const farmerHandlers = [
         current_stock: p.stock_quantity,
         new_stock: p.weekly_default_quantity ?? p.stock_quantity,
         held_quantity: p.held_quantity,
+        pending_quantity: p.pending_quantity,
       }));
     return HttpResponse.json(
       envelope({
@@ -770,6 +772,7 @@ export const farmerHandlers = [
         is_available: stock > 0,
         availability: productAvailability(stock, stock > 0),
         held_quantity: 0,
+        pending_quantity: 0,
       });
     });
     setFarmerProducts(next);

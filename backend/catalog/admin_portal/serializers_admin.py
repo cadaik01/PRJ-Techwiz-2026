@@ -61,6 +61,7 @@ class ProductAdminSerializer(serializers.ModelSerializer):
     markets = serializers.SerializerMethodField()
     availability = serializers.SerializerMethodField()
     held_quantity = serializers.SerializerMethodField()
+    pending_quantity = serializers.SerializerMethodField()
     rating_avg = serializers.FloatField(read_only=True)
     rating_count = serializers.IntegerField(read_only=True, default=0)
     is_favorite = serializers.SerializerMethodField()
@@ -77,6 +78,7 @@ class ProductAdminSerializer(serializers.ModelSerializer):
             "stock_quantity",
             "weekly_default_quantity",
             "held_quantity",
+            "pending_quantity",
             "is_available",
             "availability",
             "is_archived",
@@ -108,6 +110,9 @@ class ProductAdminSerializer(serializers.ModelSerializer):
 
     def get_held_quantity(self, product) -> int:
         return self._context_maps[0].get(product.pk, 0)
+
+    def get_pending_quantity(self, product) -> int:
+        return self.context.get("pending_quantities", {}).get(product.pk, 0)
 
     def get_availability(self, product) -> str:
         # "Publicly on sale" is defined in §3.3: not archived, not hidden, farmer APPROVED.
