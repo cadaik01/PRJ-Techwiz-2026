@@ -17,6 +17,7 @@ from marketlink_core.exceptions import (
     ResourceNotFoundError,
     UnprocessableEntityError,
 )
+from marketlink_core.history import save_with_history
 from marketlink_core.services.db_retry import run_with_deadlock_retry
 from notifications.models import NotificationType
 from notifications.services import notify
@@ -126,13 +127,20 @@ def transition_order(
                 order, rule, actor_role, sold_out_ids, mark_all_sold_out
             )
 
+            # Audit trail (v1.8): every history row of this action names the order and the edge;
+            # system actions (lazy sweep) are recorded without a user.
+            history_user = None if actor_role == _R.SYSTEM else actor
+            history_reason = f"Order #{order.pk}: {order.status} -> {to_status} ({rule.code})"
+
             # Locking order: orders (already locked above) -> products (sorted by id)
             if rule.code == Transition.T2:
-                _deduct_stock(order)
+                _deduct_stock(order, reason=history_reason, user=history_user)
             elif rule.restores_stock:
-                _restore_stock(order)
+                _restore_stock(order, reason=history_reason, user=history_user)
             if sold_out_targets:
-                _mark_products_sold_out(sold_out_targets)
+                _mark_products_sold_out(
+                    sold_out_targets, reason=f"{history_reason}: declared sold out", user=history_user
+                )
 
             from_status = order.status
             order.status = to_status
@@ -142,7 +150,7 @@ def transition_order(
                 if order.pending_change is not None:
                     order.pending_change = None
                     update_fields.append("pending_change")
-            order.save(update_fields=update_fields)
+            save_with_history(order, update_fields=update_fields, reason=history_reason, user=history_user)
             OrderStatusHistory.objects.create(
                 order=order,
                 from_status=from_status,
@@ -310,28 +318,32 @@ def _check_preconditions(
     return reason
 
 
-def _deduct_stock(order: Order) -> None:
+def _deduct_stock(order: Order, *, reason: str, user: Any) -> None:
     deltas: dict[int, int] = {}
     for item in order.items.all():
         deltas[item.product_id] = deltas.get(item.product_id, 0) - item.quantity
     if deltas:
-        apply_stock_delta(products=lock_products(product_ids=deltas.keys()), deltas=deltas)
+        apply_stock_delta(
+            products=lock_products(product_ids=deltas.keys()), deltas=deltas, reason=reason, user=user
+        )
 
 
-def _restore_stock(order: Order) -> None:
+def _restore_stock(order: Order, *, reason: str, user: Any) -> None:
     deltas: dict[int, int] = {}
     for item in order.items.all():
         deltas[item.product_id] = deltas.get(item.product_id, 0) + item.quantity
     if deltas:
-        apply_stock_delta(products=lock_products(product_ids=deltas.keys()), deltas=deltas)
+        apply_stock_delta(
+            products=lock_products(product_ids=deltas.keys()), deltas=deltas, reason=reason, user=user
+        )
 
 
-def _mark_products_sold_out(product_ids: set[int]) -> None:
+def _mark_products_sold_out(product_ids: set[int], *, reason: str, user: Any) -> None:
     # Runs after any T4 restock so the final stock of these products is exactly 0.
     for product in lock_products(product_ids=product_ids).values():
         if product.stock_quantity != 0:
             product.stock_quantity = 0
-            product.save(update_fields=["stock_quantity", "updated_at"])
+            save_with_history(product, update_fields=["stock_quantity", "updated_at"], reason=reason, user=user)
 
 
 def _send_notifications(

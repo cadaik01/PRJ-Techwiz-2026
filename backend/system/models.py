@@ -8,6 +8,7 @@ from marketlink_core.models import CreatedAtModel
 class AuditAction(models.TextChoices):
     LOGIN = "LOGIN", "Login"
     LOGIN_FAILED = "LOGIN_FAILED", "Login Failed"
+    ACCOUNT_REGISTERED = "ACCOUNT_REGISTERED", "Account Registered"
     LOGOUT = "LOGOUT", "Logout"
     PASSWORD_CHANGED = "PASSWORD_CHANGED", "Change Password"
     ACCESS_DENIED = "ACCESS_DENIED", "Access Denied"

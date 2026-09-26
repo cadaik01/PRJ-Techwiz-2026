@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from marketlink_core.context import get_request_id
 from marketlink_core.exceptions import BusinessValidationError, ErrorCode
+from marketlink_core.history import save_with_history
 from notifications.models import NotificationType
 from notifications.services import notify
 from orders.models import ActorRole, Order, OrderStatus, OrderStatusHistory
@@ -49,7 +50,12 @@ def _expire_change_request(order_id: int) -> bool:
                 return False
             order.pending_change = None
             order.version += 1
-            order.save(update_fields=["pending_change", "version", "updated_at"])
+            save_with_history(
+                order,
+                update_fields=["pending_change", "version", "updated_at"],
+                reason=f"Order #{order.pk}: change request expired",
+                user=None,  # system action (lazy sweep)
+            )
 
             OrderStatusHistory.objects.create(
                 order=order,

@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.models import FarmerProfile
 from marketlink_core.exceptions import (
     BusinessValidationError,
     ErrorCode,
@@ -25,6 +26,7 @@ from orders.farmer.serializers_farmer import (
     RejectChangeRequestSerializer,
 )
 from orders.models import ActorRole, Order, OrderItem, OrderStatus, OrderStatusHistory
+from orders.services.dashboard import build_farmer_dashboard, resolve_date_range
 from orders.services.expiry import expire_overdue_orders
 from orders.services.farmer_change_request import approve_change_request, reject_change_request
 from orders.services.farmer_order_items import mark_order_item_sold_out
@@ -435,3 +437,20 @@ class FarmerOrderPickingListView(FarmerBaseOrderView):
             },
             request=request,
         )
+
+
+class FarmerDashboardView(FarmerBaseOrderView):
+    def get(self, request: Request) -> Response:
+        """FA-01 (F-01): KPIs, revenue by day, best sellers, overdue warning, upcoming orders."""
+        date_range = resolve_date_range(request.query_params.get("from"), request.query_params.get("to"))
+        # Read the row fresh: status / status_reason drive the banner, never trust a cached relation.
+        farmer = FarmerProfile.objects.filter(pk=request.user.pk).first()
+        if farmer is None:
+            raise ResourceNotFoundError("Farmer profile not found.", code=ErrorCode.NOT_FOUND)
+        expire_overdue_orders(farmer_id=farmer.pk)  # D-009: fresh figures after the lazy sweep
+
+        data = build_farmer_dashboard(farmer=farmer, date_range=date_range)
+        data["upcoming"] = FarmerOrderSummarySerializer(
+            data["upcoming"], many=True, context={"request": request}
+        ).data
+        return api_response(message="OK", data=data, request=request)

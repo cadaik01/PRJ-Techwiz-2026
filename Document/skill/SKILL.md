@@ -92,7 +92,10 @@ backend/
 │                               # farmer/ — FA-04 → FA-10, FA-31 → FA-33 (3 nhóm URL: markets/, pickup-slots/, closures/)
 ├── notifications/              # services.py — notify(), serialize_notification() (một dạng Notification cho NO-01/NO-03 và payload WebSocket)
 │                               # views.py + urls.py — NO-01 → NO-04 (Customer, Farmer; Admin 403), gắn tại api/notifications/
-├── catalog/  orders/  reviews/  favorites/  chat_bot/
+├── orders/                     # services/dashboard.py — resolve_date_range(), build_farmer_dashboard() (FA-01, D1–D4 v1.8)
+├── reviews/                    # selectors.py — customer_display_name() (U-05), serialize_review(), farmer_reviews_of(), product_reviews_of()
+│                               # services.py — reply_to_review() (FA-29/30, D-016); farmer/ — FA-28 → FA-30
+├── catalog/  favorites/  chat_bot/
 ```
 
 Mỗi app nghiệp vụ:
@@ -120,6 +123,7 @@ Mỗi app nghiệp vụ:
   - `orders/services/modify.py` — Customer: sửa đơn `PLACED` và **gửi** yêu cầu thay đổi (CU-07). File hiện có đang theo logic cũ (T7, trừ kho khi sửa) và phải viết lại theo D-030.
 - **Chia service theo role thực hiện**: thao tác do role nào làm thì nhánh của role đó viết (ví dụ khách gửi yêu cầu thay đổi → Customer; Farmer xử lý → Farmer). Hai bên dùng chung dữ liệu thì phải theo đúng định dạng đã chốt ở Pass 4A (ví dụ `orders.pending_change`).
 - **Lệnh quản trị** (`management/commands/`): động từ + danh từ `snake_case` — `seed_minimal`, `expire_orders`.
+- **Audit trail (v1.8)**: `FarmerProfile`, `Product`, `Order`, `OrderItem`, `FarmerMarket`, `PickupSlot`, `FarmerClosure` có `HistoricalRecords`. Ghi vào các model này **phải** qua `save()` / `delete()` từng dòng hoặc `marketlink_core/history.py` (`save_with_history(instance, update_fields=..., reason=..., user=...)`, `delete_with_history(...)`; `user=None` = hành động hệ thống). **Cấm** `QuerySet.update()` và `bulk_create` thường trên các model này (mất dấu vết). `catalog/services/stock.py::apply_stock_delta(..., reason=, user=)` nhận lý do để ghi vào lịch sử kho. Đọc lịch sử: `system/selectors.py::build_change_log(model, object_id)`.
 - Mục đánh dấu **(not built yet)** là thiết kế đã chốt nhưng chưa có code: không import chúng; nhánh phụ trách tạo đúng đường dẫn và chữ ký đã ghi.
 - Route WebSocket mới được thêm thẳng vào danh sách `websocket_urlpatterns` trong `marketlink_core/asgi.py`.
 - `selectors.py`: hàm truy vấn chỉ đọc, dùng chung giữa các nhánh (ví dụ selector hiển thị công khai).

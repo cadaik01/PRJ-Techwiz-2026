@@ -16,6 +16,7 @@ from marketlink_core.exceptions import (
     ResourceNotFoundError,
     UnprocessableEntityError,
 )
+from marketlink_core.history import delete_with_history, save_with_history
 from notifications.models import NotificationType
 from notifications.services import notify
 from orders.models import ActorRole, Order, OrderStatus, OrderStatusHistory
@@ -81,17 +82,22 @@ def mark_order_item_sold_out(
                     errors={"product_id": ["An order must keep at least one item."]},
                 )
 
+            history_reason = f"Order #{order.pk}: item marked sold out ({target.product_name})"
             for product in lock_products(product_ids=[product_id]).values():
                 if product.stock_quantity != 0:
                     product.stock_quantity = 0
-                    product.save(update_fields=["stock_quantity", "updated_at"])
+                    save_with_history(
+                        product, update_fields=["stock_quantity", "updated_at"], reason=history_reason
+                    )
 
             removed_name = target.product_name
             remaining = [item for item in items if item.pk != target.pk]
-            target.delete()
+            delete_with_history(target, reason=history_reason)  # keeps quantity and price in the trail
             order.total_amount = sum((item.line_total for item in remaining), Decimal("0.00"))
             order.version += 1
-            order.save(update_fields=["total_amount", "version", "updated_at"])
+            save_with_history(
+                order, update_fields=["total_amount", "version", "updated_at"], reason=history_reason
+            )
 
             OrderStatusHistory.objects.create(
                 order=order,
