@@ -31,7 +31,7 @@ class PickupWindow:
         return self.slot.farmer_market.stall_label
 
 
-def _window(slot: PickupSlot, farmer, pickup_date: date) -> PickupWindow:
+def pickup_window(slot: PickupSlot, farmer, pickup_date: date) -> PickupWindow:
     start = timezone.make_aware(datetime.combine(pickup_date, slot.start_time))
     return PickupWindow(
         slot=slot,
@@ -82,19 +82,25 @@ def _is_open_on(slot: PickupSlot, day: date, market_ranges, farmer_ranges, farme
     )
 
 
-def resolve_pickup(*, farmer, pickup_slot_id: int, pickup_date: date, now=None) -> PickupWindow:
-    """CU-04: the Farmer branch's validate_pickup_date() plus the checks it does not cover yet.
+def check_customer_pickup_date(*, farmer, pickup_date: date, now=None) -> None:
+    """The date checks validate_pickup_date() does not cover yet, for CU-04 and CU-07 (PU-08 lists by the same rules).
 
     Kept here until validate_pickup_date() checks operating_days (D-031) and the booking horizon agrees
     with PU-08 (today .. today + BOOKING_HORIZON_DAYS - 1); both are pending with the Farmer branch.
     """
-    now = now or timezone.now()
-    today = timezone.localdate(now)
-    slot = _active_slots(farmer).filter(pk=pickup_slot_id).first()
-    if slot is None or not today <= pickup_date < today + timedelta(days=BOOKING_HORIZON_DAYS):
+    today = timezone.localdate(now or timezone.now())
+    if not today <= pickup_date < today + timedelta(days=BOOKING_HORIZON_DAYS):
         raise SlotNotAvailableError()
     if not _farmer_operates_on(farmer, pickup_date):
         raise SlotNotAvailableError()
+
+
+def resolve_pickup(*, farmer, pickup_slot_id: int, pickup_date: date, now=None) -> PickupWindow:
+    """CU-04: the Farmer branch's validate_pickup_date() plus check_customer_pickup_date()."""
+    slot = _active_slots(farmer).filter(pk=pickup_slot_id).first()
+    if slot is None:
+        raise SlotNotAvailableError()
+    check_customer_pickup_date(farmer=farmer, pickup_date=pickup_date, now=now)
     try:
         schedule = validate_pickup_date(
             farmer_id=farmer.pk,
@@ -129,7 +135,7 @@ def list_pickup_options(*, farmer, date_from: date | None = None, days: int = BO
         for slot in slots:
             if not _is_open_on(slot, day, market_ranges, farmer_ranges, farmer):
                 continue
-            window = _window(slot, farmer, day)
+            window = pickup_window(slot, farmer, day)
             # PU-08 v1.1 / A-003: slots whose cutoff has passed are not offered at all.
             if now >= window.cutoff_at:
                 continue

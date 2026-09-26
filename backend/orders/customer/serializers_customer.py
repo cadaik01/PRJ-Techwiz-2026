@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
@@ -5,7 +6,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from rest_framework import serializers
 
+from catalog.models import Product
+from catalog.services.stock import get_held_quantities
+from markets.models import PickupSlot
 from orders.models import Order, OrderItem, OrderStatus
+from orders.services.pickup_service import pickup_window
 
 
 class CheckoutItemWriteSerializer(serializers.Serializer):
@@ -176,6 +181,61 @@ def customer_allowed_actions(order, *, review_state: dict | None, now=None) -> l
     return actions
 
 
+_DATETIME = serializers.DateTimeField()
+
+
+def _render_datetime(value) -> str | None:
+    return _DATETIME.to_representation(value) if value is not None else None
+
+
+def pending_change_view(order) -> dict | None:
+    """Pass 4B §3.4 OrderDetail.pending_change, built from the stored request (Pass 4A orders.pending_change).
+
+    Read-only: current quantities, available stock and the estimate at current prices are computed now.
+    """
+    pending = order.pending_change
+    if not pending:
+        return None
+    current = {item.product_id: item for item in order.items.all()}
+    requested = pending.get("items")
+    if requested is None:  # only the slot or note changed: the items stay as they are
+        requested = [{"product_id": pid, "quantity": item.quantity} for pid, item in current.items()]
+    product_ids = [row["product_id"] for row in requested]
+    products = Product.objects.in_bulk(product_ids)
+    held = get_held_quantities(product_ids=product_ids)
+
+    items, estimated_total = [], Decimal("0.00")
+    for row in requested:
+        product, current_item = products.get(row["product_id"]), current.get(row["product_id"])
+        items.append({
+            "product_id": row["product_id"],
+            "product_name": row.get("product_name") or (product.name if product else current_item.product_name),
+            "unit": row.get("unit") or (product or current_item).unit,
+            "quantity": row["quantity"],
+            "current_quantity": current_item.quantity if current_item else 0,
+            "stock_available": max(product.stock_quantity - held.get(product.pk, 0), 0) if product else 0,
+        })
+        estimated_total += (product.price if product else current_item.unit_price) * row["quantity"]
+
+    window = None
+    if pending.get("pickup_slot_id") and pending.get("pickup_date"):
+        slot = PickupSlot.objects.filter(pk=pending["pickup_slot_id"]).first()
+        if slot is not None:
+            window = pickup_window(slot, order.farmer, date.fromisoformat(pending["pickup_date"]))
+    return {
+        "items": items,
+        "pickup_slot_id": pending.get("pickup_slot_id"),
+        "pickup_date": pending.get("pickup_date"),
+        "pickup_start_at": _render_datetime(window and window.pickup_start_at),
+        "pickup_end_at": _render_datetime(window and window.pickup_end_at),
+        "cutoff_at": _render_datetime(window and window.cutoff_at),
+        "note": pending.get("note"),
+        "estimated_total": str(estimated_total.quantize(Decimal("0.01"))),
+        "requested_at": pending.get("requested_at"),
+        "expires_at": _render_datetime(order.pickup_start_at),  # the request lapses when pickup starts (D-030)
+    }
+
+
 class CustomerOrderDetailReadSerializer(OrderSummaryReadSerializer):
     """Pass 4B §3.4 OrderDetail, as the customer sees it (no customer email)."""
 
@@ -183,7 +243,7 @@ class CustomerOrderDetailReadSerializer(OrderSummaryReadSerializer):
     note = serializers.CharField(allow_null=True)
     items = CustomerOrderItemReadSerializer(many=True)
     status_history = CustomerStatusHistoryReadSerializer(many=True)
-    pending_change = serializers.JSONField(allow_null=True)
+    pending_change = serializers.SerializerMethodField()
     allowed_actions = serializers.SerializerMethodField()
     review_state = serializers.SerializerMethodField()
 
@@ -191,6 +251,9 @@ class CustomerOrderDetailReadSerializer(OrderSummaryReadSerializer):
         fields = OrderSummaryReadSerializer.Meta.fields + [
             "pickup_slot_id", "note", "items", "status_history", "pending_change", "allowed_actions", "review_state",
         ]
+
+    def get_pending_change(self, order) -> dict | None:
+        return pending_change_view(order)
 
     def get_review_state(self, order) -> dict | None:
         if order.status != OrderStatus.COMPLETED:

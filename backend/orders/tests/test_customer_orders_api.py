@@ -182,7 +182,11 @@ class TestOrderDetail:
 
         data = shop.api.get(_detail_url(order)).json()["data"]
 
-        assert (data["has_pending_change"], data["pending_change"]) == (True, {"note": "Ring me"})
+        # Only the note changed, so the requested items are the current ones.
+        assert data["has_pending_change"] is True
+        assert data["pending_change"]["note"] == "Ring me"
+        assert [(item["product_id"], item["quantity"], item["current_quantity"])
+                for item in data["pending_change"]["items"]] == [(shop.product.pk, 2, 2)]
 
     @pytest.mark.parametrize("status, before_cutoff, actions", [
         ("PLACED", True, ["MODIFY", "CANCEL"]),

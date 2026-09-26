@@ -14,11 +14,12 @@ from orders.customer.serializers_customer import (
     CheckoutWriteSerializer,
     CustomerOrderDetailReadSerializer,
     CustomerOrderListQuerySerializer,
+    CustomerOrderModifySerializer,
     OrderSummaryReadSerializer,
 )
 from orders.selectors import customer_order_detail, customer_orders_queryset, order_summary_queryset
 from orders.services.checkout_service import expire_overdue_before_checkout, place_orders
-from orders.services.customer_order_service import cancel_customer_order
+from orders.services.customer_order_service import cancel_customer_order, modify_customer_order
 from orders.services.idempotency_service import run_idempotent
 
 
@@ -74,12 +75,23 @@ def _own_order_detail(request, order_id: int) -> dict:
 
 
 class CustomerOrderDetailView(APIView):
-    """CU-06 (C-05)."""
+    """CU-06 (C-05) and CU-07 (C-06)."""
 
     permission_classes = [IsCustomer]
 
     def get(self, request, order_id: int):
         return api_response(message="Order retrieved", data=_own_order_detail(request, order_id), request=request)
+
+    def patch(self, request, order_id: int):
+        expected_version = parse_if_match(request)
+        serializer = CustomerOrderModifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        order = run_with_deadlock_retry(
+            modify_customer_order, customer=request.user, order_id=order_id, expected_version=expected_version,
+            data=serializer.validated_data,
+        )
+        message = "Change request sent to the farmer" if order.pending_change else "Order updated"
+        return api_response(message=message, data=_own_order_detail(request, order_id), request=request)
 
 
 class CustomerOrderCancelView(APIView):
