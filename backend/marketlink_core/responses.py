@@ -43,6 +43,7 @@ MYSQL_ROW_IS_REFERENCED = 1451
 MYSQL_NO_REFERENCED_ROW = 1452
 MYSQL_DATA_TOO_LONG = 1406
 MYSQL_DEADLOCK = 1213
+MYSQL_LOCK_WAIT_TIMEOUT = 1205
 
 
 def api_response(
@@ -105,7 +106,7 @@ def _log_access_denied(request: Any) -> None:
 def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Response:
     request = context.get("request")
 
-    def reply(message: str, status_code: int, code: str, errors: dict | None = None) -> Response:
+    def reply(message: str, status_code: int, code: str, errors: dict | None = None, data: dict | None = None) -> Response:
         headers = None
         if isinstance(exc, APIException):
             headers = {}
@@ -115,6 +116,7 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Respons
                 headers["Retry-After"] = str(int(exc.wait))
         return api_response(
             message=message,
+            data=data,
             status_code=status_code,
             code=code,
             errors=errors,
@@ -123,7 +125,7 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Respons
         )
 
     if isinstance(exc, DomainError):
-        return reply(str(exc.detail), exc.status_code, exc.code, exc.errors)
+        return reply(str(exc.detail), exc.status_code, exc.code, exc.errors, exc.data)
 
     if isinstance(exc, (ProtectedError, RestrictedError)):
         return reply("This record is still in use and cannot be removed.", 422, ErrorCode.RESOURCE_IN_USE)
@@ -138,7 +140,7 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Respons
     if isinstance(exc, DataError) and _mysql_errno(exc) == MYSQL_DATA_TOO_LONG:
         return reply("One of the values is too long.", 400, ErrorCode.VALIDATION_ERROR)
 
-    if isinstance(exc, OperationalError) and _mysql_errno(exc) == MYSQL_DEADLOCK:
+    if isinstance(exc, OperationalError) and _mysql_errno(exc) in (MYSQL_DEADLOCK, MYSQL_LOCK_WAIT_TIMEOUT):
         return reply("The system is busy. Please try again.", 409, ErrorCode.CONFLICT_RETRY)
 
     if isinstance(exc, DjangoValidationError):

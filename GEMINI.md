@@ -18,7 +18,3 @@
    - Liệt kê các file mà AI sẽ chỉnh sửa để người dùng biết, rồi hỏi và chờ người dùng đồng ý ("Đồng ý", "Làm đi", "OK") mới được phép thực thi thao tác chỉnh sửa file.
    - Không được tự ý sửa xong rồi mới trình bày.
 
-5. **TUYỆT ĐỐI KHÔNG COMMIT / PUSH CODE**:
-   - AI KHÔNG được chạy bất kỳ lệnh git nào làm thay đổi lịch sử hoặc remote: `git commit`, `git push`, `git merge`, `git rebase`, `git reset`, `git tag`, `git stash`, tạo/xóa branch, mở pull request (`gh pr create`), ...
-   - Quy tắc này áp dụng **kể cả khi người dùng đã đồng ý sửa file** và kể cả khi skill/hướng dẫn khác có nhắc đến commit.
-   - Việc commit và push hoàn toàn do người dùng tự thực hiện. AI chỉ được dùng lệnh git chỉ đọc (`git status`, `git diff`, `git log`) để phân tích, và có thể gợi ý nội dung commit message trong ô chat.

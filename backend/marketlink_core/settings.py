@@ -122,7 +122,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "accounts.auth.authentication.SessionJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
@@ -187,19 +187,26 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
 USE_REDIS = os.environ.get("USE_REDIS", "False").lower() in ("true", "1", "t")
 
+# Bounded socket waits: a hung Redis must fail fast instead of blocking every authenticated request.
+_REDIS_CACHE_OPTIONS = {
+    "CLIENT_CLASS": "django_redis.client.DefaultClient",
+    "SOCKET_CONNECT_TIMEOUT": 2,
+    "SOCKET_TIMEOUT": 2,
+}
+
 if USE_REDIS:
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
             "LOCATION": REDIS_URL,
             "KEY_PREFIX": "cache",
-            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+            "OPTIONS": _REDIS_CACHE_OPTIONS,
         },
         "blacklist": {
             "BACKEND": "django_redis.cache.RedisCache",
             "LOCATION": REDIS_URL,
             "KEY_PREFIX": "blacklist",
-            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+            "OPTIONS": _REDIS_CACHE_OPTIONS,
         },
     }
     CHANNEL_LAYERS = {

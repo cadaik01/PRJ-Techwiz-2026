@@ -1,65 +1,142 @@
-"""Read-only review helpers shared by FA-28 now and the public / admin review screens later."""
+from collections import Counter
+from collections.abc import Iterable
 
-from typing import Any
+from django.db import models
+from django.db.models import CharField, QuerySet, Value
 
-from django.db.models import QuerySet
-from rest_framework import serializers
-
+from marketlink_core.ordering import both_directions, resolve_ordering
 from reviews.models import FarmerReview, ProductReview
 
-TYPE_FARMER = "FARMER"
-TYPE_PRODUCT = "PRODUCT"
-_DATETIME_FIELD = serializers.DateTimeField()
+
+class ReviewType(models.TextChoices):
+    PRODUCT = "PRODUCT", "Product"
+    FARMER = "FARMER", "Farmer"
 
 
-def customer_display_name(full_name: str | None) -> str:
-    """U-05: "Nguyen Van A" -> "Nguyen V. A." (family name kept, other names as initials)."""
-    parts = (full_name or "").split()
-    if not parts:
-        return "Customer"
-    if len(parts) == 1:
-        return parts[0]
-    return " ".join([parts[0], *(f"{part[0].upper()}." for part in parts[1:])])
+def _index(model, review_type: str, rating: int | None, is_hidden: bool | None) -> QuerySet:
+    queryset = model.objects.all()
+    if rating is not None:
+        queryset = queryset.filter(rating=rating)
+    if is_hidden is not None:
+        queryset = queryset.filter(is_hidden_by_admin=is_hidden)
+    # rating joins the projection so the union can be sorted by it; a UNION can only order by
+    # columns it actually selects.
+    return queryset.annotate(
+        review_type=Value(review_type, output_field=CharField())
+    ).values("id", "created_at", "review_type", "rating")
 
 
-def farmer_reviews_of(farmer_id: int) -> QuerySet:
-    """Reviews about the farmer's stall (FarmerReview.order.farmer = farmer)."""
-    return FarmerReview.objects.filter(order__farmer_id=farmer_id).select_related(
+# AD-22. Only columns the UNION selects can be sorted on, so this list is deliberately short.
+# id is not a tiebreak here: the two tables have separate id spaces, so it would interleave
+# unrelated rows. created_at already orders the union well enough.
+ADMIN_REVIEW_ORDERING = both_directions(
+    {"created_at": ("created_at",), "rating": ("rating",)}
+)
+ADMIN_REVIEW_ORDERING["newest"] = ("-created_at", "-id")
+
+
+def list_reviews_for_admin(
+    *,
+    review_type: str | None = None,
+    rating: int | None = None,
+    is_hidden: bool | None = None,
+    ordering: str | None = None,
+) -> QuerySet:
+    # The two review kinds live in separate tables, so AD-22 pages over a UNION of their
+    # ids and lets hydrate_reviews() load the rows for the page only.
+    parts = []
+    if review_type in (None, ReviewType.PRODUCT):
+        parts.append(_index(ProductReview, ReviewType.PRODUCT, rating, is_hidden))
+    if review_type in (None, ReviewType.FARMER):
+        parts.append(_index(FarmerReview, ReviewType.FARMER, rating, is_hidden))
+    combined = parts[0] if len(parts) == 1 else parts[0].union(*parts[1:])
+    return combined.order_by(
+        *resolve_ordering(ordering, allowed=ADMIN_REVIEW_ORDERING, default="newest")
+    )
+
+
+def product_reviews_by_id(*, review_ids: Iterable[int]) -> dict[int, ProductReview]:
+    return ProductReview.objects.filter(id__in=set(review_ids)).select_related(
+        "order_item__product", "order_item__order__customer__customer_profile"
+    ).in_bulk()
+
+
+def farmer_reviews_by_id(*, review_ids: Iterable[int]) -> dict[int, FarmerReview]:
+    return FarmerReview.objects.filter(id__in=set(review_ids)).select_related(
         "order__customer__customer_profile"
+    ).in_bulk()
+
+
+def hydrate_reviews(rows: list[dict]) -> list[tuple[str, ProductReview | FarmerReview]]:
+    products = product_reviews_by_id(
+        review_ids=[r["id"] for r in rows if r["review_type"] == ReviewType.PRODUCT]
     )
-
-
-def product_reviews_of(farmer_id: int) -> QuerySet:
-    """Reviews about the farmer's products (FA-30 scope: product.farmer = farmer)."""
-    return ProductReview.objects.filter(order_item__product__farmer_id=farmer_id).select_related(
-        "order_item__order__customer__customer_profile", "order_item__product"
+    farmers = farmer_reviews_by_id(
+        review_ids=[r["id"] for r in rows if r["review_type"] == ReviewType.FARMER]
     )
+    hydrated = []
+    for row in rows:
+        source = products if row["review_type"] == ReviewType.PRODUCT else farmers
+        review = source.get(row["id"])
+        if review is not None:
+            hydrated.append((row["review_type"], review))
+    return hydrated
 
 
-def _datetime(value: Any) -> str | None:
-    return _DATETIME_FIELD.to_representation(value) if value is not None else None
+def get_review_for_admin(*, review_type: str, review_id: int):
+    model = ProductReview if review_type == ReviewType.PRODUCT else FarmerReview
+    lookup = (
+        product_reviews_by_id(review_ids=[review_id])
+        if review_type == ReviewType.PRODUCT
+        else farmer_reviews_by_id(review_ids=[review_id])
+    )
+    review = lookup.get(review_id)
+    if review is None:
+        raise model.DoesNotExist
+    return review
 
 
-def serialize_review(review: FarmerReview | ProductReview, *, include_hidden_reason: bool = False) -> dict[str, Any]:
-    """Review (Pass 4B §3.x). hidden_reason is for Admin only; other callers get null."""
-    if isinstance(review, ProductReview):
-        item = review.order_item
-        order, review_type = item.order, TYPE_PRODUCT
-        product = {"id": item.product_id, "name": item.product.name if item.product else item.product_name}
-    else:
-        order, review_type, product = review.order, TYPE_FARMER, None
-    profile = getattr(order.customer, "customer_profile", None)
+RATING_VALUES = (1, 2, 3, 4, 5)
+
+
+def public_farmer_reviews(*, farmer_id: int, rating: int | None = None) -> QuerySet[FarmerReview]:
+    # §6.2: hidden reviews never appear on public pages.
+    queryset = FarmerReview.objects.filter(
+        order__farmer_id=farmer_id, is_hidden_by_admin=False
+    ).select_related("order__customer__customer_profile")
+    if rating is not None:
+        queryset = queryset.filter(rating=rating)
+    return queryset.order_by("-created_at", "-id")
+
+
+def public_product_reviews(*, product_id: int, rating: int | None = None) -> QuerySet[ProductReview]:
+    queryset = ProductReview.objects.filter(
+        order_item__product_id=product_id, is_hidden_by_admin=False
+    ).select_related("order_item__product", "order_item__order__customer__customer_profile")
+    if rating is not None:
+        queryset = queryset.filter(rating=rating)
+    return queryset.order_by("-created_at", "-id")
+
+
+def rating_summary(queryset: QuerySet) -> dict:
+    # The summary covers every visible review, not just the filtered page.
+    rows = queryset.values_list("rating", flat=True)
+    counts = Counter(rows)
+    total = sum(counts.values())
+    average = sum(rating * count for rating, count in counts.items()) / total if total else None
     return {
-        "id": review.pk,
-        "type": review_type,
-        "rating": review.rating,
-        "comment": review.comment,
-        "customer_display_name": customer_display_name(profile.full_name if profile else None),
-        "product": product,
-        "order_id": order.pk,
-        "reply": review.reply,
-        "replied_at": _datetime(review.replied_at),
-        "is_hidden_by_admin": review.is_hidden_by_admin,
-        "hidden_reason": review.hidden_reason if include_hidden_reason else None,
-        "created_at": _datetime(review.created_at),
+        "rating_avg": round(average, 2) if average is not None else None,
+        "rating_count": total,
+        "distribution": {str(value): counts.get(value, 0) for value in RATING_VALUES},
     }
+
+# The Farmer branch's selectors live in reviews/farmer_selectors.py; re-exported so
+# `from reviews.selectors import ...` keeps working for both branches.
+from reviews.farmer_selectors import (  # noqa: E402,F401
+    TYPE_FARMER,
+    TYPE_PRODUCT,
+    customer_display_name,
+    farmer_reviews_of,
+    product_reviews_of,
+    serialize_review,
+)

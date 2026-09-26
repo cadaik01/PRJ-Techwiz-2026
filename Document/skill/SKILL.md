@@ -936,7 +936,7 @@ Mọi vi phạm trả 400 `VALIDATION_ERROR` với lỗi theo trường, ví d�
 
 ## 18. Git & quyền tác giả commit
 
-- **AI tuyệt đối không commit, push, merge, rebase, tạo branch hay mở Pull Request** (luật cứng số 4 trong `CLAUDE.md`). AI chỉ được dùng `git status`, `git diff`, `git log` và có thể gợi ý commit message trong chat. Mục này dành cho thành viên khi tự commit.
+- Mục này hướng dẫn thành viên cấu hình danh tính và quản lý git:
 - Mỗi thành viên cấu hình đúng danh tính trước commit đầu tiên; email trùng email đã xác minh trên GitHub:
 
 ```bash

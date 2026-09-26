@@ -44,3 +44,22 @@ def parse_if_match(request) -> int:
             errors={"if_match": ["Invalid If-Match value."]},
         )
     return version
+
+
+def require_idempotency_key(request) -> str:
+    """Read the Idempotency-Key header of CU-04 (Pass 4B §1.2): a UUID, required."""
+    raw = request.headers.get("Idempotency-Key")
+    if raw is None or not raw.strip():
+        raise PreconditionRequiredError(
+            "The Idempotency-Key header is required.",
+            code=ErrorCode.PRECONDITION_REQUIRED,
+            errors={"idempotency_key": ["The Idempotency-Key header is required."]},
+        )
+    try:
+        return str(uuid.UUID(raw.strip()))
+    except ValueError as exc:
+        raise BusinessValidationError(
+            "Invalid Idempotency-Key value.",
+            code=ErrorCode.VALIDATION_ERROR,
+            errors={"idempotency_key": ["Idempotency-Key must be a UUID."]},
+        ) from exc

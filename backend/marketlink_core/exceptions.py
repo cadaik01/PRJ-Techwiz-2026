@@ -58,10 +58,13 @@ class DomainError(APIException):
         *,
         code: str | None = None,
         errors: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(detail=message or self.default_detail)
         self.code = code or self.default_code
         self.errors = errors or {}
+        # Extra payload for error responses, e.g. {"available": {...}} on INSUFFICIENT_STOCK (Pass 4B §5.1).
+        self.data = data or {}
 
 
 class BusinessValidationError(DomainError):

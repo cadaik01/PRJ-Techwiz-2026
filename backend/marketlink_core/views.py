@@ -1,6 +1,7 @@
 from django.core.cache import caches
 from django.db import connection
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
@@ -35,6 +36,13 @@ class HealthCheckView(APIView):
     authentication_classes: list = []
     throttle_classes: list = []
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(description="Envelope with data: {database, cache, time}."),
+            503: OpenApiResponse(description="The database is unreachable."),
+        },
+        summary="Service health probe",
+    )
     def get(self, request):
         database = _database_status()
         data = {
@@ -59,6 +67,11 @@ class WebSocketTicketView(APIView):
 
     permission_classes = [IsCustomerOrFarmer]
 
+    @extend_schema(
+        request=None,
+        responses={200: OpenApiResponse(description="Envelope with data: {ticket, expires_in}."), 401: None, 403: None},
+        summary="One-time WebSocket ticket",
+    )
     def post(self, request):
         role_code = getattr(getattr(request.user, "role", None), "code", "")
         ticket = create_ws_ticket(user_id=request.user.pk, role=role_code)
