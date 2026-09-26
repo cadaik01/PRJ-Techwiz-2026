@@ -1,10 +1,10 @@
 from django.urls import path
 
+# AU-02 customer registration lives on the customer branch; this one carries Admin and the
+# shared session endpoints only.
 from accounts.auth.views_common import AdminLoginView, ChangePasswordView, LoginView, LogoutView, MeView, RefreshView
-from accounts.auth.views_customer import CustomerRegisterView
 
 urlpatterns = [
-    path("register/customer/", CustomerRegisterView.as_view(), name="auth-register-customer"),
     path("login/", LoginView.as_view(), name="auth-login"),
     path("admin/login/", AdminLoginView.as_view(), name="auth-admin-login"),
     path("refresh/", RefreshView.as_view(), name="auth-refresh"),
