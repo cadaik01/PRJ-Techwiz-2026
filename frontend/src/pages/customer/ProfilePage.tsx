@@ -7,18 +7,18 @@ import { ApiError } from '@/lib/ApiError';
 import {
   useCustomerProfile,
   useUpdateCustomerProfile,
-} from '@/features/customer/hooks/useCustomerProfile';
+} from '@/hooks/queries/customer/useCustomerProfile';
 import {
   profileSchema,
   type ProfileFormValues,
-} from '@/features/customer/schemas/profile.schema';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { Avatar, AvatarFallback } from '@/components/ui/Avatar';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+} from '@/schemas/customer/profile.schema';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { Avatar, AvatarFallback } from '@/components/common/avatar/Avatar';
+import { Button } from '@/components/common/forms/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/cards/Card';
+import { Input } from '@/components/common/forms/Input';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
 import './ProfilePage.css';

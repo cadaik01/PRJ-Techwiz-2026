@@ -5,13 +5,13 @@ import { Suspend } from '@/router/Suspend';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { customerRoutes } from '@/router/routes/customer.routes';
 
-const HomePage = lazy(() => import('@/pages/public/HomePage'));
-const MarketsPage = lazy(() => import('@/pages/public/MarketsPage'));
-const MarketDetailPage = lazy(() => import('@/pages/public/MarketDetailPage'));
-const ProductsPage = lazy(() => import('@/pages/public/ProductsPage'));
-const ProductDetailPage = lazy(() => import('@/pages/public/ProductDetailPage'));
-const FarmersPage = lazy(() => import('@/pages/public/FarmersPage'));
-const FarmerDetailPage = lazy(() => import('@/pages/public/FarmerDetailPage'));
+const HomePage = lazy(() => import('@/pages/guest/HomePage'));
+const MarketsPage = lazy(() => import('@/pages/guest/MarketsPage'));
+const MarketDetailPage = lazy(() => import('@/pages/guest/MarketDetailPage'));
+const ProductsPage = lazy(() => import('@/pages/guest/ProductsPage'));
+const ProductDetailPage = lazy(() => import('@/pages/guest/ProductDetailPage'));
+const FarmersPage = lazy(() => import('@/pages/guest/FarmersPage'));
+const FarmerDetailPage = lazy(() => import('@/pages/guest/FarmerDetailPage'));
 
 export const publicRoutes: RouteObject[] = [
   {

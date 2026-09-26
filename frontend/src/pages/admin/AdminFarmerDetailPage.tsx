@@ -1,14 +1,17 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { useAdminFarmer } from '@/features/admin/hooks/useAdminFarmers';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { PriceTag } from '@/components/common/PriceTag';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { useAdminFarmer, useUpdateFarmer } from '@/hooks/queries/admin/useAdminFarmers';
+import { ProfileEditDialog } from '@/components/admin/ProfileEditDialog';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { PriceTag } from '@/components/common/badges/PriceTag';
+import { Badge } from '@/components/common/badges/Badge';
+import { Button } from '@/components/common/forms/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/cards/Card';
 import { formatDateTime } from '@/utils/formatters';
+import { farmerStatusLabel } from '@/utils/labels';
 
 import './AdminFarmerDetailPage.css';
 
@@ -16,6 +19,8 @@ export default function AdminFarmerDetailPage() {
   const { id = '' } = useParams();
   const farmerId = Number(id);
   const query = useAdminFarmer(farmerId);
+  const update = useUpdateFarmer(farmerId);
+  const [editing, setEditing] = useState(false);
 
   if (query.isLoading) return <PageSkeleton />;
   if (query.isError || !query.data) {
@@ -36,14 +41,34 @@ export default function AdminFarmerDetailPage() {
         title={f.stall_name}
         description={f.email}
         actions={
-          <Button asChild variant="outline">
-            <Link to="/admin/farmers">← Back to list</Link>
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              Edit details
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/admin/farmers">← Back to list</Link>
+            </Button>
+          </>
         }
       />
 
+      <ProfileEditDialog
+        open={editing}
+        onOpenChange={setEditing}
+        title="Edit stall details"
+        note="Trading days, address and location are managed by the stall on its own profile."
+        pending={update.isPending}
+        onSave={(values) => update.mutateAsync(values)}
+        fields={[
+          { name: 'stall_name', label: 'Stall name', value: f.stall_name },
+          { name: 'contact_person', label: 'Contact person', value: f.contact_person ?? '' },
+          { name: 'phone', label: 'Phone', value: f.phone ?? '', type: 'tel' },
+          { name: 'description', label: 'Description', value: f.description ?? '', multiline: true },
+        ]}
+      />
+
       <div className="page-primitive__actions-row">
-        <Badge>{f.status}</Badge>
+        <Badge>{farmerStatusLabel(f.status)}</Badge>
         {f.status_reason ? (
           <span className="page-primitive__danger-sm">{f.status_reason}</span>
         ) : null}
@@ -125,7 +150,10 @@ export default function AdminFarmerDetailPage() {
               className="page-primitive__history-item"
             >
               <p className="page-primitive__font-medium">
-                {h.from_status ?? '—'} → {h.to_status}
+                {/* No from_status means the very first row: the stall registering, not a move. */}
+                {h.from_status
+                  ? `${farmerStatusLabel(h.from_status)} → ${farmerStatusLabel(h.to_status)}`
+                  : `Registered · ${farmerStatusLabel(h.to_status)}`}
               </p>
               <p className="page-primitive__muted-sm">
                 {formatDateTime(h.changed_at)} · {h.changed_by}

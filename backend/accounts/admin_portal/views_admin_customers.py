@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 
 from accounts.admin_portal.serializers_admin import (
     AdminCustomerDetailSerializer,
+    AdminCustomerEditSerializer,
     AdminCustomerRowSerializer,
     AdminReasonSerializer,
     DeactivationImpactSerializer,
@@ -24,6 +25,8 @@ from orders.customer.serializers_customer import OrderSummaryReadSerializer
 from orders.selectors import order_summary_queryset
 from system.models import AuditAction
 from system.services import log_request_event
+from accounts.selectors import ADMIN_CUSTOMER_ORDERING
+from accounts.services.profile_admin_service import update_customer_profile
 
 RECENT_ORDER_LIMIT = 10
 
@@ -55,6 +58,7 @@ class AdminCustomerListView(ListAPIView):
             is_active=_flag(params.get("is_active")),
             q=params.get("q"),
             at_risk=_flag(params.get("at_risk")),
+            ordering=params.get("ordering"),
         )
 
     @extend_schema(
@@ -62,6 +66,12 @@ class AdminCustomerListView(ListAPIView):
             OpenApiParameter("is_active", bool),
             OpenApiParameter("q", str, description="Matches the name, email or phone."),
             OpenApiParameter("at_risk", bool, description="D-028 repeat no-show flag."),
+            OpenApiParameter(
+                "ordering",
+                str,
+                enum=sorted(ADMIN_CUSTOMER_ORDERING),
+                description="Sort column; prefix with - for descending.",
+            ),
         ]
     )
     def get(self, request, *args, **kwargs):
@@ -81,6 +91,31 @@ class AdminCustomerDetailView(APIView):
         ).data
         serializer = AdminCustomerDetailSerializer(profile, context={"recent_orders": recent})
         return api_response(message="OK", request=request, data=serializer.data)
+
+    @extend_schema(
+        request=AdminCustomerEditSerializer,
+        responses={200: AdminCustomerRowSerializer, 400: None, 404: None},
+        summary="Correct a shopper's contact details",
+    )
+    def patch(self, request, id: int) -> Response:
+        _require_customer(id)
+        serializer = AdminCustomerEditSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        profile, changed = update_customer_profile(
+            customer_id=id, validated=dict(serializer.validated_data), actor=request.user
+        )
+        if changed:
+            log_request_event(
+                request,
+                action=AuditAction.CUSTOMER_UPDATED,
+                status_code=200,
+                details={"customer_id": id, "changed_fields": changed},
+            )
+        return api_response(
+            message="Customer updated." if changed else "Nothing to update.",
+            request=request,
+            data=AdminCustomerRowSerializer(customer_for_admin(customer_id=profile.pk)).data,
+        )
 
 
 class AdminCustomerDeactivationImpactView(APIView):

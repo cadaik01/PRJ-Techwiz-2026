@@ -1,19 +1,30 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
   useAdminMarkets,
   useToggleAdminMarket,
-} from '@/features/admin/hooks/useAdminMarkets';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
+} from '@/hooks/queries/admin/useAdminMarkets';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Badge } from '@/components/common/badges/Badge';
+import { Button } from '@/components/common/forms/Button';
+import { SortSelect } from '@/components/common/table/SortSelect';
 
 import './AdminMarketsPage.css';
 
+const SORT_OPTIONS = [
+  { value: 'name', label: 'Name A–Z' },
+  { value: '-name', label: 'Name Z–A' },
+  { value: '-farmer_count', label: 'Most stalls' },
+  { value: '-open_order_count', label: 'Most open orders' },
+  { value: '-is_active', label: 'Active first' },
+];
+
 export default function AdminMarketsPage() {
-  const query = useAdminMarkets();
+  const [ordering, setOrdering] = useState<string | undefined>(undefined);
+  const query = useAdminMarkets({ ordering });
   const toggle = useToggleAdminMarket();
 
   return (
@@ -26,6 +37,13 @@ export default function AdminMarketsPage() {
             <Link to="/admin/markets/new">Add a market</Link>
           </Button>
         }
+      />
+
+      <SortSelect
+        id="market-sort"
+        options={SORT_OPTIONS}
+        value={ordering}
+        onChange={setOrdering}
       />
 
       {query.isLoading ? (

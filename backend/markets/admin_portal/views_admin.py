@@ -14,7 +14,12 @@ from markets.admin_portal.serializers_admin import (
     MarketAdminWriteSerializer,
 )
 from markets.models import Market, MarketClosure
-from markets.selectors import get_market_for_admin, list_closures, list_markets_for_admin
+from markets.selectors import (
+    ADMIN_MARKET_ORDERING,
+    get_market_for_admin,
+    list_closures,
+    list_markets_for_admin,
+)
 from markets.services.closure_service import create_closure, delete_closure
 from markets.services.market_service import (
     activate_market,
@@ -48,7 +53,11 @@ class MarketListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         params = self.request.query_params
-        return list_markets_for_admin(q=params.get("q"), is_active=_flag(params.get("is_active")))
+        return list_markets_for_admin(
+            q=params.get("q"),
+            is_active=_flag(params.get("is_active")),
+            ordering=params.get("ordering"),
+        )
 
     def get_serializer_class(self):
         return (
@@ -61,6 +70,12 @@ class MarketListCreateView(ListCreateAPIView):
         parameters=[
             OpenApiParameter("q", str, description="Matches the market name or address."),
             OpenApiParameter("is_active", bool, description="Filter by activation state."),
+            OpenApiParameter(
+                "ordering",
+                str,
+                enum=sorted(ADMIN_MARKET_ORDERING),
+                description="Sort column; prefix with - for descending.",
+            ),
         ]
     )
     def get(self, request, *args, **kwargs):

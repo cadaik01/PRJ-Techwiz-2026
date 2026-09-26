@@ -20,7 +20,7 @@ const FarmerNotificationsPage = lazy(
   () => import('@/pages/farmer/FarmerNotificationsPage'),
 );
 const FarmerStatsPage = lazy(() => import('@/pages/farmer/FarmerStatsPage'));
-const ChangePasswordPage = lazy(() => import('@/pages/shared/ChangePasswordPage'));
+const ChangePasswordPage = lazy(() => import('@/pages/auth/ChangePasswordPage'));
 
 /** Nested under a shared RequireAuth parent in AppRouter. */
 export const farmerRoutes: RouteObject[] = [

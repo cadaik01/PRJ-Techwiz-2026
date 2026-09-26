@@ -7,18 +7,19 @@ import {
   useModerationReviews,
   useRestoreModerationProduct,
   useRestoreModerationReview,
-} from '@/features/admin/hooks/useAdminModeration';
-import type { ModerationTarget } from '@/features/admin/hooks/useAdminModeration';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { LazyImage } from '@/components/common/LazyImage';
-import { RatingStars } from '@/components/common/RatingStars';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
-import { Textarea } from '@/components/ui/Textarea';
+} from '@/hooks/queries/admin/useAdminModeration';
+import type { ModerationTarget } from '@/hooks/queries/admin/useAdminModeration';
+import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { LazyImage } from '@/components/common/cards/LazyImage';
+import { RatingStars } from '@/components/common/badges/RatingStars';
+import { Badge } from '@/components/common/badges/Badge';
+import { Button } from '@/components/common/forms/Button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/common/layout/Tabs';
+import { SortSelect } from '@/components/common/table/SortSelect';
+import { Textarea } from '@/components/common/forms/Textarea';
 
 import type { ModerationReview } from '@/types';
 
@@ -34,12 +35,30 @@ function reviewTarget(review: ModerationReview): string {
     : `Stall review · Order #${review.order_id}`;
 }
 
+const PRODUCT_SORT = [
+  { value: 'name', label: 'Name A–Z' },
+  { value: 'stall_name', label: 'Stall A–Z' },
+  { value: '-price', label: 'Highest price' },
+  { value: '-rating', label: 'Highest rated' },
+  { value: 'rating', label: 'Lowest rated' },
+  { value: '-is_hidden', label: 'Hidden first' },
+];
+
+const REVIEW_SORT = [
+  { value: 'rating', label: 'Lowest rating' },
+  { value: '-rating', label: 'Highest rating' },
+  { value: 'created_at', label: 'Oldest first' },
+];
+
 export default function AdminModerationPage() {
   const [hideTarget, setHideTarget] = useState<ModerationTarget | null>(null);
   const [reason, setReason] = useState('');
 
-  const productsQuery = useModerationProducts();
-  const reviewsQuery = useModerationReviews();
+  // The two tabs sort independently: they are different lists with different columns.
+  const [productOrdering, setProductOrdering] = useState<string | undefined>(undefined);
+  const [reviewOrdering, setReviewOrdering] = useState<string | undefined>(undefined);
+  const productsQuery = useModerationProducts({ ordering: productOrdering });
+  const reviewsQuery = useModerationReviews({ ordering: reviewOrdering });
   const hide = useHideModerationItem();
   const restoreProduct = useRestoreModerationProduct();
   const restoreReview = useRestoreModerationReview();
@@ -56,6 +75,12 @@ export default function AdminModerationPage() {
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
         </TabsList>
         <TabsContent value="products" className="admin-moderation-page__list">
+          <SortSelect
+            id="product-moderation-sort"
+            options={PRODUCT_SORT}
+            value={productOrdering}
+            onChange={setProductOrdering}
+          />
           {productsQuery.isLoading ? (
             <PageSkeleton />
           ) : !productsQuery.data?.results.length ? (
@@ -100,6 +125,12 @@ export default function AdminModerationPage() {
           )}
         </TabsContent>
         <TabsContent value="reviews" className="admin-moderation-page__list">
+          <SortSelect
+            id="review-moderation-sort"
+            options={REVIEW_SORT}
+            value={reviewOrdering}
+            onChange={setReviewOrdering}
+          />
           {reviewsQuery.isLoading ? (
             <PageSkeleton />
           ) : !reviewsQuery.data?.results.length ? (

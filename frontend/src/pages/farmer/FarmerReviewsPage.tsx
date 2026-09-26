@@ -4,13 +4,13 @@ import { toast } from 'sonner';
 import {
   useFarmerMyReviews,
   useReplyReview,
-} from '@/features/farmer/hooks/useFarmerReviews';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { RatingStars } from '@/components/common/RatingStars';
-import { Button } from '@/components/ui/Button';
-import { Textarea } from '@/components/ui/Textarea';
+} from '@/hooks/queries/farmer/useFarmerReviews';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { RatingStars } from '@/components/common/badges/RatingStars';
+import { Button } from '@/components/common/forms/Button';
+import { Textarea } from '@/components/common/forms/Textarea';
 import { formatRelative } from '@/utils/formatters';
 
 import './FarmerReviewsPage.css';

@@ -9,6 +9,7 @@ from marketlink_core.geo import distance_km
 from marketlink_core.shortcuts import get_or_404
 from markets.models import Market, MarketClosure, MarketOperatingDay
 from orders.models import OPEN_STATUSES
+from marketlink_core.ordering import both_directions, resolve_ordering
 
 UPCOMING_CLOSURES_ATTR = "upcoming_closure_list"
 OPERATING_DAYS_ATTR = "operating_day_list"
@@ -49,13 +50,30 @@ def _prefetches() -> list[Prefetch]:
     ]
 
 
-def list_markets_for_admin(*, q: str | None = None, is_active: bool | None = None) -> QuerySet[Market]:
+# AD-14.
+ADMIN_MARKET_ORDERING = both_directions(
+    {
+        "name": ("name",),
+        "address": ("address",),
+        "is_active": ("is_active",),
+        "farmer_count": ("farmer_count",),
+        "open_order_count": ("open_order_count",),
+    },
+    tiebreak=("id",),
+)
+
+
+def list_markets_for_admin(
+    *, q: str | None = None, is_active: bool | None = None, ordering: str | None = None
+) -> QuerySet[Market]:
     queryset = _market_annotations(Market.objects.all()).prefetch_related(*_prefetches())
     if q:
         queryset = queryset.filter(Q(name__icontains=q) | Q(address__icontains=q))
     if is_active is not None:
         queryset = queryset.filter(is_active=is_active)
-    return queryset.order_by("name")
+    return queryset.order_by(
+        *resolve_ordering(ordering, allowed=ADMIN_MARKET_ORDERING, default="name")
+    )
 
 
 def get_market_for_admin(*, market_id: int) -> Market:

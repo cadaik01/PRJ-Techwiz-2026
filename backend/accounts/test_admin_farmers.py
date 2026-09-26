@@ -422,3 +422,155 @@ def test_suspend_clears_any_pending_change_request(admin_client, approved_farmer
     order.refresh_from_db()
     assert order.pending_change is None
     assert order.status == OrderStatus.DECLINED
+
+
+# ---------------------------------------------------------------------------
+# ?ordering= (v1.8). The tables page server-side, so sorting has to be the database's job.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_stalls_sort_by_name_in_both_directions(admin_client, farmer, make_farmer):
+    make_farmer(email="aaa@marketlink.test", stall_name="Apple Stall")
+    make_farmer(email="zzz@marketlink.test", stall_name="Zucchini Stall")
+
+    def names(ordering):
+        response = admin_client.get(reverse(LIST_URL), {"ordering": ordering})
+        return [row["stall_name"] for row in response.data["data"]["results"]]
+
+    assert names("stall_name") == sorted(names("stall_name"))
+    assert names("-stall_name") == sorted(names("stall_name"), reverse=True)
+
+
+@pytest.mark.django_db
+def test_sorting_orders_the_whole_table_not_just_one_page(admin_client, farmer, make_farmer):
+    # The point of sorting server-side: the smallest name must reach page 1 even though it
+    # was created last and would sit on the final page under the default order.
+    for index in range(5):
+        make_farmer(email=f"f{index}@marketlink.test", stall_name=f"Stall {9 - index}")
+
+    response = admin_client.get(reverse(LIST_URL), {"ordering": "stall_name", "page_size": 5})
+    first_page = [row["stall_name"] for row in response.data["data"]["results"]]
+
+    assert first_page[0] == "Stall 5"
+    assert response.data["data"]["count"] > len(first_page)
+
+
+@pytest.mark.django_db
+def test_an_unknown_sort_column_is_a_400(admin_client):
+    response = admin_client.get(reverse(LIST_URL), {"ordering": "user__password"})
+
+    assert response.status_code == 400
+    assert response.data["code"] == "VALIDATION_ERROR"
+    assert "ordering" in response.data["errors"]
+
+
+@pytest.mark.django_db
+def test_no_ordering_keeps_the_newest_first_default(admin_client, farmer, make_farmer):
+    newest = make_farmer(email="new@marketlink.test", stall_name="Newest Stall")
+
+    response = admin_client.get(reverse(LIST_URL))
+
+    assert response.data["data"]["results"][0]["id"] == newest.user_id
+
+
+# ---------------------------------------------------------------------------
+# AD-03 PATCH: the admin corrects a stall's contact details.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_admin_corrects_the_contact_details(admin_client, farmer, admin_user):
+    response = admin_client.patch(
+        reverse(DETAIL_URL, args=[farmer.user_id]),
+        {"stall_name": "Riverside Greens", "contact_person": "Mai Tran"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    farmer.refresh_from_db()
+    assert farmer.stall_name == "Riverside Greens"
+    assert farmer.contact_person == "Mai Tran"
+
+    entry = AuditLog.objects.get(action=AuditAction.FARMER_UPDATED)
+    assert entry.user == admin_user
+    assert sorted(entry.details["changed_fields"]) == ["contact_person", "stall_name"]
+
+
+@pytest.mark.django_db
+def test_a_patch_that_changes_nothing_writes_no_audit_row(admin_client, farmer):
+    response = admin_client.patch(
+        reverse(DETAIL_URL, args=[farmer.user_id]),
+        {"stall_name": farmer.stall_name},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    # Otherwise every stray save would add a line to a log the admin has to read.
+    assert not AuditLog.objects.filter(action=AuditAction.FARMER_UPDATED).exists()
+
+
+@pytest.mark.django_db
+def test_the_phone_is_stored_in_its_canonical_form(admin_client, farmer):
+    admin_client.patch(
+        reverse(DETAIL_URL, args=[farmer.user_id]), {"phone": "+84 90 765 4321"}, format="json"
+    )
+
+    farmer.refresh_from_db()
+    # D-028 keys accounts by one canonical spelling, so "+84 90 765 4321" must land as 0907654321.
+    assert farmer.phone == "0907654321"
+
+
+@pytest.mark.django_db
+def test_a_phone_belonging_to_another_account_is_a_field_error(admin_client, farmer, customer_user):
+    other = customer_user.customer_profile
+
+    response = admin_client.patch(
+        reverse(DETAIL_URL, args=[farmer.user_id]), {"phone": other.phone}, format="json"
+    )
+
+    # The UNIQUE index would raise an IntegrityError and surface as a 500; D-028 wants a 400
+    # the form can show under the phone field.
+    assert response.status_code == 400
+    assert "phone" in response.data["errors"]
+
+
+@pytest.mark.django_db
+def test_the_edit_cannot_reach_status_or_operating_days(admin_client, farmer):
+    before_status, before_days = farmer.status, list(farmer.operating_days)
+
+    admin_client.patch(
+        reverse(DETAIL_URL, args=[farmer.user_id]),
+        {"status": FarmerStatus.APPROVED, "operating_days": [1], "latitude": "1.0"},
+        format="json",
+    )
+
+    farmer.refresh_from_db()
+    # Status moves only through approve / suspend (AD-05 to AD-08); operating days and
+    # coordinates carry D-031 / D-032 rules that belong to the stall's own profile screen.
+    assert farmer.status == before_status
+    assert farmer.operating_days == before_days
+
+
+@pytest.mark.django_db
+def test_the_edit_is_recorded_in_the_audit_trail_as_the_admin(admin_client, farmer, admin_user):
+    from accounts.models import FarmerProfile
+
+    admin_client.patch(
+        reverse(DETAIL_URL, args=[farmer.user_id]), {"contact_person": "Nam Le"}, format="json"
+    )
+
+    # history_id as well as history_date: two rows written in the same microsecond would
+    # otherwise come back in an arbitrary order and this could read the creation row.
+    latest = (
+        FarmerProfile.history.filter(user_id=farmer.user_id)
+        .order_by("history_date", "history_id")
+        .last()
+    )
+    assert latest.history_user == admin_user
+    assert latest.history_change_reason == "Edited by Admin"
+
+
+@pytest.mark.django_db
+def test_editing_an_unknown_stall_is_a_404(admin_client):
+    assert admin_client.patch(reverse(DETAIL_URL, args=[9999]), {}, format="json").status_code == 404

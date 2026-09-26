@@ -114,3 +114,17 @@ def test_anonymous_caller_is_rejected(api_client):
 
     assert response.status_code in (401, 403)
     assert response.data["success"] is False
+
+
+@pytest.mark.django_db
+def test_audit_logs_sort_by_action_and_reject_unknown_columns(admin_client, admin_user):
+    for action in (AuditAction.LOGIN, AuditAction.EXPORT_DATA, AuditAction.ACCESS_DENIED):
+        AuditLog.objects.create(user=admin_user, action=action, status_code=200)
+
+    def actions(ordering):
+        response = admin_client.get(reverse(LIST_URL_NAME), {"ordering": ordering})
+        return [row["action"] for row in response.data["data"]["results"]]
+
+    assert actions("action") == sorted(actions("action"))
+    assert actions("-action") == sorted(actions("action"), reverse=True)
+    assert admin_client.get(reverse(LIST_URL_NAME), {"ordering": "user_agent"}).status_code == 400

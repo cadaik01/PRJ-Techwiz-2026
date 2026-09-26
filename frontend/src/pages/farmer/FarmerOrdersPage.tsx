@@ -6,15 +6,15 @@ import {
   useFarmerOrderCounts,
   useFarmerOrders,
   usePickingList,
-} from '@/features/farmer/hooks/useFarmerOrders';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { StatusBadge } from '@/components/common/StatusBadge';
-import { FarmerOrderActions } from '@/features/farmer/components/FarmerOrderActions';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+} from '@/hooks/queries/farmer/useFarmerOrders';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { StatusBadge } from '@/components/common/badges/StatusBadge';
+import { FarmerOrderActions } from '@/components/farmer/FarmerOrderActions';
+import { Button } from '@/components/common/forms/Button';
+import { Input } from '@/components/common/forms/Input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/common/layout/Tabs';
 import { formatDateTime, formatVnd } from '@/utils/formatters';
 
 import './FarmerOrdersPage.css';

@@ -14,16 +14,17 @@ import { ApiError } from '@/lib/ApiError';
 import {
   exportAdminReports,
   useAdminReports,
-} from '@/features/admin/hooks/useAdminReports';
-import { useAdminMarkets } from '@/features/admin/hooks/useAdminMarkets';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
+} from '@/hooks/queries/admin/useAdminReports';
+import { useAdminMarkets } from '@/hooks/queries/admin/useAdminMarkets';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Button } from '@/components/common/forms/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/cards/Card';
+import { Input } from '@/components/common/forms/Input';
+import { Label } from '@/components/common/forms/Label';
 import { formatVnd } from '@/utils/formatters';
+import { orderStatusLabel } from '@/utils/labels';
 
 import './AdminReportsPage.css';
 
@@ -155,9 +156,14 @@ export default function AdminReportsPage() {
               </CardHeader>
               <CardContent className="page-primitive__chart-card-body">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={reportQuery.data.orders_by_status}>
+                  <BarChart
+                    data={reportQuery.data.orders_by_status.map((row) => ({
+                      ...row,
+                      name: orderStatusLabel(row.status),
+                    }))}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="status" tick={{ fontSize: 10 }} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                     <YAxis allowDecimals={false} />
                     <Tooltip />
                     <Bar dataKey="count" fill="#15803d" radius={[8, 8, 0, 0]} />

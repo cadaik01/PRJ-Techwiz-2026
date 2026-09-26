@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.admin_portal.serializers_admin import (
+    AdminFarmerEditSerializer,
     AdminFarmerRowSerializer,
     AdminReasonSerializer,
     FarmerOrderStatsSerializer,
@@ -20,6 +21,7 @@ from accounts.selectors import (
     list_farmers_for_admin,
     pickup_windows,
 )
+from accounts.services.profile_admin_service import update_farmer_profile
 from accounts.services.farmer_status_service import (
     approve_farmer,
     reinstate_farmer,
@@ -35,6 +37,7 @@ from marketlink_core.permissions import IsAdmin
 from marketlink_core.responses import api_response
 from system.models import AuditAction
 from system.services import log_request_event
+from accounts.selectors import ADMIN_FARMER_ORDERING
 
 DETAIL_PRODUCT_LIMIT = 20
 
@@ -62,6 +65,7 @@ class AdminFarmerListView(ListAPIView):
             status=params.get("status"),
             q=params.get("q"),
             market_id=_optional_int(params.get("market_id")),
+            ordering=params.get("ordering"),
         )
 
     @extend_schema(
@@ -69,6 +73,12 @@ class AdminFarmerListView(ListAPIView):
             OpenApiParameter("status", str, enum=list(FarmerStatus.values)),
             OpenApiParameter("q", str, description="Matches the stall name, email or phone."),
             OpenApiParameter("market_id", int),
+            OpenApiParameter(
+                "ordering",
+                str,
+                enum=sorted(ADMIN_FARMER_ORDERING),
+                description="Sort column; prefix with - for descending.",
+            ),
         ]
     )
     def get(self, request, *args, **kwargs):
@@ -111,6 +121,33 @@ class AdminFarmerDetailView(APIView):
             }
         )
         return api_response(message="OK", request=request, data=data)
+
+    @extend_schema(
+        request=AdminFarmerEditSerializer,
+        responses={200: AdminFarmerRowSerializer, 400: None, 404: None},
+        summary="Correct a stall's contact details",
+    )
+    def patch(self, request, id: int) -> Response:
+        _require_farmer(id)
+        serializer = AdminFarmerEditSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        profile, changed = update_farmer_profile(
+            farmer_id=id, validated=dict(serializer.validated_data), actor=request.user
+        )
+        # An edit that changed nothing is not worth an audit row; it would only add noise to
+        # the security log an admin has to read through.
+        if changed:
+            log_request_event(
+                request,
+                action=AuditAction.FARMER_UPDATED,
+                status_code=200,
+                details={"farmer_id": id, "changed_fields": changed},
+            )
+        return api_response(
+            message="Stall updated." if changed else "Nothing to update.",
+            request=request,
+            data=AdminFarmerRowSerializer(farmer_for_admin(farmer_id=profile.pk)).data,
+        )
 
 
 class AdminFarmerSuspensionImpactView(APIView):

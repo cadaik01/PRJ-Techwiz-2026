@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from django.db import models
 from django.db.models import CharField, QuerySet, Value
 
+from marketlink_core.ordering import both_directions, resolve_ordering
 from reviews.models import FarmerReview, ProductReview
 
 
@@ -18,13 +19,28 @@ def _index(model, review_type: str, rating: int | None, is_hidden: bool | None) 
         queryset = queryset.filter(rating=rating)
     if is_hidden is not None:
         queryset = queryset.filter(is_hidden_by_admin=is_hidden)
+    # rating joins the projection so the union can be sorted by it; a UNION can only order by
+    # columns it actually selects.
     return queryset.annotate(
         review_type=Value(review_type, output_field=CharField())
-    ).values("id", "created_at", "review_type")
+    ).values("id", "created_at", "review_type", "rating")
+
+
+# AD-22. Only columns the UNION selects can be sorted on, so this list is deliberately short.
+# id is not a tiebreak here: the two tables have separate id spaces, so it would interleave
+# unrelated rows. created_at already orders the union well enough.
+ADMIN_REVIEW_ORDERING = both_directions(
+    {"created_at": ("created_at",), "rating": ("rating",)}
+)
+ADMIN_REVIEW_ORDERING["newest"] = ("-created_at", "-id")
 
 
 def list_reviews_for_admin(
-    *, review_type: str | None = None, rating: int | None = None, is_hidden: bool | None = None
+    *,
+    review_type: str | None = None,
+    rating: int | None = None,
+    is_hidden: bool | None = None,
+    ordering: str | None = None,
 ) -> QuerySet:
     # The two review kinds live in separate tables, so AD-22 pages over a UNION of their
     # ids and lets hydrate_reviews() load the rows for the page only.
@@ -34,7 +50,9 @@ def list_reviews_for_admin(
     if review_type in (None, ReviewType.FARMER):
         parts.append(_index(FarmerReview, ReviewType.FARMER, rating, is_hidden))
     combined = parts[0] if len(parts) == 1 else parts[0].union(*parts[1:])
-    return combined.order_by("-created_at", "-id")
+    return combined.order_by(
+        *resolve_ordering(ordering, allowed=ADMIN_REVIEW_ORDERING, default="newest")
+    )
 
 
 def product_reviews_by_id(*, review_ids: Iterable[int]) -> dict[int, ProductReview]:

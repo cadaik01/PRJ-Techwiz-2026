@@ -1,4 +1,4 @@
-import { RegisterCustomerForm } from '@/features/auth/components/RegisterForms';
+import { RegisterCustomerForm } from '@/components/common/forms/RegisterForms';
 
 export default function RegisterCustomerPage() {
   return <RegisterCustomerForm />;

@@ -3,9 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
 
-import { PageHeader } from '@/components/common/PageHeader';
-import { StatusBadge } from '@/components/common/StatusBadge';
-import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { StatusBadge } from '@/components/common/badges/StatusBadge';
+import { Button } from '@/components/common/forms/Button';
 import { formatDateTime, formatVnd } from '@/utils/formatters';
 import type { OrderSummary } from '@/types';
 import './OrderSuccessPage.css';

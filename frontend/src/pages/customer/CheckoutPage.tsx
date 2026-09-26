@@ -3,25 +3,25 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { ApiError } from '@/lib/ApiError';
-import { useCheckout } from '@/features/customer/hooks/useCheckout';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
+import { useCheckout } from '@/hooks/queries/customer/useCheckout';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
 import {
   TimeSlotPicker,
   type SelectedSlot,
-} from '@/features/customer/components/TimeSlotPicker';
-import { Button } from '@/components/ui/Button';
-import { Textarea } from '@/components/ui/Textarea';
+} from '@/components/customer/TimeSlotPicker';
+import { Button } from '@/components/common/forms/Button';
+import { Textarea } from '@/components/common/forms/Textarea';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/Dialog';
+} from '@/components/common/modal/Dialog';
 import { formatVnd } from '@/utils/formatters';
 import { useCartStore } from '@/stores/cart.store';
-import { usePublicConfigData } from '@/features/catalog/hooks/usePublicConfig';
+import { usePublicConfigData } from '@/hooks/queries/guest/usePublicConfig';
 import { moneyToNumber, type CreateOrderErrorDetail } from '@/types';
 import './CheckoutPage.css';
 

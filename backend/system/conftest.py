@@ -21,25 +21,6 @@ def approved_farmer(farmer_user):
 
 
 @pytest.fixture
-def make_farmer(db):
-    def _make(*, email: str, stall_name: str, status: str = FarmerStatus.PENDING) -> FarmerProfile:
-        user = User.objects.create_user(
-            email=email, password="Str0ngPass123", role=Role.objects.get(code=RoleCode.FARMER)
-        )
-        return FarmerProfile.objects.create(
-            user=user,
-            stall_name=stall_name,
-            contact_person="Contact Person",
-            phone=f"09{user.pk:08d}",
-            address="1 Farm Road",
-            status=status,
-            operating_days=[1, 2, 3, 4, 5, 6, 7],  # D-031: at least one day is mandatory.
-        )
-
-    return _make
-
-
-@pytest.fixture
 def market(db):
     return Market.objects.create(
         name="Central Market",

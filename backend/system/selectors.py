@@ -8,6 +8,7 @@ from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
+from marketlink_core.ordering import both_directions, resolve_ordering
 from system.models import AuditLog
 
 
@@ -18,12 +19,26 @@ def _local_day_start(raw_date: str | None) -> datetime | None:
     return timezone.make_aware(datetime.combine(day, time.min))
 
 
+# AD-29.
+AUDIT_LOG_ORDERING = both_directions(
+    {
+        "created_at": ("created_at",),
+        "action": ("action",),
+        "user": ("user__email",),
+        "status_code": ("status_code",),
+    },
+    tiebreak=("-id",),
+)
+AUDIT_LOG_ORDERING["newest"] = ("-created_at", "-id")
+
+
 def list_audit_logs(
     *,
     action: str | None = None,
     user_id: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
+    ordering: str | None = None,
 ) -> QuerySet[AuditLog]:
     queryset = AuditLog.objects.select_related("user")
 
@@ -41,7 +56,9 @@ def list_audit_logs(
         # `to` is inclusive, so take every row before the following midnight.
         queryset = queryset.filter(created_at__lt=end + timedelta(days=1))
 
-    return queryset
+    return queryset.order_by(
+        *resolve_ordering(ordering, allowed=AUDIT_LOG_ORDERING, default="newest")
+    )
 
 
 from typing import Any

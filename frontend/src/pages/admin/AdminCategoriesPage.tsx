@@ -23,18 +23,20 @@ import {
   useCreateCategory,
   useDeleteCategory,
   useReorderCategories,
-} from '@/features/admin/hooks/useAdminCategories';
+} from '@/hooks/queries/admin/useAdminCategories';
 import {
   categorySchema,
   type CategoryFormValues,
-} from '@/features/admin/schemas/category.schema';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+} from '@/schemas/admin/category.schema';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Button } from '@/components/common/forms/Button';
+import { Input } from '@/components/common/forms/Input';
 import { ApiError } from '@/lib/ApiError';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
+import { CategoryIcon } from '@/components/common/badges/CategoryIcon';
+import { CATEGORY_ICON_NAMES } from '@/utils/categoryIcon';
 import type { AdminCategory } from '@/types';
 
 import './AdminCategoriesPage.css';
@@ -57,6 +59,8 @@ function SortableRow({
     node.style.transition = transition ?? '';
   };
 
+  const inUse = cat.product_count > 0;
+
   return (
     <div ref={bindSortableNode} className="page-primitive__sort-row">
       <button
@@ -67,15 +71,24 @@ function SortableRow({
       >
         <GripVertical className="page-primitive__icon-md" />
       </button>
-      <span className="page-primitive__icon-lg-text">{cat.icon}</span>
+      <CategoryIcon icon={cat.icon} className="admin-categories-page__icon" />
       <div className="page-primitive__flex-1">
         <p className="page-primitive__font-medium">{cat.name}</p>
-        <p className="page-primitive__muted-xs">{cat.product_count} products</p>
+        <p className="page-primitive__muted-xs">
+          {cat.product_count === 1 ? '1 product' : `${cat.product_count} products`}
+        </p>
       </div>
       <Button
         size="sm"
         variant="destructive"
-        disabled={cat.product_count > 0}
+        disabled={inUse}
+        // A greyed-out button with no explanation reads as broken; the backend refuses this
+        // too (RESOURCE_IN_USE), so say why instead of letting the admin wonder.
+        title={
+          inUse
+            ? 'Move or remove its products first — a category in use cannot be deleted.'
+            : undefined
+        }
         onClick={() => onDelete(cat.id)}
       >
         Delete
@@ -168,7 +181,11 @@ export default function AdminCategoriesPage() {
           />
           {form.formState.errors.icon ? (
             <p className="page-primitive__error">{form.formState.errors.icon.message}</p>
-          ) : null}
+          ) : (
+            <p className="page-primitive__muted-xs">
+              e.g. {CATEGORY_ICON_NAMES.slice(0, 4).join(', ')}
+            </p>
+          )}
         </div>
         <Button type="submit" loading={create.isPending}>
           Add

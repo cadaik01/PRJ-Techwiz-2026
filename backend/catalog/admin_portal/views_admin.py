@@ -25,6 +25,7 @@ from marketlink_core.permissions import IsAdmin
 from marketlink_core.responses import api_response
 from system.models import AuditAction
 from system.services import log_request_event
+from catalog.selectors import ADMIN_PRODUCT_ORDERING
 
 
 class CategoryListCreateView(ListCreateAPIView):
@@ -132,6 +133,7 @@ class ProductModerationListView(ListAPIView):
             q=params.get("q"),
             farmer_id=_int(params.get("farmer_id")),
             is_hidden=_flag(params.get("is_hidden")),
+            ordering=params.get("ordering"),
         )
 
     @extend_schema(
@@ -139,6 +141,12 @@ class ProductModerationListView(ListAPIView):
             OpenApiParameter("q", str, description="Matches the product name or stall name."),
             OpenApiParameter("farmer_id", int),
             OpenApiParameter("is_hidden", bool),
+            OpenApiParameter(
+                "ordering",
+                str,
+                enum=sorted(ADMIN_PRODUCT_ORDERING),
+                description="Sort column; prefix with - for descending.",
+            ),
         ]
     )
     def get(self, request, *args, **kwargs):

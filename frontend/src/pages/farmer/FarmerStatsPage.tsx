@@ -8,11 +8,11 @@ import {
   YAxis,
 } from 'recharts';
 
-import { useFarmerStats } from '@/features/farmer/hooks/useFarmerStats';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { useFarmerStats } from '@/hooks/queries/farmer/useFarmerStats';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/cards/Card';
 import { formatVnd } from '@/utils/formatters';
 
 import './FarmerStatsPage.css';

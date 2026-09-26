@@ -21,6 +21,7 @@ from reviews.selectors import (
 from reviews.services.review_moderation_service import hide_review, restore_review
 from system.models import AuditAction
 from system.services import log_request_event
+from reviews.selectors import ADMIN_REVIEW_ORDERING
 
 RATING_RANGE = range(1, 6)
 
@@ -58,6 +59,7 @@ class ReviewModerationListView(ListAPIView):
             review_type=_review_type(params.get("type")),
             rating=_rating(params.get("rating")),
             is_hidden=_flag(params.get("is_hidden")),
+            ordering=params.get("ordering"),
         )
 
     @extend_schema(
@@ -65,6 +67,12 @@ class ReviewModerationListView(ListAPIView):
             OpenApiParameter("type", str, enum=ReviewType.values),
             OpenApiParameter("rating", int, description="Exact star rating, 1 to 5."),
             OpenApiParameter("is_hidden", bool),
+            OpenApiParameter(
+                "ordering",
+                str,
+                enum=sorted(ADMIN_REVIEW_ORDERING),
+                description="Sort column; prefix with - for descending.",
+            ),
         ]
     )
     def get(self, request, *args, **kwargs):

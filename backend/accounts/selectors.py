@@ -23,14 +23,34 @@ from catalog.models import Product
 from marketlink_core.constants import BOOKING_HORIZON_DAYS
 from marketlink_core.geo import distance_km
 from marketlink_core.policies.roles import RoleCode
+from marketlink_core.ordering import both_directions, resolve_ordering
 from marketlink_core.shortcuts import get_or_404
 from markets.models import FarmerClosure, FarmerMarket, PickupSlot
 from orders.admin_selectors import AT_RISK_STATUSES, at_risk_threshold, at_risk_window_start
 from orders.models import OPEN_STATUSES, Order, OrderStatus
 
 
+# AD-02. user_id breaks ties so paging never shows or skips a row twice.
+ADMIN_FARMER_ORDERING = both_directions(
+    {
+        "stall_name": ("stall_name",),
+        "email": ("user__email",),
+        "status": ("status",),
+        "date_joined": ("user__date_joined",),
+        "product_count": ("product_count",),
+        "open_order_count": ("open_order_count",),
+    },
+    tiebreak=("-user_id",),
+)
+ADMIN_FARMER_ORDERING["newest"] = ("-user__date_joined", "-user_id")
+
+
 def list_farmers_for_admin(
-    *, status: str | None = None, q: str | None = None, market_id: int | None = None
+    *,
+    status: str | None = None,
+    q: str | None = None,
+    market_id: int | None = None,
+    ordering: str | None = None,
 ) -> QuerySet[FarmerProfile]:
     queryset = FarmerProfile.objects.select_related("user").annotate(
         # Archived products are soft-deleted (D-017), so the A-02 column counts the live catalogue.
@@ -47,7 +67,9 @@ def list_farmers_for_admin(
         )
     if market_id is not None:
         queryset = queryset.filter(farmer_markets__market_id=market_id)
-    return queryset.order_by("-user__date_joined", "-user_id")
+    return queryset.order_by(
+        *resolve_ordering(ordering, allowed=ADMIN_FARMER_ORDERING, default="newest")
+    )
 
 
 def list_pending_farmers(*, limit: int) -> list[FarmerProfile]:
@@ -203,8 +225,29 @@ def pickup_windows(*, farmer_id: int) -> list[dict]:
     ]
 
 
+# AD-09. The default keeps D-028's rule that customers at risk come first, so the admin sees
+# them without scrolling; every other key sorts purely by the column asked for.
+ADMIN_CUSTOMER_ORDERING = both_directions(
+    {
+        "full_name": ("full_name",),
+        "email": ("user__email",),
+        "date_joined": ("user__date_joined",),
+        "total_orders": ("total_orders",),
+        "open_orders": ("open_orders",),
+        "no_show_count": ("no_show_count",),
+        "is_active": ("user__is_active",),
+    },
+    tiebreak=("-user_id",),
+)
+ADMIN_CUSTOMER_ORDERING["at_risk"] = ("-at_risk", "-user__date_joined", "-user_id")
+
+
 def list_customers_for_admin(
-    *, is_active: bool | None = None, q: str | None = None, at_risk: bool | None = None
+    *,
+    is_active: bool | None = None,
+    q: str | None = None,
+    at_risk: bool | None = None,
+    ordering: str | None = None,
 ) -> QuerySet[CustomerProfile]:
     threshold = at_risk_threshold()
     queryset = CustomerProfile.objects.filter(user__role__code=RoleCode.CUSTOMER).select_related(
@@ -242,8 +285,9 @@ def list_customers_for_admin(
         queryset = queryset.filter(
             Q(full_name__icontains=q) | Q(user__email__icontains=q) | Q(phone__icontains=q)
         )
-    # D-028: customers at risk come first so the admin sees them without scrolling.
-    return queryset.order_by("-at_risk", "-user__date_joined", "-user_id")
+    return queryset.order_by(
+        *resolve_ordering(ordering, allowed=ADMIN_CUSTOMER_ORDERING, default="at_risk")
+    )
 
 
 def customer_for_admin(*, customer_id: int) -> CustomerProfile:

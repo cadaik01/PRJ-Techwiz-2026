@@ -17,12 +17,13 @@ import {
   useAdminDashboard,
   useDashboardApproveFarmer,
   useDashboardRejectFarmer,
-} from '@/features/admin/hooks/useAdminDashboard';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+} from '@/hooks/queries/admin/useAdminDashboard';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Button } from '@/components/common/forms/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/cards/Card';
+import { orderStatusLabel } from '@/utils/labels';
 
 import './AdminDashboardPage.css';
 
@@ -47,11 +48,18 @@ export default function AdminDashboardPage() {
   const data = query.data;
   const cards = [
     { label: 'Stalls', value: data.totals.farmers },
-    { label: 'Pending', value: data.totals.farmers_pending },
+    { label: 'Awaiting approval', value: data.totals.farmers_pending },
     { label: 'Shoppers', value: data.totals.customers },
     { label: 'Active markets', value: data.totals.markets_active },
-    { label: 'Orders', value: data.totals.orders },
+    // The chart below covers 30 days, so this total says out loud that it does not.
+    { label: 'Orders all time', value: data.totals.orders },
   ];
+
+  // Spelt out here so the legend, the slice labels and the tooltip all read the same.
+  const ordersByStatus = data.orders_by_status.map((row) => ({
+    ...row,
+    name: orderStatusLabel(row.status),
+  }));
 
   return (
     <div className="admin-dashboard-page">
@@ -101,13 +109,13 @@ export default function AdminDashboardPage() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data.orders_by_status}
+                  data={ordersByStatus}
                   dataKey="count"
-                  nameKey="status"
+                  nameKey="name"
                   outerRadius={80}
                   label
                 >
-                  {data.orders_by_status.map((entry, index) => (
+                  {ordersByStatus.map((entry, index) => (
                     <Cell
                       key={entry.status}
                       fill={PIE_COLORS[index % PIE_COLORS.length]}

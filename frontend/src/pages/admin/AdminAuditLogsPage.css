@@ -1,4 +1,4 @@
-@import '../styles/page-primitives.css';
+@import '../../styles/common/page-primitives.css';
 
 .admin-audit-logs-page {
   display: flex;
@@ -6,10 +6,31 @@
   gap: var(--space-4);
 }
 
+/* Input is a fixed 2.75rem box with its label floated onto the border, so a plain stacked
+   label here would stand taller and knock the whole filter row out of line. */
 .admin-audit-logs-page__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  position: relative;
+  height: 2.75rem;
+}
+
+.admin-audit-logs-page__field .page-primitive__select {
+  height: 100%;
+}
+
+/* Two classes deep so this beats .label's own font-size and color whatever the import order. */
+.admin-audit-logs-page__field .admin-audit-logs-page__field-label {
+  position: absolute;
+  top: 0;
+  left: calc(var(--space-3) - var(--space-1));
+  padding: 0 var(--space-1);
+  background-color: var(--color-card);
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
 }
 
 .admin-audit-logs-page__chip {

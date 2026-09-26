@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom';
 import { Heart, Package, RefreshCcw, ShoppingCart, Star } from 'lucide-react';
 
-import { useCustomerDashboard } from '@/features/customer/hooks/useCustomerDashboard';
-import { Countdown } from '@/components/common/Countdown';
-import { OrderCard } from '@/features/customer/components/OrderCard';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { useFavorites } from '@/features/customer/hooks/useFavorites';
+import { useCustomerDashboard } from '@/hooks/queries/customer/useCustomerDashboard';
+import { Countdown } from '@/components/common/badges/Countdown';
+import { OrderCard } from '@/components/customer/OrderCard';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Button } from '@/components/common/forms/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/cards/Card';
+import { useFavorites } from '@/hooks/queries/customer/useFavorites';
 import { formatRelative } from '@/utils/formatters';
 
 import './CustomerDashboardPage.css';

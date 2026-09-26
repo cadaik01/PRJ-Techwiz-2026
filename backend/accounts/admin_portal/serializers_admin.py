@@ -104,3 +104,28 @@ class FarmerOrderStatsSerializer(serializers.Serializer):
     declined = serializers.IntegerField()
     expired = serializers.IntegerField()
     no_show = serializers.IntegerField()
+
+
+class AdminFarmerEditSerializer(serializers.ModelSerializer):
+    """AD-03 PATCH. Every field optional: the form sends only what the admin touched."""
+
+    class Meta:
+        model = FarmerProfile
+        fields = ["stall_name", "contact_person", "phone", "description", "order_cutoff_hours"]
+        extra_kwargs = {field: {"required": False} for field in fields}
+
+    def validate_phone(self, value: str) -> str:
+        # Declaring the field here would drop the model's UniqueValidator, so uniqueness is
+        # checked in the service against the normalised number instead (D-028).
+        if not value or not value.strip():
+            raise serializers.ValidationError("A phone number is required.")
+        return value
+
+
+class AdminCustomerEditSerializer(serializers.ModelSerializer):
+    """AD-10 PATCH."""
+
+    class Meta:
+        model = CustomerProfile
+        fields = ["full_name", "phone", "address"]
+        extra_kwargs = {field: {"required": False} for field in fields}

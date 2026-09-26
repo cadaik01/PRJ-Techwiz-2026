@@ -14,13 +14,13 @@ import {
   useRemoveFarmerMarket,
   useTogglePickupSlot,
   useUpdateFarmerMarketStall,
-} from '@/features/farmer/hooks/useFarmerMarkets';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Switch } from '@/components/ui/Switch';
+} from '@/hooks/queries/farmer/useFarmerMarkets';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Button } from '@/components/common/forms/Button';
+import { Input } from '@/components/common/forms/Input';
+import { Switch } from '@/components/common/forms/Switch';
 import type { DayOfWeek } from '@/types';
 
 import './FarmerMarketsPage.css';

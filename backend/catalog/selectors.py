@@ -7,6 +7,7 @@ from accounts.models import FarmerStatus
 from catalog.models import Category, Product
 from marketlink_core.shortcuts import get_or_404
 from markets.models import PickupSlot
+from marketlink_core.ordering import both_directions, resolve_ordering
 
 
 def list_categories_for_admin() -> QuerySet[Category]:
@@ -25,8 +26,30 @@ def count_products_in_category(*, category_id: int) -> int:
     )["total"]
 
 
+# AD-20. rating_avg is an aggregate over reviews, so both directions are written out by hand
+# to keep products with no reviews at the bottom either way.
+ADMIN_PRODUCT_ORDERING = both_directions(
+    {
+        "name": ("name",),
+        "stall_name": ("farmer__stall_name",),
+        "price": ("price",),
+        "stock_quantity": ("stock_quantity",),
+        "created_at": ("created_at",),
+        "is_hidden": ("is_hidden_by_admin",),
+    },
+    tiebreak=("-id",),
+)
+ADMIN_PRODUCT_ORDERING["newest"] = ("-created_at", "-id")
+ADMIN_PRODUCT_ORDERING["rating"] = (F("rating_avg").asc(nulls_last=True), "-id")
+ADMIN_PRODUCT_ORDERING["-rating"] = (F("rating_avg").desc(nulls_last=True), "-id")
+
+
 def list_products_for_admin(
-    *, q: str | None = None, farmer_id: int | None = None, is_hidden: bool | None = None
+    *,
+    q: str | None = None,
+    farmer_id: int | None = None,
+    is_hidden: bool | None = None,
+    ordering: str | None = None,
 ) -> QuerySet[Product]:
     queryset = Product.objects.select_related("farmer", "category").annotate(
         rating_avg=Avg(
@@ -45,7 +68,9 @@ def list_products_for_admin(
         queryset = queryset.filter(farmer_id=farmer_id)
     if is_hidden is not None:
         queryset = queryset.filter(is_hidden_by_admin=is_hidden)
-    return queryset.order_by("-created_at", "-id")
+    return queryset.order_by(
+        *resolve_ordering(ordering, allowed=ADMIN_PRODUCT_ORDERING, default="newest")
+    )
 
 
 def get_product_for_admin(*, product_id: int) -> Product:

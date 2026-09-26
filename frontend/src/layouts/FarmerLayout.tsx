@@ -12,19 +12,19 @@ import {
   UserRound,
 } from 'lucide-react';
 
-import { FarmerStatusGate } from '@/features/farmer/components/FarmerStatusGate';
-import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { Button } from '@/components/ui/Button';
+import { FarmerStatusGate } from '@/components/farmer/FarmerStatusGate';
+import { ThemeToggle } from '@/components/common/layout/ThemeToggle';
+import { Button } from '@/components/common/forms/Button';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/Sheet';
-import { UserMenu } from '@/features/auth/components/UserMenu';
-import { NotificationBell } from '@/features/notifications/components/NotificationBell';
-import { useAuth } from '@/features/auth/hooks/useAuth';
+} from '@/components/common/drawer/Sheet';
+import { UserMenu } from '@/components/common/forms/UserMenu';
+import { NotificationBell } from '@/components/common/layout/NotificationBell';
+import { useAuth } from '@/hooks/authentication/useAuth';
 import { useUiStore } from '@/stores/ui.store';
 import { cn } from '@/lib/cn';
 

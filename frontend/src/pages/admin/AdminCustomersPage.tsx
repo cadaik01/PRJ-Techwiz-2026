@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { ApiError } from '@/lib/ApiError';
@@ -6,20 +7,18 @@ import { cn } from '@/lib/cn';
 import {
   fetchCustomerImpact,
   useActivateCustomer,
-  useAdminCustomer,
   useAdminCustomers,
   useDeactivateCustomer,
-} from '@/features/admin/hooks/useAdminCustomers';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/Sheet';
-import { Textarea } from '@/components/ui/Textarea';
-import { formatDate, formatMoney } from '@/utils/formatters';
+} from '@/hooks/queries/admin/useAdminCustomers';
+import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
+import { SortableTh } from '@/components/common/table/SortableTh';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Badge } from '@/components/common/badges/Badge';
+import { Button } from '@/components/common/forms/Button';
+import { Input } from '@/components/common/forms/Input';
+import { Textarea } from '@/components/common/forms/Textarea';
 
 import './AdminCustomersPage.css';
 
@@ -32,12 +31,12 @@ export default function AdminCustomersPage() {
   const [deactivateId, setDeactivateId] = useState<number | null>(null);
   const [reason, setReason] = useState('');
   const [impactText, setImpactText] = useState('');
-  const [detailId, setDetailId] = useState<number | null>(null);
 
-  const query = useAdminCustomers({ q: submittedQ || undefined });
+  const [ordering, setOrdering] = useState<string | undefined>(undefined);
+
+  const query = useAdminCustomers({ q: submittedQ || undefined, ordering });
   const deactivate = useDeactivateCustomer();
   const activate = useActivateCustomer();
-  const detail = useAdminCustomer(detailId);
 
   const openDeactivate = async (id: number) => {
     try {
@@ -85,10 +84,18 @@ export default function AdminCustomersPage() {
           <table className="page-primitive__table page-primitive__table-min-720">
             <thead className="page-primitive__table-head">
               <tr>
-                <th className="page-primitive__table-th">Customer</th>
-                <th className="page-primitive__table-th">Orders</th>
-                <th className="page-primitive__table-th">No-show</th>
-                <th className="page-primitive__table-th">Status</th>
+                <SortableTh column="full_name" current={ordering} onSort={setOrdering}>
+                  Customer
+                </SortableTh>
+                <SortableTh column="total_orders" current={ordering} onSort={setOrdering}>
+                  Orders
+                </SortableTh>
+                <SortableTh column="no_show_count" current={ordering} onSort={setOrdering}>
+                  No-show
+                </SortableTh>
+                <SortableTh column="is_active" current={ordering} onSort={setOrdering}>
+                  Status
+                </SortableTh>
                 <th className="page-primitive__table-th">Lock reason</th>
                 <th className="page-primitive__table-th">Actions</th>
               </tr>
@@ -97,7 +104,12 @@ export default function AdminCustomersPage() {
               {query.data.results.map((c) => (
                 <tr key={c.id} className="page-primitive__table-row">
                   <td className="page-primitive__table-td">
-                    <p className="page-primitive__font-medium">{c.full_name}</p>
+                    <Link
+                      to={`/admin/customers/${c.id}`}
+                      className="page-primitive__link"
+                    >
+                      {c.full_name}
+                    </Link>
                     <p className="page-primitive__muted-xs">{c.email}</p>
                   </td>
                   <td className="page-primitive__table-td">{c.total_orders}</td>
@@ -137,12 +149,8 @@ export default function AdminCustomersPage() {
                         Unlock
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setDetailId(c.id)}
-                    >
-                      Details
+                    <Button asChild size="sm" variant="outline">
+                      <Link to={`/admin/customers/${c.id}`}>Details</Link>
                     </Button>
                   </td>
                 </tr>
@@ -182,48 +190,6 @@ export default function AdminCustomersPage() {
         />
       </ConfirmDialog>
 
-      <Sheet
-        open={Boolean(detailId)}
-        onOpenChange={(open) => {
-          if (!open) setDetailId(null);
-        }}
-      >
-        <SheetContent className="page-primitive__sheet-md">
-          <SheetHeader>
-            <SheetTitle>Customer details</SheetTitle>
-          </SheetHeader>
-          {detail.isLoading ? (
-            <PageSkeleton />
-          ) : detail.data ? (
-            <div className="admin-customers-page__detail">
-              <p className="page-primitive__font-medium">{detail.data.full_name}</p>
-              <p className="page-primitive__muted-xs">{detail.data.email}</p>
-              <p className="page-primitive__muted-xs">{detail.data.phone}</p>
-              <p className="page-primitive__muted-xs">{detail.data.address}</p>
-              <p className="page-primitive__muted-xs">
-                Joined {formatDate(detail.data.date_joined)} · {detail.data.total_orders} orders ·{' '}
-                {detail.data.open_orders} open · {detail.data.no_show_count} no-show
-              </p>
-
-              <p className="page-primitive__font-medium">Recent orders</p>
-              {detail.data.recent_orders.length === 0 ? (
-                <p className="page-primitive__muted-xs">No orders yet.</p>
-              ) : (
-                <ul className="admin-customers-page__orders">
-                  {detail.data.recent_orders.map((order) => (
-                    <li key={order.id} className="admin-customers-page__order">
-                      <span>#{order.id}</span>
-                      <span>{order.status}</span>
-                      <span>{formatDate(order.pickup_date)}</span>
-                      <span>{formatMoney(order.total_amount)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ) : null}
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
