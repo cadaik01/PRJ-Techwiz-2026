@@ -11,6 +11,9 @@ import { describe, expect, it } from 'vitest';
  * must belong to exactly one file.
  *
  * `styles/common/` is the one place allowed to define shared blocks and utilities.
+ *
+ * Only a class that *opens* a selector counts as declared here. `.quantity-stepper__btn.btn` merely
+ * qualifies someone else's class to win on specificity for one nested element, which is safe.
  */
 const SRC = resolve(process.cwd(), 'src');
 const SHARED = join('styles', 'common');
@@ -20,7 +23,7 @@ const SHARED_SELECTORS = /^(dark|light|is-[\w-]+|has-[\w-]+|sr-only)$/;
 
 function classesIn(file) {
   const css = readFileSync(join(SRC, file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-  const names = [...css.matchAll(/\.(-?[A-Za-z_][\w-]*)/g)].map((match) => match[1]);
+  const names = [...css.matchAll(/(?:^|[\s,>+~(])\.(-?[A-Za-z_][\w-]*)/gm)].map((match) => match[1]);
   return new Set(names.filter((name) => !SHARED_SELECTORS.test(name)));
 }
 
