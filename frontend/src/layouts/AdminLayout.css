@@ -2,10 +2,6 @@
   display: flex;
   min-height: 100svh;
   background-color: var(--color-background);
-<<<<<<< HEAD
-=======
-  overflow-x: clip;
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 }
 
 .admin-layout__skip-link {
@@ -56,11 +52,7 @@
   width: var(--sidebar-width);
 }
 
-<<<<<<< HEAD
 @media (min-width: 1024px) {
-=======
-@media (min-width: 768px) {
->>>>>>> 3effed8 (chuyển tsx -> jsx)
   .admin-layout__sidebar {
     display: block;
   }
@@ -158,11 +150,7 @@
   gap: var(--space-2);
 }
 
-<<<<<<< HEAD
 @media (min-width: 1024px) {
-=======
-@media (min-width: 768px) {
->>>>>>> 3effed8 (chuyển tsx -> jsx)
   .admin-layout__header-mobile {
     display: none;
   }
@@ -191,26 +179,12 @@
 }
 
 .admin-layout__main {
-<<<<<<< HEAD
   flex: 1;
   padding: var(--space-4);
-=======
-  --page-pad-x: var(--space-4);
-  --page-pad-top: var(--space-4);
-  flex: 1;
-  min-width: 0;
-  padding: var(--space-4);
-  padding-bottom: 5.5rem;
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 }
 
 @media (min-width: 768px) {
   .admin-layout__main {
-<<<<<<< HEAD
     padding: var(--space-6);
-=======
-    --page-pad-x: var(--space-6);
-    padding: var(--space-4) var(--space-6) 5.5rem;
->>>>>>> 3effed8 (chuyển tsx -> jsx)
   }
 }

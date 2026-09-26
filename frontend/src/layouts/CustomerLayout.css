@@ -2,18 +2,9 @@
   display: flex;
   min-height: 100svh;
   flex-direction: column;
-<<<<<<< HEAD
 }
 
 .customer-layout__content {
-=======
-  overflow-x: clip;
-}
-
-.customer-layout__content {
-  --page-pad-x: var(--space-4);
-  --page-pad-top: var(--space-4);
->>>>>>> 3effed8 (chuyển tsx -> jsx)
   margin-inline: auto;
   width: 100%;
   max-width: var(--container-xl);
@@ -28,7 +19,6 @@
   }
 }
 
-<<<<<<< HEAD
 .customer-layout__greeting {
   margin-bottom: var(--space-4);
   font-size: var(--text-sm);
@@ -40,8 +30,6 @@
   color: var(--color-foreground);
 }
 
-=======
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 .customer-layout__tab-bar {
   position: fixed;
   inset-inline: 0;

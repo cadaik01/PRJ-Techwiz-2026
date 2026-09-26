@@ -75,38 +75,11 @@
 }
 
 .order-success-page__header {
-<<<<<<< HEAD
   margin-top: var(--space-4);
   align-items: center;
   text-align: center;
 }
 
-=======
-  width: auto;
-  margin-top: var(--space-4);
-  margin-inline: 0;
-  margin-bottom: 0;
-  border-bottom: none;
-  background: none;
-  text-align: center;
-}
-
-.order-success-page__header .page-header__inner {
-  align-items: center;
-  padding: 0;
-}
-
-.order-success-page__header .page-header__copy {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.order-success-page__header .page-header__eyebrow {
-  justify-content: center;
-}
-
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 .order-success-page__orders {
   margin-top: var(--space-6);
   display: flex;

@@ -1,14 +1,5 @@
 @import '../styles/page-primitives.css';
 
-<<<<<<< HEAD
-=======
-.admin-moderation-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 .admin-moderation-page__list {
   display: grid;
   gap: var(--space-3);

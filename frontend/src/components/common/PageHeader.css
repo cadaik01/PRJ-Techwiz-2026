@@ -1,5 +1,4 @@
 .page-header {
-<<<<<<< HEAD
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -8,81 +7,17 @@
 
 @media (min-width: 640px) {
   .page-header {
-=======
-  margin-top: calc(-1 * var(--page-pad-top, var(--space-4)));
-  margin-inline: calc(-1 * var(--page-pad-x, var(--space-4)));
-  margin-bottom: var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-  background: radial-gradient(ellipse at top, rgba(22, 163, 74, 0.07), transparent 52%);
-}
-
-.page-header__inner {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-5) var(--page-pad-x, var(--space-4)) var(--space-5);
-}
-
-@media (min-width: 640px) {
-  .page-header__inner {
->>>>>>> 3effed8 (chuyển tsx -> jsx)
     flex-direction: row;
     align-items: flex-end;
     justify-content: space-between;
   }
 }
 
-<<<<<<< HEAD
 .page-header__title {
   font-family: var(--font-heading);
   font-size: var(--text-2xl);
   font-weight: var(--weight-bold);
   letter-spacing: -0.025em;
-=======
-@media (min-width: 768px) {
-  .page-header__inner {
-    padding-block: var(--space-6) var(--space-6);
-  }
-}
-
-.page-header__copy {
-  max-width: var(--container-md);
-  animation: var(--animate-fade-up);
-}
-
-.page-header__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin: 0;
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-primary-700);
-}
-
-.page-header__eyebrow::before {
-  content: '';
-  width: 1.5rem;
-  height: 1px;
-  background-color: var(--color-accent-400);
-}
-
-.dark .page-header__eyebrow {
-  color: var(--color-primary-300);
-}
-
-.page-header__title {
-  margin: 0;
-  margin-top: var(--space-2);
-  font-family: var(--font-heading);
-  font-size: var(--text-2xl);
-  font-weight: var(--weight-extrabold);
-  letter-spacing: -0.025em;
-  color: var(--color-foreground);
-  text-wrap: balance;
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 }
 
 @media (min-width: 768px) {
@@ -92,32 +27,21 @@
 }
 
 .page-header__description {
-<<<<<<< HEAD
-=======
-  margin: 0;
->>>>>>> 3effed8 (chuyển tsx -> jsx)
   margin-top: var(--space-2);
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
   color: var(--color-muted-foreground);
 }
 
-<<<<<<< HEAD
 @media (min-width: 768px) {
   .page-header__description {
     font-size: var(--text-base);
   }
 }
 
-=======
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 .page-header__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-<<<<<<< HEAD
-=======
-  flex-shrink: 0;
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 }

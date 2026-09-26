@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-=======
-@import '../styles/page-primitives.css';
-
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 .admin-announcements-page {
   display: flex;
   flex-direction: column;
@@ -19,7 +14,6 @@
   width: 100%;
 }
 
-<<<<<<< HEAD
 .admin-announcements-page__create-row {
   display: flex;
   flex-wrap: wrap;
@@ -27,8 +21,6 @@
   align-items: center;
 }
 
-=======
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 .admin-announcements-page__list {
   display: flex;
   flex-direction: column;

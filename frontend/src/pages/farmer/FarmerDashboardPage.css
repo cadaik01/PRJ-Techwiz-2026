@@ -24,7 +24,6 @@
   color: var(--color-accent-100);
 }
 
-<<<<<<< HEAD
 .farmer-dashboard-page__charts {
   display: grid;
   gap: var(--space-6);
@@ -36,8 +35,6 @@
   }
 }
 
-=======
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 .farmer-dashboard-page__upcoming-list {
   display: flex;
   flex-direction: column;

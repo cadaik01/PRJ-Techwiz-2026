@@ -56,7 +56,6 @@
   transform: scale(0.98);
 }
 
-<<<<<<< HEAD
 .login-form__demo {
   display: flex;
   flex-direction: column;
@@ -184,8 +183,6 @@
   height: 1rem;
 }
 
-=======
->>>>>>> 3effed8 (chuyển tsx -> jsx)
 .login-form__footer {
   display: flex;
   flex-direction: column;
