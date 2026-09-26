@@ -12,30 +12,27 @@ import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
 import './LoginForm.css';
 
+// The accounts the seed command creates (manage.py seed_minimal). Admin is not among them:
+// D-027 keeps the two portals apart, so this page refuses an admin the same way it refuses a
+// wrong password, and the shortcut below sends them to /admin/login instead.
 const DEMO_ACCOUNTS = [
   {
-    email: 'customer@demo.vn',
+    email: 'customer@marketlink.local',
     label: 'Customer',
-    password: 'Demo1234',
+    password: 'Demo@12345',
     icon: UserRound,
   },
   {
-    email: 'farmer@demo.vn',
+    email: 'farmer1@marketlink.local',
     label: 'Farmer',
-    password: 'Demo1234',
+    password: 'Demo@12345',
     icon: Store,
-  },
-  {
-    email: 'admin@demo.vn',
-    label: 'Admin',
-    password: 'Demo1234',
-    icon: ShieldCheck,
   },
 ] as const;
 
 export function LoginForm() {
-  const { login, loginPending, adminLogin, adminLoginPending } = useAuth();
-  const pending = loginPending || adminLoginPending;
+  const { login, loginPending } = useAuth();
+  const pending = loginPending;
   const {
     register,
     handleSubmit,
@@ -49,10 +46,6 @@ export function LoginForm() {
 
   const submitLogin = async (values: LoginFormValues) => {
     try {
-      if (values.email.toLowerCase() === 'admin@demo.vn') {
-        await adminLogin(values);
-        return;
-      }
       await login(values);
     } catch (error) {
       const apiError = ApiError.fromUnknown(error);
@@ -141,6 +134,16 @@ export function LoginForm() {
               </button>
             );
           })}
+          <Link to="/admin/login" className="login-form__demo-btn">
+            <span className="login-form__demo-icon-wrap">
+              <ShieldCheck className="login-form__demo-icon" strokeWidth={1.75} />
+            </span>
+            <span className="login-form__demo-text">
+              <span className="login-form__demo-role">Admin</span>
+              <span className="login-form__demo-email">Sign in at the admin portal</span>
+            </span>
+            <ArrowRight className="login-form__demo-arrow" />
+          </Link>
         </div>
       </div>
 

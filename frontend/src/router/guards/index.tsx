@@ -37,7 +37,11 @@ export function RequireAuth() {
   const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    // D-027 keeps the portals apart, so an admin page sends the visitor to the admin portal.
+    const portal = location.pathname.startsWith(`${DASHBOARD_PATH.ADMIN}/`)
+      ? '/admin/login'
+      : '/login';
+    return <Navigate to={portal} replace state={{ from: location }} />;
   }
 
   if (isLoadingMe || !user) {

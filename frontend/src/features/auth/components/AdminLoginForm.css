@@ -1,0 +1,80 @@
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.admin-login-form__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-2xl);
+  background: var(--color-primary-100);
+  color: var(--color-primary-700);
+}
+
+.dark .admin-login-form__badge {
+  background: var(--color-primary-900);
+  color: var(--color-primary-200);
+}
+
+.admin-login-form__badge-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.admin-login-form__eyebrow {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-primary-700);
+}
+
+.dark .admin-login-form__eyebrow {
+  color: var(--color-primary-300);
+}
+
+.admin-login-form__title {
+  font-family: var(--font-heading);
+  margin-top: var(--space-1);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.admin-login-form__subtitle {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--color-muted-foreground);
+}
+
+.admin-login-form__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.admin-login-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.admin-login-form__error {
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.admin-login-form__submit {
+  width: 100%;
+}
+
+.admin-login-form__note {
+  font-size: var(--text-sm);
+  color: var(--color-muted-foreground);
+}
