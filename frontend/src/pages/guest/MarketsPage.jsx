@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 
 import { EmptyState } from '@/components/common/feedback/EmptyState';
-import { MarketCard } from '@/components/guest/MarketCard';
-import { useMarkets } from '@/hooks/queries/guest/useCatalog';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import { MarketCard } from '../../components/guest/MarketCard';
+import { useMarkets } from '../../hooks/queries/guest/useCatalog';
+import { useGeolocation } from '../../hooks/useGeolocation';
 import { WEEKDAY_LABELS } from '@/utils/helpers/geo';
 import { Input } from '@/components/common/forms/Input';
 import { Skeleton } from '@/components/common/feedback/Skeleton';

@@ -3,11 +3,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import { Button } from '@/components/common/forms/Button';
 import { Input } from '@/components/common/forms/Input';
-import { useAuth } from '@/hooks/authentication/useAuth';
+import { useAuth } from '../../../hooks/authentication/useAuth';
 import {
   changePasswordSchema,
 
-} from '@/schemas/auth/auth.schemas';
+} from '../../../schemas/auth/auth.schemas';
 import { ApiError } from '@/lib/ApiError';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 

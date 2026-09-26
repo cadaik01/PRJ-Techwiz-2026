@@ -5,7 +5,7 @@ import {
   useCreateMarketClosure,
   useDeleteMarketClosure,
   useMarketClosures,
-} from '@/hooks/queries/admin/useAdminMarkets';
+} from '../../hooks/queries/admin/useAdminMarkets';
 import { Button } from '@/components/common/forms/Button';
 import { Input } from '@/components/common/forms/Input';
 import { Label } from '@/components/common/forms/Label';

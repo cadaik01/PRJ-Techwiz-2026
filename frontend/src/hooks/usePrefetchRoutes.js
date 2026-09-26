@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 
-import { catalogApi } from '@/api/guest/catalogApi';
+import { catalogApi } from '../api/guest/catalogApi';
 import { QUERY_KEYS } from '@/config/constants';
 
 const DEFAULT_MARKETS = { sort: 'name'         , page_size: 20          };

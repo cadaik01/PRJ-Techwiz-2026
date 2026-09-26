@@ -1,4 +1,4 @@
-import { useAdminChangeLog } from '@/hooks/queries/admin/useAdminChangeLog';
+import { useAdminChangeLog } from '../../hooks/queries/admin/useAdminChangeLog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/cards/Card';
 import { formatDateTime } from '@/utils/formatters';
 

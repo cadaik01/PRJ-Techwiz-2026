@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { customerApi } from '@/api/customer/customerApi';
+import { customerApi } from '../../../api/customer/customerApi';
 import { QUERY_KEYS } from '@/config/constants';
 
 export function useCustomerDashboard() {

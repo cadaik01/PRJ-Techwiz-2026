@@ -6,9 +6,9 @@ import {
   invalidateOrdersList,
   useCustomerOrders,
   useReorderPreview,
-} from '@/hooks/queries/customer/useCustomerOrders';
+} from '../../hooks/queries/customer/useCustomerOrders';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
-import { OrderCard } from '@/components/customer/OrderCard';
+import { OrderCard } from '../../components/customer/OrderCard';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { Button } from '@/components/common/forms/Button';

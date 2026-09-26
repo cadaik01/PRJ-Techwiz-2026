@@ -3,7 +3,7 @@ import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import {
   catalogApi,
 
-} from '@/api/guest/catalogApi';
+} from '../../../api/guest/catalogApi';
 import { QUERY_KEYS } from '@/config/constants';
 
 function toNumberId(id        )         {

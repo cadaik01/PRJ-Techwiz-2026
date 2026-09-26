@@ -2,8 +2,8 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import { toast } from 'sonner';
 
 import { ApiError } from '@/lib/ApiError';
-import { catalogApi } from '@/api/guest/catalogApi';
-import { customerApi } from '@/api/customer/customerApi';
+import { catalogApi } from '../../../api/guest/catalogApi';
+import { customerApi } from '../../../api/customer/customerApi';
 import { QUERY_KEYS } from '@/config/constants';
 import { useAuthStore } from '@/stores/auth.store';
 

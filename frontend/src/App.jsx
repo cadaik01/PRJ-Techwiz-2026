@@ -4,8 +4,8 @@ import { RouterProvider } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Toaster } from 'sonner';
 
-import { authApi } from '@/api/common/authApi';
-import { catalogApi } from '@/api/guest/catalogApi';
+import { authApi } from './api/common/authApi';
+import { catalogApi } from './api/guest/catalogApi';
 import { AiChatWidget } from '@/components/common/chat/AiChatWidget';
 import { ErrorBoundary } from '@/components/common/feedback/ErrorBoundary';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -13,7 +13,7 @@ import { TooltipProvider } from '@/components/common/layout/Tooltip';
 import { QUERY_KEYS, STORAGE_KEYS } from '@/config/constants';
 import { env } from '@/config/env';
 import { queryClient } from '@/lib/queryClient';
-import { router } from '@/router/AppRouter';
+import { router } from './router/AppRouter';
 import { useAuthStore } from '@/stores/auth.store';
 
 let mockingStarted = false;

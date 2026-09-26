@@ -8,9 +8,9 @@ import {
   reviews,
   toFarmerSummary,
   toProductCard,
-} from '@/mocks/catalog';
-import { envelope, errorEnvelope, getUserByAccess, paginate } from '@/mocks/data';
-import { numParam, pageParams } from '@/mocks/mockUtils';
+} from './catalog';
+import { envelope, errorEnvelope, getUserByAccess, paginate } from './data';
+import { numParam, pageParams } from './mockUtils';
 
 import { moneyToNumber } from '@/utils/helpers/domain';
 import { http, HttpResponse } from 'msw';

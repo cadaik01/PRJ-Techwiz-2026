@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 import { Button } from '@/components/common/forms/Button';
 import { Textarea } from '@/components/common/forms/Textarea';
-import { useAiChat } from '@/hooks/queries/common/useAiChat';
+import { useAiChat } from '../../../hooks/queries/common/useAiChat';
 import { cn } from '@/lib/cn';
 
 import './AiChatWidget.css';

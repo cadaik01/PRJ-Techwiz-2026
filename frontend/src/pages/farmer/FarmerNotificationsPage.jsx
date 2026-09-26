@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { Button } from '@/components/common/forms/Button';
-import { useNotifications } from '@/hooks/queries/common/useNotifications';
+import { useNotifications } from '../../hooks/queries/common/useNotifications';
 import { formatRelative } from '@/utils/formatters';
 
 import './FarmerNotificationsPage.css';

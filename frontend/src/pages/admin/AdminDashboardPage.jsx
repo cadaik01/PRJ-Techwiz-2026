@@ -17,7 +17,7 @@ import {
   useAdminDashboard,
   useDashboardApproveFarmer,
   useDashboardRejectFarmer,
-} from '@/hooks/queries/admin/useAdminDashboard';
+} from '../../hooks/queries/admin/useAdminDashboard';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';

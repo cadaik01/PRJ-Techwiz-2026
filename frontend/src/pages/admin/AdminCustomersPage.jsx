@@ -9,7 +9,7 @@ import {
   useActivateCustomer,
   useAdminCustomers,
   useDeactivateCustomer,
-} from '@/hooks/queries/admin/useAdminCustomers';
+} from '../../hooks/queries/admin/useAdminCustomers';
 import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
 import { SortableTh } from '@/components/common/table/SortableTh';
 import { EmptyState } from '@/components/common/feedback/EmptyState';

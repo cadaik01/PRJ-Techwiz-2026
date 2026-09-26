@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
 import { Button } from '@/components/common/forms/Button';
 import { Textarea } from '@/components/common/forms/Textarea';
-import { useFarmerOrderActions } from '@/hooks/queries/farmer/useFarmerOrderActions';
+import { useFarmerOrderActions } from '../../hooks/queries/farmer/useFarmerOrderActions';
 
 import './FarmerOrderActions.css';
 

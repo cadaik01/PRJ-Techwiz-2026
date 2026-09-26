@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { useAdminAuditLogs } from '@/hooks/queries/admin/useAdminAuditLogs';
+import { useAdminAuditLogs } from '../../hooks/queries/admin/useAdminAuditLogs';
 import {
   AUDIT_ACTION_OPTIONS,
   auditActionLabel,

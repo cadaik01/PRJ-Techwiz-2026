@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/common/layout/DropdownMenu';
 import { DASHBOARD_PATH } from '@/config/constants';
-import { useAuth } from '@/hooks/authentication/useAuth';
+import { useAuth } from '../../../hooks/authentication/useAuth';
 
 import './UserMenu.css';
 

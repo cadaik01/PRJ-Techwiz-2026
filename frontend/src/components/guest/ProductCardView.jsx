@@ -3,14 +3,14 @@ import { motion } from 'framer-motion';
 import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { FavoriteButton } from '@/components/customer/FavoriteButton';
+import { FavoriteButton } from '../customer/FavoriteButton';
 import { LazyImage } from '@/components/common/cards/LazyImage';
 import { PriceTag } from '@/components/common/badges/PriceTag';
 import { RatingStars } from '@/components/common/badges/RatingStars';
 import { Badge } from '@/components/common/badges/Badge';
 import { Button } from '@/components/common/forms/Button';
 import { useCartStore } from '@/stores/cart.store';
-import { useFavorites } from '@/hooks/queries/customer/useFavorites';
+import { useFavorites } from '../../hooks/queries/customer/useFavorites';
 
 import { cn } from '@/lib/cn';
 

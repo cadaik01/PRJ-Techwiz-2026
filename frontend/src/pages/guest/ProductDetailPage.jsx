@@ -4,22 +4,22 @@ import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { EmptyState } from '@/components/common/feedback/EmptyState';
-import { FavoriteButton } from '@/components/customer/FavoriteButton';
+import { FavoriteButton } from '../../components/customer/FavoriteButton';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { LazyImage } from '@/components/common/cards/LazyImage';
 import { PriceTag } from '@/components/common/badges/PriceTag';
 import { QuantityStepper } from '@/components/common/forms/QuantityStepper';
 import { RatingStars } from '@/components/common/badges/RatingStars';
-import { ProductCardView } from '@/components/guest/ProductCardView';
+import { ProductCardView } from '../../components/guest/ProductCardView';
 import {
   useProduct,
   useProductRating,
   useProductReviews,
   useProducts,
-} from '@/hooks/queries/guest/useCatalog';
+} from '../../hooks/queries/guest/useCatalog';
 import { formatDateTime } from '@/utils/formatters';
 import { useCartStore } from '@/stores/cart.store';
-import { useFavorites } from '@/hooks/queries/customer/useFavorites';
+import { useFavorites } from '../../hooks/queries/customer/useFavorites';
 import { Badge } from '@/components/common/badges/Badge';
 import { Button } from '@/components/common/forms/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/cards/Card';

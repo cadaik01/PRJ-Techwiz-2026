@@ -6,8 +6,8 @@ import { ApiError } from '@/lib/ApiError';
 import {
   useCustomerOrder,
   useUpdateOrder,
-} from '@/hooks/queries/customer/useCustomerOrders';
-import { useFarmerPickupOptions } from '@/hooks/queries/guest/useCatalog';
+} from '../../hooks/queries/customer/useCustomerOrders';
+import { useFarmerPickupOptions } from '../../hooks/queries/guest/useCatalog';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -16,10 +16,10 @@ import { PriceTag } from '@/components/common/badges/PriceTag';
 import {
   TimeSlotPicker,
 
-} from '@/components/customer/TimeSlotPicker';
+} from '../../components/customer/TimeSlotPicker';
 import { Button } from '@/components/common/forms/Button';
 import { Textarea } from '@/components/common/forms/Textarea';
-import { usePublicConfigData } from '@/hooks/queries/guest/usePublicConfig';
+import { usePublicConfigData } from '../../hooks/queries/guest/usePublicConfig';
 
 import './OrderEditPage.css';
 

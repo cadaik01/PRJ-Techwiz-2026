@@ -5,8 +5,8 @@ import {
   markets as seedMarkets,
   products as seedProducts,
   reviews as seedReviews,
-} from '@/mocks/catalog';
-import { customerOrders } from '@/mocks/orders';
+} from './catalog';
+import { customerOrders } from './orders';
 import { productAvailability } from '@/utils/helpers/domain';
 
 function isoDays(days        ) {

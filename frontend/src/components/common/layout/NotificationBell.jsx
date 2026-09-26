@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/common/layout/DropdownMenu';
-import { useNotifications } from '@/hooks/queries/common/useNotifications';
+import { useNotifications } from '../../../hooks/queries/common/useNotifications';
 import { formatRelative } from '@/utils/formatters';
 
 import './NotificationBell.css';

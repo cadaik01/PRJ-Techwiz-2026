@@ -1,9 +1,9 @@
 import { useState } from 'react';
 
 import { EmptyState } from '@/components/common/feedback/EmptyState';
-import { FarmerCard } from '@/components/guest/FarmerCard';
-import { useFarmers } from '@/hooks/queries/guest/useCatalog';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import { FarmerCard } from '../../components/guest/FarmerCard';
+import { useFarmers } from '../../hooks/queries/guest/useCatalog';
+import { useGeolocation } from '../../hooks/useGeolocation';
 import { Input } from '@/components/common/forms/Input';
 import { Skeleton } from '@/components/common/feedback/Skeleton';
 

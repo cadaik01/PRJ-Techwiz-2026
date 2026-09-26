@@ -5,15 +5,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 
 import { ApiError } from '@/lib/ApiError';
-import { useCategories } from '@/hooks/queries/guest/useCatalog';
+import { useCategories } from '../../hooks/queries/guest/useCatalog';
 import {
   useFarmerMyProduct,
   useSaveFarmerProduct,
-} from '@/hooks/queries/farmer/useFarmerProducts';
+} from '../../hooks/queries/farmer/useFarmerProducts';
 import {
   productSchema,
 
-} from '@/schemas/farmer/product.schema';
+} from '../../schemas/farmer/product.schema';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -23,7 +23,7 @@ import { Input } from '@/components/common/forms/Input';
 import { Label } from '@/components/common/forms/Label';
 import { Switch } from '@/components/common/forms/Switch';
 import { Textarea } from '@/components/common/forms/Textarea';
-import { usePublicConfigData } from '@/hooks/queries/guest/usePublicConfig';
+import { usePublicConfigData } from '../../hooks/queries/guest/usePublicConfig';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
 import './FarmerProductFormPage.css';

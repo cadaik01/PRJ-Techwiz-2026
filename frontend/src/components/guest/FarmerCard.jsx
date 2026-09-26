@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { FavoriteButton } from '@/components/customer/FavoriteButton';
+import { FavoriteButton } from '../customer/FavoriteButton';
 import { RatingStars } from '@/components/common/badges/RatingStars';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/common/avatar/Avatar';
-import { useFavorites } from '@/hooks/queries/customer/useFavorites';
+import { useFavorites } from '../../hooks/queries/customer/useFavorites';
 
 import { cn } from '@/lib/cn';
 

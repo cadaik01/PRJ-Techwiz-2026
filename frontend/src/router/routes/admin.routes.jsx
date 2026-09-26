@@ -1,8 +1,8 @@
 import { lazy } from 'react';
 
-import { Suspend } from '@/router/Suspend';
-import { RequireRole } from '@/router/guards';
-import { AdminLayout } from '@/layouts/AdminLayout';
+import { Suspend } from '../Suspend';
+import { RequireRole } from '../guards';
+import { AdminLayout } from '../../layouts/AdminLayout';
 
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 const AdminFarmersPage = lazy(() => import('@/pages/admin/AdminFarmersPage'));

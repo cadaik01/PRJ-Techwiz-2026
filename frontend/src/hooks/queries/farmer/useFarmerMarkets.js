@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { ApiError } from '@/lib/ApiError';
-import { catalogApi } from '@/api/guest/catalogApi';
-import { farmerApi } from '@/api/farmer/farmerApi';
+import { catalogApi } from '../../../api/guest/catalogApi';
+import { farmerApi } from '../../../api/farmer/farmerApi';
 import { QUERY_KEYS } from '@/config/constants';
 
 function invalidateFarmerMarkets(queryClient

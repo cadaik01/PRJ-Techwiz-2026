@@ -4,20 +4,20 @@ import { ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { EmptyState } from '@/components/common/feedback/EmptyState';
-import { FavoriteButton } from '@/components/customer/FavoriteButton';
+import { FavoriteButton } from '../../components/customer/FavoriteButton';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { LazyImage } from '@/components/common/cards/LazyImage';
 import { RatingStars } from '@/components/common/badges/RatingStars';
-import { ProductCardView } from '@/components/guest/ProductCardView';
+import { ProductCardView } from '../../components/guest/ProductCardView';
 import {
   useFarmer,
   useFarmerPickupOptions,
   useFarmerProducts,
   useFarmerReviews,
-} from '@/hooks/queries/guest/useCatalog';
+} from '../../hooks/queries/guest/useCatalog';
 import { googleMapsDirectionsUrl, WEEKDAY_LABELS } from '@/utils/helpers/geo';
 import { formatDateTime } from '@/utils/formatters';
-import { useFavorites } from '@/hooks/queries/customer/useFavorites';
+import { useFavorites } from '../../hooks/queries/customer/useFavorites';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/common/avatar/Avatar';
 import { Badge } from '@/components/common/badges/Badge';
 import { Button } from '@/components/common/forms/Button';

@@ -6,7 +6,7 @@ import {
   useFarmerMyProducts,
   useMarkSoldOut,
   useUpdateFarmerStock,
-} from '@/hooks/queries/farmer/useFarmerProducts';
+} from '../../hooks/queries/farmer/useFarmerProducts';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';

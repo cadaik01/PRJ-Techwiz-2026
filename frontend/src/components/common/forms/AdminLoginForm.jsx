@@ -6,8 +6,8 @@ import { ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/common/forms/Button';
 import { Input } from '@/components/common/forms/Input';
 import { DASHBOARD_PATH } from '@/config/constants';
-import { useAuth } from '@/hooks/authentication/useAuth';
-import { loginSchema,                      } from '@/schemas/auth/auth.schemas';
+import { useAuth } from '../../../hooks/authentication/useAuth';
+import { loginSchema,                      } from '../../../schemas/auth/auth.schemas';
 import { ApiError } from '@/lib/ApiError';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 

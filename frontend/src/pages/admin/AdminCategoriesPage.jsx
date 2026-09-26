@@ -23,11 +23,11 @@ import {
   useCreateCategory,
   useDeleteCategory,
   useReorderCategories,
-} from '@/hooks/queries/admin/useAdminCategories';
+} from '../../hooks/queries/admin/useAdminCategories';
 import {
   categorySchema,
 
-} from '@/schemas/admin/category.schema';
+} from '../../schemas/admin/category.schema';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -36,7 +36,7 @@ import { Input } from '@/components/common/forms/Input';
 import { ApiError } from '@/lib/ApiError';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 import { CategoryIcon } from '@/components/common/badges/CategoryIcon';
-import { IconPicker } from '@/components/admin/IconPicker';
+import { IconPicker } from '../../components/admin/IconPicker';
 import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
 
 import './AdminCategoriesPage.css';

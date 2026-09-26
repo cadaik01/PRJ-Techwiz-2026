@@ -3,12 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import { X } from 'lucide-react';
 
 import { EmptyState } from '@/components/common/feedback/EmptyState';
-import { ProductCardView } from '@/components/guest/ProductCardView';
+import { ProductCardView } from '../../components/guest/ProductCardView';
 import {
   useCategories,
   useInfiniteProducts,
   useMarkets,
-} from '@/hooks/queries/guest/useCatalog';
+} from '../../hooks/queries/guest/useCatalog';
 import { Button } from '@/components/common/forms/Button';
 import { Input } from '@/components/common/forms/Input';
 import { Skeleton } from '@/components/common/feedback/Skeleton';

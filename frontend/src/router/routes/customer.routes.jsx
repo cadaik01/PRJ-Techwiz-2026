@@ -1,8 +1,8 @@
 import { lazy } from 'react';
 
-import { Suspend } from '@/router/Suspend';
-import { RequireAuth, RequireRole } from '@/router/guards';
-import { CustomerLayout } from '@/layouts/CustomerLayout';
+import { Suspend } from '../Suspend';
+import { RequireAuth, RequireRole } from '../guards';
+import { CustomerLayout } from '../../layouts/CustomerLayout';
 
 const CustomerDashboardPage = lazy(
   () => import('@/pages/customer/CustomerDashboardPage'),

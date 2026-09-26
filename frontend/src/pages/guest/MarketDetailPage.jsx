@@ -4,14 +4,14 @@ import { ArrowLeft, Clock3, ExternalLink, MapPin, Navigation, Store } from 'luci
 import { toast } from 'sonner';
 
 import { EmptyState } from '@/components/common/feedback/EmptyState';
-import { FavoriteButton } from '@/components/customer/FavoriteButton';
+import { FavoriteButton } from '../../components/customer/FavoriteButton';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
-import { FarmerCard } from '@/components/guest/FarmerCard';
+import { FarmerCard } from '../../components/guest/FarmerCard';
 import { LazyImage } from '@/components/common/cards/LazyImage';
-import { useMarket, useMarketFarmers } from '@/hooks/queries/guest/useCatalog';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import { useMarket, useMarketFarmers } from '../../hooks/queries/guest/useCatalog';
+import { useGeolocation } from '../../hooks/useGeolocation';
 import { googleMapsDirectionsUrl, WEEKDAY_LABELS } from '@/utils/helpers/geo';
-import { useFavorites } from '@/hooks/queries/customer/useFavorites';
+import { useFavorites } from '../../hooks/queries/customer/useFavorites';
 import { Badge } from '@/components/common/badges/Badge';
 import { Button } from '@/components/common/forms/Button';
 import { Skeleton } from '@/components/common/feedback/Skeleton';

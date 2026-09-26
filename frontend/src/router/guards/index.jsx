@@ -2,7 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { DASHBOARD_PATH } from '@/config/constants';
-import { useAuth } from '@/hooks/authentication/useAuth';
+import { useAuth } from '../../hooks/authentication/useAuth';
 
 function homePathForRole(role      )         {
   if (role === 'ADMIN') return DASHBOARD_PATH.ADMIN;

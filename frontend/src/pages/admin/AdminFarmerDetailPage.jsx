@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { useAdminFarmer, useUpdateFarmer } from '@/hooks/queries/admin/useAdminFarmers';
-import { ProfileEditDialog } from '@/components/admin/ProfileEditDialog';
-import { ChangeLogPanel } from '@/components/admin/ChangeLogPanel';
+import { useAdminFarmer, useUpdateFarmer } from '../../hooks/queries/admin/useAdminFarmers';
+import { ProfileEditDialog } from '../../components/admin/ProfileEditDialog';
+import { ChangeLogPanel } from '../../components/admin/ChangeLogPanel';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';

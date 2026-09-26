@@ -1,5 +1,5 @@
-import { authApi } from '@/api/common/authApi';
-import { customerApi } from '@/api/customer/customerApi';
+import { authApi } from './authApi';
+import { customerApi } from '../customer/customerApi';
 
 export const notificationsApi = {
   list: async ()                                => {

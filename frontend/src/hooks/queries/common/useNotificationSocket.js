@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-import { authApi } from '@/api/common/authApi';
+import { authApi } from '../../../api/common/authApi';
 import {
   adaptNotification,
 

@@ -7,11 +7,11 @@ import { ApiError } from '@/lib/ApiError';
 import {
   useCustomerProfile,
   useUpdateCustomerProfile,
-} from '@/hooks/queries/customer/useCustomerProfile';
+} from '../../hooks/queries/customer/useCustomerProfile';
 import {
   profileSchema,
 
-} from '@/schemas/customer/profile.schema';
+} from '../../schemas/customer/profile.schema';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { EmptyState } from '@/components/common/feedback/EmptyState';

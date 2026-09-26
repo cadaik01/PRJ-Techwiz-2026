@@ -4,8 +4,8 @@ import { Link, useParams } from 'react-router-dom';
 import {
   useAdminCustomer,
   useUpdateCustomer,
-} from '@/hooks/queries/admin/useAdminCustomers';
-import { ProfileEditDialog } from '@/components/admin/ProfileEditDialog';
+} from '../../hooks/queries/admin/useAdminCustomers';
+import { ProfileEditDialog } from '../../components/admin/ProfileEditDialog';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';

@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { Home, Package, ShoppingCart, UserRound, Store } from 'lucide-react';
 
-import { useAuth } from '@/hooks/authentication/useAuth';
+import { useAuth } from '../hooks/authentication/useAuth';
 import { useCartStore } from '@/stores/cart.store';
 import { cn } from '@/lib/cn';
 

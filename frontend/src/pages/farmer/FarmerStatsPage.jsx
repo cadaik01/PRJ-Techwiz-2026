@@ -8,7 +8,7 @@ import {
   YAxis,
 } from 'recharts';
 
-import { useFarmerStats } from '@/hooks/queries/farmer/useFarmerStats';
+import { useFarmerStats } from '../../hooks/queries/farmer/useFarmerStats';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';

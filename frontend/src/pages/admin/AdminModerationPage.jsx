@@ -7,7 +7,7 @@ import {
   useModerationReviews,
   useRestoreModerationProduct,
   useRestoreModerationReview,
-} from '@/hooks/queries/admin/useAdminModeration';
+} from '../../hooks/queries/admin/useAdminModeration';
 
 import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
 import { EmptyState } from '@/components/common/feedback/EmptyState';

@@ -1,8 +1,8 @@
 import { lazy } from 'react';
 
-import { Suspend } from '@/router/Suspend';
-import { RequireRole } from '@/router/guards';
-import { FarmerLayout } from '@/layouts/FarmerLayout';
+import { Suspend } from '../Suspend';
+import { RequireRole } from '../guards';
+import { FarmerLayout } from '../../layouts/FarmerLayout';
 
 const FarmerDashboardPage = lazy(() => import('@/pages/farmer/FarmerDashboardPage'));
 const FarmerOrdersPage = lazy(() => import('@/pages/farmer/FarmerOrdersPage'));

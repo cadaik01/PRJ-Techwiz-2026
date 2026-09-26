@@ -1,11 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 
-import { useFavoriteDetails } from '@/hooks/queries/customer/useFavorites';
+import { useFavoriteDetails } from '../../hooks/queries/customer/useFavorites';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
-import { FarmerCard } from '@/components/guest/FarmerCard';
-import { MarketCard } from '@/components/guest/MarketCard';
-import { ProductCardView } from '@/components/guest/ProductCardView';
+import { FarmerCard } from '../../components/guest/FarmerCard';
+import { MarketCard } from '../../components/guest/MarketCard';
+import { ProductCardView } from '../../components/guest/ProductCardView';
 import { Button } from '@/components/common/forms/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/common/layout/Tabs';
 import { Skeleton } from '@/components/common/feedback/Skeleton';

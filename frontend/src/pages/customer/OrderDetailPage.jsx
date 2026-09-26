@@ -7,11 +7,11 @@ import { ApiError } from '@/lib/ApiError';
 import {
   useCancelOrder,
   useCustomerOrder,
-} from '@/hooks/queries/customer/useCustomerOrders';
+} from '../../hooks/queries/customer/useCustomerOrders';
 import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
 import { Countdown } from '@/components/common/badges/Countdown';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
-import { OrderTimeline } from '@/components/customer/OrderTimeline';
+import { OrderTimeline } from '../../components/customer/OrderTimeline';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { StatusBadge } from '@/components/common/badges/StatusBadge';

@@ -15,11 +15,11 @@ import {
   revokeRefresh,
   toBeMe,
   updatePassword,
-} from '@/mocks/data';
-import { catalogHandlers } from '@/mocks/catalogHandlers';
-import { customerHandlers } from '@/mocks/customerHandlers';
-import { farmerHandlers } from '@/mocks/farmerHandlers';
-import { adminHandlers } from '@/mocks/adminHandlers';
+} from './data';
+import { catalogHandlers } from './catalogHandlers';
+import { customerHandlers } from './customerHandlers';
+import { farmerHandlers } from './farmerHandlers';
+import { adminHandlers } from './adminHandlers';
 
 function authHeader(request         ) {
   return request.headers.get('Authorization');

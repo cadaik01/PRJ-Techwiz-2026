@@ -2,11 +2,11 @@ import { Link } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { FavoriteButton } from '@/components/customer/FavoriteButton';
+import { FavoriteButton } from '../customer/FavoriteButton';
 import { LazyImage } from '@/components/common/cards/LazyImage';
 import { Badge } from '@/components/common/badges/Badge';
 import { DAY_OF_WEEK_LABELS } from '@/utils/helpers/geo';
-import { useFavorites } from '@/hooks/queries/customer/useFavorites';
+import { useFavorites } from '../../hooks/queries/customer/useFavorites';
 
 import { cn } from '@/lib/cn';
 

@@ -7,11 +7,11 @@ import {
   useCreateAnnouncement,
   useDeleteAnnouncement,
   useToggleAnnouncement,
-} from '@/hooks/queries/admin/useAdminAnnouncements';
+} from '../../hooks/queries/admin/useAdminAnnouncements';
 import {
   announcementSchema,
 
-} from '@/schemas/admin/announcement.schema';
+} from '../../schemas/admin/announcement.schema';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';

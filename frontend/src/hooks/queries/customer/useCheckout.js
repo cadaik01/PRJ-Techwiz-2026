@@ -1,7 +1,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { catalogApi } from '@/api/guest/catalogApi';
-import { customerApi } from '@/api/customer/customerApi';
+import { catalogApi } from '../../../api/guest/catalogApi';
+import { customerApi } from '../../../api/customer/customerApi';
 import { QUERY_KEYS } from '@/config/constants';
 
 export function useCartProductRefresh(ids          ) {

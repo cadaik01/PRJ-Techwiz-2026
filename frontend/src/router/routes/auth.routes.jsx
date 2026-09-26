@@ -1,8 +1,8 @@
 import { lazy } from 'react';
 
-import { Suspend } from '@/router/Suspend';
-import { GuestOnly } from '@/router/guards';
-import { AuthLayout } from '@/layouts/AuthLayout';
+import { Suspend } from '../Suspend';
+import { GuestOnly } from '../guards';
+import { AuthLayout } from '../../layouts/AuthLayout';
 
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const AdminLoginPage = lazy(() => import('@/pages/auth/AdminLoginPage'));

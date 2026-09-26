@@ -1,14 +1,14 @@
 import { Link, useParams } from 'react-router-dom';
 
-import { useFarmerOrder } from '@/hooks/queries/farmer/useFarmerOrders';
+import { useFarmerOrder } from '../../hooks/queries/farmer/useFarmerOrders';
 import { Countdown } from '@/components/common/badges/Countdown';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
-import { OrderTimeline } from '@/components/customer/OrderTimeline';
+import { OrderTimeline } from '../../components/customer/OrderTimeline';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { PriceTag } from '@/components/common/badges/PriceTag';
 import { StatusBadge } from '@/components/common/badges/StatusBadge';
-import { FarmerOrderActions } from '@/components/farmer/FarmerOrderActions';
+import { FarmerOrderActions } from '../../components/farmer/FarmerOrderActions';
 import { Button } from '@/components/common/forms/Button';
 import { formatDateTime, formatVnd } from '@/utils/formatters';
 

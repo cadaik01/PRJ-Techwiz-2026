@@ -5,16 +5,16 @@ import {
   products,
   toFarmerSummary,
   toProductCard,
-} from '@/mocks/catalog';
+} from './catalog';
 import {
   envelope,
   errorEnvelope,
   getCustomerProfile,
   getUserByAccess,
   paginate,
-} from '@/mocks/data';
-import { farmerNotifications } from '@/mocks/farmerData';
-import { numParam, pageParams } from '@/mocks/mockUtils';
+} from './data';
+import { farmerNotifications } from './farmerData';
+import { numParam, pageParams } from './mockUtils';
 import {
   bumpOrderVersion,
   customerNotifications,
@@ -22,7 +22,7 @@ import {
   isOpenStatus,
   setOrders,
   toOrderSummary,
-} from '@/mocks/orders';
+} from './orders';
 
 import { moneyToNumber } from '@/utils/helpers/domain';
 import { http, HttpResponse } from 'msw';

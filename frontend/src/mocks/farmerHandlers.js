@@ -13,15 +13,15 @@ import {
   setFarmerMarkets,
   setFarmerProducts,
   setFarmerProfile,
-} from '@/mocks/farmerData';
-import { envelope, errorEnvelope, getUserByAccess, paginate } from '@/mocks/data';
+} from './farmerData';
+import { envelope, errorEnvelope, getUserByAccess, paginate } from './data';
 import {
   bumpOrderVersion,
   customerOrders,
   isOpenStatus,
   setOrders,
   toOrderSummary,
-} from '@/mocks/orders';
+} from './orders';
 
 import { moneyToNumber, productAvailability } from '@/utils/helpers/domain';
 import { http, HttpResponse } from 'msw';

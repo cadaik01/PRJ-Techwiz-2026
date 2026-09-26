@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 
-import { chatApi } from '@/api/common/chatApi';
+import { chatApi } from '../../../api/common/chatApi';
 import { ApiError } from '@/lib/ApiError';
 
 let messageSeq = 0;

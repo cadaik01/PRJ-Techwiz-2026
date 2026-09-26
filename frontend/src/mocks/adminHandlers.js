@@ -20,9 +20,9 @@ import {
   setModerationReviews,
   toFarmerDetail,
   toFarmerSummary,
-} from '@/mocks/adminData';
-import { envelope, errorEnvelope, getUserByAccess, paginate } from '@/mocks/data';
-import { customerOrders } from '@/mocks/orders';
+} from './adminData';
+import { envelope, errorEnvelope, getUserByAccess, paginate } from './data';
+import { customerOrders } from './orders';
 
 import { moneyToNumber } from '@/utils/helpers/domain';
 

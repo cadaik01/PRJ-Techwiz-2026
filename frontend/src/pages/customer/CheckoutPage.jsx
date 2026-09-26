@@ -3,13 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { ApiError } from '@/lib/ApiError';
-import { useCheckout } from '@/hooks/queries/customer/useCheckout';
+import { useCheckout } from '../../hooks/queries/customer/useCheckout';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import {
   TimeSlotPicker,
 
-} from '@/components/customer/TimeSlotPicker';
+} from '../../components/customer/TimeSlotPicker';
 import { Button } from '@/components/common/forms/Button';
 import { Textarea } from '@/components/common/forms/Textarea';
 import {
@@ -21,7 +21,7 @@ import {
 } from '@/components/common/modal/Dialog';
 import { formatVnd } from '@/utils/formatters';
 import { useCartStore } from '@/stores/cart.store';
-import { usePublicConfigData } from '@/hooks/queries/guest/usePublicConfig';
+import { usePublicConfigData } from '../../hooks/queries/guest/usePublicConfig';
 
 import { moneyToNumber } from '@/utils/helpers/domain';
 import './CheckoutPage.css';

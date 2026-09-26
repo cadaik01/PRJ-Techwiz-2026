@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { ApiError } from '@/lib/ApiError';
-import { adminApi } from '@/api/admin/adminApi';
+import { adminApi } from '../../../api/admin/adminApi';
 import { QUERY_KEYS } from '@/config/constants';
 
 // A product needs only its id; a review also needs the table its id belongs to.

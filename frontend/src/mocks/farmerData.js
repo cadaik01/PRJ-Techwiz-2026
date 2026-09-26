@@ -5,7 +5,7 @@ import {
   products,
   pickupOptions,
   reviews,
-} from '@/mocks/catalog';
+} from './catalog';
 
 import { productAvailability } from '@/utils/helpers/domain';
 

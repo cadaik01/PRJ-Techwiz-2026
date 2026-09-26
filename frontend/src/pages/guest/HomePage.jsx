@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, LocateFixed } from 'lucide-react';
 
-import { FarmerCard } from '@/components/guest/FarmerCard';
-import { MarketCard } from '@/components/guest/MarketCard';
-import { ProductCardView } from '@/components/guest/ProductCardView';
+import { FarmerCard } from '../../components/guest/FarmerCard';
+import { MarketCard } from '../../components/guest/MarketCard';
+import { ProductCardView } from '../../components/guest/ProductCardView';
 import {
   useCategories,
   useFarmers,
   useMarkets,
   useProducts,
-} from '@/hooks/queries/guest/useCatalog';
-import { useGeolocation } from '@/hooks/useGeolocation';
+} from '../../hooks/queries/guest/useCatalog';
+import { useGeolocation } from '../../hooks/useGeolocation';
 import { Button } from '@/components/common/forms/Button';
 import { Input } from '@/components/common/forms/Input';
 import { Skeleton } from '@/components/common/feedback/Skeleton';

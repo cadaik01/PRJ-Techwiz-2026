@@ -6,12 +6,12 @@ import {
   useFarmerOrderCounts,
   useFarmerOrders,
   usePickingList,
-} from '@/hooks/queries/farmer/useFarmerOrders';
+} from '../../hooks/queries/farmer/useFarmerOrders';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { StatusBadge } from '@/components/common/badges/StatusBadge';
-import { FarmerOrderActions } from '@/components/farmer/FarmerOrderActions';
+import { FarmerOrderActions } from '../../components/farmer/FarmerOrderActions';
 import { Button } from '@/components/common/forms/Button';
 import { Input } from '@/components/common/forms/Input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/common/layout/Tabs';

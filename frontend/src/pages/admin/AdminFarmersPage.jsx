@@ -10,7 +10,7 @@ import {
   useReinstateFarmer,
   useRejectFarmer,
   useSuspendFarmer,
-} from '@/hooks/queries/admin/useAdminFarmers';
+} from '../../hooks/queries/admin/useAdminFarmers';
 import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';

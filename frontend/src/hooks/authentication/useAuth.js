@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { authApi } from '@/api/common/authApi';
+import { authApi } from '../../api/common/authApi';
 import { ApiError } from '@/lib/ApiError';
 import { DASHBOARD_PATH, QUERY_KEYS } from '@/config/constants';
 import { useAuthStore } from '@/stores/auth.store';

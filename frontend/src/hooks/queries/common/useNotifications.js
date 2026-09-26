@@ -3,8 +3,8 @@ import { toast } from 'sonner';
 
 import { ApiError } from '@/lib/ApiError';
 import { QUERY_KEYS } from '@/config/constants';
-import { notificationsApi } from '@/api/common/notificationsApi';
-import { useNotificationSocket } from '@/hooks/queries/common/useNotificationSocket';
+import { notificationsApi } from '../../../api/common/notificationsApi';
+import { useNotificationSocket } from './useNotificationSocket';
 
 export function useNotifications(role                  ) {
   useNotificationSocket(true);

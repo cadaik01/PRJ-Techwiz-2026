@@ -10,8 +10,8 @@ import {
   registerCustomerSchema,
   registerFarmerSchema,
 
-} from '@/schemas/auth/auth.schemas';
-import { useAuth } from '@/hooks/authentication/useAuth';
+} from '../../../schemas/auth/auth.schemas';
+import { useAuth } from '../../../hooks/authentication/useAuth';
 import { ApiError } from '@/lib/ApiError';
 import { cn } from '@/lib/cn';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';

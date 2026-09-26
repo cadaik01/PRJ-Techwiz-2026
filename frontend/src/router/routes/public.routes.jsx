@@ -1,8 +1,8 @@
 import { lazy } from 'react';
 
-import { Suspend } from '@/router/Suspend';
-import { PublicLayout } from '@/layouts/PublicLayout';
-import { customerRoutes } from '@/router/routes/customer.routes';
+import { Suspend } from '../Suspend';
+import { PublicLayout } from '../../layouts/PublicLayout';
+import { customerRoutes } from './customer.routes';
 
 const HomePage = lazy(() => import('@/pages/guest/HomePage'));
 const MarketsPage = lazy(() => import('@/pages/guest/MarketsPage'));
