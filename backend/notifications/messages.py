@@ -112,6 +112,9 @@ NOTIFICATION_SPECS: dict[str, NotificationSpec] = {
         # Both sides read this one, so the link goes to the list each role actually has.
         target_url="{target_url}",
         required=("market_name", "order_count", "reason", "target_url"),
+        # Closing a market is the kind of thing someone needs to hear about even if they are
+        # not looking at the app, so this one also goes out by email.
+        email_template="market_closed",
     ),
     NotificationType.MARKET_SCHEDULE_CHANGED: NotificationSpec(
         title="{market_name} changed its schedule",

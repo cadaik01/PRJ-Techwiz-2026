@@ -25,6 +25,7 @@ from marketlink_core.exceptions import DomainError
 from marketlink_core.responses import api_response
 from system.models import AuditAction
 from system.services import log_request_event
+from django.contrib.auth.models import update_last_login
 
 
 class LoginView(APIView):
@@ -52,6 +53,9 @@ class LoginView(APIView):
             log_request_event(request, action=AuditAction.LOGIN_FAILED, status_code=exc.status_code,
                                details={"email": email, "error": exc.code, **self.audit_details})
             raise
+        # The JWT flow never touches Django's session login, so last_login has to be stamped
+        # here; without it the column stays NULL forever and anything reading it is wrong.
+        update_last_login(None, user)
         log_request_event(request, action=AuditAction.LOGIN, status_code=200, user=user,
                            details=self.audit_details or None)
         return api_response(message="Login successful", data=build_auth_payload(user), request=request)

@@ -263,3 +263,24 @@ def test_products_sort_by_name_and_price(admin_client, product, category, approv
 @pytest.mark.django_db
 def test_products_reject_an_unknown_sort_column(admin_client):
     assert admin_client.get(reverse(LIST_URL_NAME), {"ordering": "farmer__user__password"}).status_code == 400
+
+
+@pytest.mark.django_db
+def test_unrated_products_stay_at_the_bottom_either_way(
+    admin_client, product, category, approved_farmer, make_order_with_item
+):
+    # rating is the one sort built from an expression rather than a column name, because NULL
+    # has to sink in both directions - a product nobody has reviewed is not the worst rated.
+    from reviews.models import ProductReview
+
+    unrated = Product.objects.create(
+        farmer=approved_farmer, category=category, name="Unreviewed",
+        price="1.00", unit=Unit.KG, stock_quantity=1,
+    )
+    order = make_order_with_item(product=product, status=OrderStatus.COMPLETED)
+    ProductReview.objects.create(order_item=order.items.first(), rating=4, comment="Good.")
+
+    for ordering in ("rating", "-rating"):
+        response = admin_client.get(reverse(LIST_URL_NAME), {"ordering": ordering})
+        ids = [row["id"] for row in response.data["data"]["results"]]
+        assert ids[-1] == unrated.id, f"{ordering} floated an unrated product"

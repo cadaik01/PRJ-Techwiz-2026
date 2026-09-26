@@ -201,13 +201,16 @@ class AdminChangeLogView(APIView):
                 "Unknown record type.",
                 errors={"model": [f"Choose one of: {', '.join(sorted(TRACKED_MODELS))}."]},
             )
-        if not tracked.objects.filter(pk=id).exists():
-            # Without this an id that never existed would look like a record with no history.
-            raise ResourceNotFoundError("Record not found.")
+        # The record itself is not required to still exist: history rows outlive it, and a
+        # slot deleted by FA-10 or an item removed by FA-34 still has a story worth reading.
+        # An id that never existed has no history either, which is the 404 below.
+        entries = build_change_log(tracked, id, limit=CHANGE_LOG_LIMIT)
+        if not entries:
+            raise ResourceNotFoundError("No history for this record.")
 
-        # build_change_log returns oldest first because that is how a history reads; the
-        # screen wants the most recent change at the top.
-        entries = list(reversed(build_change_log(tracked, id)))[:CHANGE_LOG_LIMIT]
+        # build_change_log reads oldest first because that is how a history is worked out;
+        # the screen wants the most recent change at the top.
+        entries = list(reversed(entries))
         return api_response(
             message="OK", request=request, data=ChangeLogEntrySerializer(entries, many=True).data
         )

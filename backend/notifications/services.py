@@ -8,6 +8,7 @@ from channels.layers import get_channel_layer
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
+from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
 
 from notifications.messages import NOTIFICATION_SPECS, render_notification
@@ -77,8 +78,15 @@ def _absolute_url(path: str | None) -> str | None:
 
 
 def _send_email(to_email: str, subject: str, template: str, context: dict[str, Any]) -> None:
-    text_body = render_to_string(f"emails/{template}.txt", context)
-    html_body = render_to_string(f"emails/{template}.html", context)
+    try:
+        text_body = render_to_string(f"emails/{template}.txt", context)
+        html_body = render_to_string(f"emails/{template}.html", context)
+    except TemplateDoesNotExist:
+        # This runs in an on_commit callback, so an exception here would surface as a 500 on a
+        # request that already succeeded. Email is the secondary channel; the in-app
+        # notification has been delivered either way.
+        logger.exception("No email template named %r; skipping mail to %s", template, to_email)
+        return
     email = EmailMultiAlternatives(
         subject=f"[MarketLink] {subject}",
         body=text_body,
