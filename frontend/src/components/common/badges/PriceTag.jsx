@@ -3,13 +3,7 @@ import { cn } from '@/lib/cn';
 
 import './PriceTag.css';
 
-export function PriceTag({
-  amount,
-  unit,
-  className,
-}
-
- ) {
+export function PriceTag({ amount, unit, className }) {
   return (
     <span className={cn('price-tag', className)}>
       {formatMoney(amount)}

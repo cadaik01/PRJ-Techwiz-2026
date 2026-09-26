@@ -16,7 +16,7 @@ import { useAuth } from '../../../hooks/authentication/useAuth';
 
 import './UserMenu.css';
 
-function initials(displayName        , email        ) {
+function initials(displayName, email) {
   const parts = displayName.trim().split(/\s+/);
   if (parts.length >= 2) {
     return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
@@ -25,26 +25,26 @@ function initials(displayName        , email        ) {
   return email.trim().charAt(0).toUpperCase() || '?';
 }
 
-function linksForRole(role      ) {
+function linksForRole(role) {
   if (role === 'CUSTOMER') {
     return [
       { to: '/app/profile', label: 'Your profile', icon: UserRound },
       { to: '/app/favorites', label: 'Saved favorites', icon: Heart },
       { to: DASHBOARD_PATH.CUSTOMER, label: 'Your overview', icon: LayoutDashboard },
       { to: '/app/change-password', label: 'Change password', icon: KeyRound },
-    ]         ;
+    ];
   }
   if (role === 'FARMER') {
     return [
       { to: '/farmer/profile', label: 'Stall profile', icon: UserRound },
       { to: DASHBOARD_PATH.FARMER, label: 'Stall overview', icon: LayoutDashboard },
       { to: '/farmer/settings', label: 'Change password', icon: KeyRound },
-    ]         ;
+    ];
   }
   return [
     { to: DASHBOARD_PATH.ADMIN, label: 'Admin overview', icon: LayoutDashboard },
     { to: '/admin/password', label: 'Change password', icon: KeyRound },
-  ]         ;
+  ];
 }
 
 export function UserMenu() {

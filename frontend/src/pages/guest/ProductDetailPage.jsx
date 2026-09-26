@@ -26,7 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/ca
 
 import './ProductDetailPage.css';
 
-function ratingFillClass(pct        )         {
+function ratingFillClass(pct) {
   if (pct === 0) return 'product-detail-page__rating-fill--0';
   if (pct <= 20) return 'product-detail-page__rating-fill--1';
   if (pct <= 40) return 'product-detail-page__rating-fill--2';
@@ -92,7 +92,9 @@ export default function ProductDetailPage() {
                 className="product-detail-page__media-img"
               />
             ) : (
-              <div className="product-detail-page__media-placeholder">Photo coming soon</div>
+              <div className="product-detail-page__media-placeholder">
+                Photo coming soon
+              </div>
             )}
           </div>
         </div>
@@ -114,7 +116,9 @@ export default function ProductDetailPage() {
               active={favorited}
               onToggle={() => {
                 toggleProduct(product.id);
-                toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
+                toast.success(
+                  favorited ? 'Removed from favorites' : 'Added to favorites',
+                );
               }}
             />
           </div>
@@ -190,7 +194,7 @@ export default function ProductDetailPage() {
           </CardHeader>
           <CardContent className="product-detail-page__card-content--stack">
             {ratingQuery.data
-              ? (['5', '4', '3', '2', '1']         ).map((star) => {
+              ? ['5', '4', '3', '2', '1'].map((star) => {
                   const summary = ratingQuery.data;
                   const count = summary.distribution[star];
                   const pct =
@@ -235,7 +239,9 @@ export default function ProductDetailPage() {
                   </p>
                   {review.reply ? (
                     <div className="product-detail-page__reply">
-                      <p className="product-detail-page__reply-title">Reply from the stall</p>
+                      <p className="product-detail-page__reply-title">
+                        Reply from the stall
+                      </p>
                       <p className="product-detail-page__reply-body">{review.reply}</p>
                     </div>
                   ) : null}

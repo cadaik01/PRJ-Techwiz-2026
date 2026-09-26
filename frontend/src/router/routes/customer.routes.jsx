@@ -20,7 +20,7 @@ const NotificationsPage = lazy(() => import('@/pages/customer/NotificationsPage'
 const ChangePasswordPage = lazy(() => import('@/pages/auth/ChangePasswordPage'));
 
 /** Nested under PublicLayout (see public.routes). */
-export const customerRoutes                = [
+export const customerRoutes = [
   {
     element: <RequireAuth />,
     children: [

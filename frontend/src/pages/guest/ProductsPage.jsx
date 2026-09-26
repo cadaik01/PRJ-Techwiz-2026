@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/common/feedback/Skeleton';
 
 import './ProductsPage.css';
 
-function parseProductSort(value        )              {
+function parseProductSort(value) {
   if (
     value === 'newest' ||
     value === 'price_asc' ||
@@ -77,14 +77,14 @@ export default function ProductsPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, [productsQuery]);
 
-  function updateParam(key        , value               ) {
+  function updateParam(key, value) {
     const next = new URLSearchParams(params);
     if (!value) next.delete(key);
     else next.set(key, value);
     setParams(next, { replace: true });
   }
 
-  function toggleCategory(id                 ) {
+  function toggleCategory(id) {
     const key = String(id);
     const set = new Set(categoryIds);
     if (set.has(key)) set.delete(key);
@@ -92,7 +92,7 @@ export default function ProductsPage() {
     updateParam('category', set.size ? [...set].join(',') : null);
   }
 
-  const chips                                                           = [];
+  const chips = [];
   if (q) chips.push({ key: 'q', label: `“${q}”`, clear: () => updateParam('q', null) });
   if (marketId) {
     const name =
@@ -128,8 +128,8 @@ export default function ProductsPage() {
             <p className="products-page__eyebrow">Fresh from the stall</p>
             <h1 className="products-page__title">Market produce</h1>
             <p className="products-page__subtitle">
-              Filter by category, price, market, or stock — then pre-order and
-              pick up when it suits you.
+              Filter by category, price, market, or stock — then pre-order and pick up
+              when it suits you.
             </p>
           </div>
         </div>

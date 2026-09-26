@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 import { STORAGE_KEYS } from '@/config/constants';
 
-function applyTheme(theme           ) {
+function applyTheme(theme) {
   const root = document.documentElement;
   if (theme === 'dark') {
     root.classList.add('dark');
@@ -12,7 +12,7 @@ function applyTheme(theme           ) {
   }
 }
 
-export const useUiStore = create         ()(
+export const useUiStore = create()(
   persist(
     (set, get) => ({
       theme: 'light',

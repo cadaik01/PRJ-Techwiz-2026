@@ -5,9 +5,7 @@ import { ApiError } from '@/lib/ApiError';
 import { farmerApi } from '../../../api/farmer/farmerApi';
 import { QUERY_KEYS } from '@/config/constants';
 
-export function useFarmerOrderActions(
-  order                                                   ,
-) {
+export function useFarmerOrderActions(order) {
   const queryClient = useQueryClient();
 
   const invalidate = () => {
@@ -26,7 +24,7 @@ export function useFarmerOrderActions(
   };
 
   const run = useMutation({
-    mutationFn: async (payload                                               ) => {
+    mutationFn: async (payload) => {
       const { action, reason } = payload;
       const version = order.version;
       if (action === 'ACCEPT') return farmerApi.acceptOrder(order.id, version);

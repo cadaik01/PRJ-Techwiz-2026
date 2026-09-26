@@ -7,7 +7,7 @@ import { ApiError } from '@/lib/ApiError';
 import { DASHBOARD_PATH, QUERY_KEYS } from '@/config/constants';
 import { useAuthStore } from '@/stores/auth.store';
 
-function homePathForRole(role      )         {
+function homePathForRole(role) {
   if (role === 'ADMIN') return DASHBOARD_PATH.ADMIN;
   if (role === 'FARMER') return DASHBOARD_PATH.FARMER;
   return DASHBOARD_PATH.CUSTOMER;

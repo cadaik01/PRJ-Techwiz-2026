@@ -12,14 +12,7 @@ import { cn } from '@/lib/cn';
 
 import './MarketCard.css';
 
-export function MarketCard({
-  market,
-  highlighted = false,
-  onHover,
-  className,
-}
-
- ) {
+export function MarketCard({ market, highlighted = false, onHover, className }) {
   const { hasMarket, toggleMarket } = useFavorites();
   const favorited = hasMarket(market.id);
 
@@ -56,7 +49,9 @@ export function MarketCard({
             active={favorited}
             onToggle={() => {
               void toggleMarket(market.id).then(() => {
-                toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
+                toast.success(
+                  favorited ? 'Removed from favorites' : 'Added to favorites',
+                );
               });
             }}
           />

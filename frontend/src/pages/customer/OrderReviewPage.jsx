@@ -13,12 +13,7 @@ import { Button } from '@/components/common/forms/Button';
 import { Textarea } from '@/components/common/forms/Textarea';
 import './OrderReviewPage.css';
 
-function StarPicker({
-  value,
-  onChange,
-}
-
- ) {
+function StarPicker({ value, onChange }) {
   return (
     <div className="order-review-page__star-row">
       {[1, 2, 3, 4, 5].map((n) => (
@@ -51,8 +46,8 @@ export default function OrderReviewPage() {
 
   const [farmerRating, setFarmerRating] = useState(5);
   const [farmerComment, setFarmerComment] = useState('');
-  const [productRatings, setProductRatings] = useState                        ({});
-  const [productComments, setProductComments] = useState                        ({});
+  const [productRatings, setProductRatings] = useState({});
+  const [productComments, setProductComments] = useState({});
 
   if (orderQuery.isLoading) return <PageSkeleton />;
   if (orderQuery.isError || !orderQuery.data) {

@@ -5,14 +5,14 @@ import { ApiError } from '@/lib/ApiError';
 import { customerApi } from '../../../api/customer/customerApi';
 import { QUERY_KEYS } from '@/config/constants';
 
-export function useCustomerOrders(params              ) {
+export function useCustomerOrders(params) {
   return useQuery({
     queryKey: QUERY_KEYS.ORDERS(params),
     queryFn: () => customerApi.getOrders(params),
   });
 }
 
-export function useCustomerOrder(id                 , enabled = true) {
+export function useCustomerOrder(id, enabled = true) {
   const orderId = Number(id);
   return useQuery({
     queryKey: QUERY_KEYS.ORDER(id),
@@ -21,12 +21,12 @@ export function useCustomerOrder(id                 , enabled = true) {
   });
 }
 
-export function useCancelOrder(orderId                 ) {
+export function useCancelOrder(orderId) {
   const queryClient = useQueryClient();
   const id = String(orderId);
 
   return useMutation({
-    mutationFn: ({ reason, version }                                     ) =>
+    mutationFn: ({ reason, version }) =>
       customerApi.cancelOrder(Number(orderId), reason, version),
     onSuccess: () => {
       toast.success('Pre-order cancelled');
@@ -38,17 +38,13 @@ export function useCancelOrder(orderId                 ) {
   });
 }
 
-export function useUpdateOrder(orderId                 ) {
+export function useUpdateOrder(orderId) {
   const queryClient = useQueryClient();
   const id = String(orderId);
 
   return useMutation({
-    mutationFn: ({
-      payload,
-      version,
-    }
-
-     ) => customerApi.updateOrder(Number(orderId), payload, version),
+    mutationFn: ({ payload, version }) =>
+      customerApi.updateOrder(Number(orderId), payload, version),
     onSuccess: () => {
       toast.success('Pre-order updated');
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDER(id) });
@@ -66,14 +62,12 @@ export function useReorderPreview() {
   });
 }
 
-export function useSubmitOrderReview(orderId                 ) {
+export function useSubmitOrderReview(orderId) {
   const queryClient = useQueryClient();
   const id = String(orderId);
 
   return useMutation({
-    mutationFn: async (input
-
-     ) => {
+    mutationFn: async (input) => {
       const numericId = Number(orderId);
       if (input.farmer) {
         await customerApi.reviewFarmer(numericId, input.farmer);
@@ -93,9 +87,7 @@ export function useSubmitOrderReview(orderId                 ) {
   });
 }
 
-export function invalidateOrdersList(queryClient
-
- ) {
+export function invalidateOrdersList(queryClient) {
   return queryClient.invalidateQueries({
     queryKey: [QUERY_KEYS.ORDERS()[0]],
   });

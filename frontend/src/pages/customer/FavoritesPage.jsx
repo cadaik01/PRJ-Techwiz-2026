@@ -7,7 +7,12 @@ import { FarmerCard } from '../../components/guest/FarmerCard';
 import { MarketCard } from '../../components/guest/MarketCard';
 import { ProductCardView } from '../../components/guest/ProductCardView';
 import { Button } from '@/components/common/forms/Button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/common/layout/Tabs';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/common/layout/Tabs';
 import { Skeleton } from '@/components/common/feedback/Skeleton';
 
 import './FavoritesPage.css';

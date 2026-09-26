@@ -8,10 +8,7 @@ import {
   useDeleteAnnouncement,
   useToggleAnnouncement,
 } from '../../hooks/queries/admin/useAdminAnnouncements';
-import {
-  announcementSchema,
-
-} from '../../schemas/admin/announcement.schema';
+import { announcementSchema } from '../../schemas/admin/announcement.schema';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -36,7 +33,7 @@ export default function AdminAnnouncementsPage() {
   const create = useCreateAnnouncement();
   const remove = useDeleteAnnouncement();
   const toggle = useToggleAnnouncement();
-  const form = useForm                        ({
+  const form = useForm({
     resolver: zodResolver(announcementSchema),
     defaultValues: {
       title: '',
@@ -49,7 +46,7 @@ export default function AdminAnnouncementsPage() {
 
   const isActive = form.watch('is_active');
 
-  const onSubmit = (values                        ) => {
+  const onSubmit = (values) => {
     create.mutate(
       {
         title: values.title,
@@ -88,8 +85,7 @@ export default function AdminAnnouncementsPage() {
         onSubmit={form.handleSubmit(onSubmit)}
       >
         <div className="page-primitive__form-field">
-          <Input id="title" label="Title"
-            requiredMark {...form.register('title')} />
+          <Input id="title" label="Title" requiredMark {...form.register('title')} />
           {form.formState.errors.title ? (
             <p className="page-primitive__error">{form.formState.errors.title.message}</p>
           ) : null}
@@ -200,7 +196,6 @@ export default function AdminAnnouncementsPage() {
           remove.mutate(deleting.id, { onSuccess: () => setDeleting(null) });
         }}
       />
-
     </div>
   );
 }

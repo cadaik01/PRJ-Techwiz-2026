@@ -39,12 +39,10 @@ export function AuthLayout() {
 
           <div className="auth-layout__hero-copy">
             <p className="auth-layout__hero-title">MarketLink</p>
-            <h1 className="auth-layout__hero-heading">
-              Local markets, reserved for you
-            </h1>
+            <h1 className="auth-layout__hero-heading">Local markets, reserved for you</h1>
             <p className="auth-layout__hero-desc">
-              Pre-order from trusted stalls, pick up on your schedule, and pay
-              when you collect — no delivery fees.
+              Pre-order from trusted stalls, pick up on your schedule, and pay when you
+              collect — no delivery fees.
             </p>
           </div>
 

@@ -1,6 +1,4 @@
-import axios, {
-
-} from 'axios';
+import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ApiError } from '@/lib/ApiError';
@@ -8,11 +6,11 @@ import { STORAGE_KEYS } from '@/config/constants';
 import { env } from '@/config/env';
 import { useAuthStore } from '@/stores/auth.store';
 
-function isEnvelope(body         )                   {
+function isEnvelope(body) {
   return Boolean(body && typeof body === 'object' && 'success' in body && 'data' in body);
 }
 
-function readToken(key        )                {
+function readToken(key) {
   try {
     return localStorage.getItem(key);
   } catch {
@@ -30,7 +28,7 @@ function onSessionLost() {
   window.dispatchEvent(new CustomEvent('auth:session-lost'));
 }
 
-function ensureTrailingSlash(url        )         {
+function ensureTrailingSlash(url) {
   const [path, query] = url.split('?');
   if (!path || path.endsWith('/')) return url;
   const withSlash = `${path}/`;
@@ -47,20 +45,17 @@ const axiosClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-let refreshing                         = null;
-let waiters                                        = [];
+let refreshing = null;
+let waiters = [];
 
-async function refreshAccessToken()                  {
+async function refreshAccessToken() {
   const refresh = readToken(STORAGE_KEYS.REFRESH);
   if (!refresh) throw new Error('No refresh token');
 
-  const { data } = await axios.post                                                 (
-    `${env.API_URL}/auth/refresh/`,
-    { refresh },
-  );
+  const { data } = await axios.post(`${env.API_URL}/auth/refresh/`, { refresh });
 
-  let access                    ;
-  let nextRefresh                    ;
+  let access;
+  let nextRefresh;
   if (isEnvelope(data) && data.data && typeof data.data === 'object') {
     const payload = data.data;
     if ('access' in payload && typeof payload.access === 'string') {
@@ -85,7 +80,7 @@ async function refreshAccessToken()                  {
   return access;
 }
 
-axiosClient.interceptors.request.use((config                            ) => {
+axiosClient.interceptors.request.use((config) => {
   const token = readToken(STORAGE_KEYS.ACCESS);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -112,13 +107,13 @@ axiosClient.interceptors.response.use(
     }
     return response;
   },
-  async (error            ) => {
+  async (error) => {
     const original = error.config;
     const body = error.response?.data;
-    let code                    ;
+    let code;
     let message = error.message;
-    let fieldErrors                           = {};
-    let data         ;
+    let fieldErrors = {};
+    let data;
 
     if (isEnvelope(body)) {
       message = body.message || message;
@@ -183,7 +178,7 @@ axiosClient.interceptors.response.use(
         });
     }
 
-    const token = await new Promise               ((resolve) => {
+    const token = await new Promise((resolve) => {
       waiters.push(resolve);
       refreshing?.catch(() => {});
     });

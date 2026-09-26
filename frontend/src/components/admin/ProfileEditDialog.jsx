@@ -27,15 +27,13 @@ export function ProfileEditDialog({
   fields,
   pending,
   onSave,
-}
-
- ) {
-  const [values, setValues] = useState                        ({});
-  const [errors, setErrors] = useState                        ({});
+}) {
+  const [values, setValues] = useState({});
+  const [errors, setErrors] = useState({});
 
   // Re-seed from the record every time the dialog opens, so re-opening after a cancel does
   // not keep the abandoned edits.
-  const [seededFor, setSeededFor] = useState                (null);
+  const [seededFor, setSeededFor] = useState(null);
   if (open !== seededFor) {
     setSeededFor(open);
     if (open) {
@@ -44,7 +42,7 @@ export function ProfileEditDialog({
     }
   }
 
-  const submit = async (event                 ) => {
+  const submit = async (event) => {
     event.preventDefault();
     setErrors({});
     // Only what actually changed: an untouched field must not be sent, or a phone number the
@@ -65,7 +63,10 @@ export function ProfileEditDialog({
       const fieldErrors = ApiError.fromUnknown(error).fieldErrors;
       setErrors(
         Object.fromEntries(
-          Object.entries(fieldErrors).map(([key, messages]) => [key, String(messages[0] ?? '')]),
+          Object.entries(fieldErrors).map(([key, messages]) => [
+            key,
+            String(messages[0] ?? ''),
+          ]),
         ),
       );
     }
@@ -101,7 +102,10 @@ export function ProfileEditDialog({
                   placeholder={field.label}
                   value={values[field.name] ?? ''}
                   onChange={(event) =>
-                    setValues((current) => ({ ...current, [field.name]: event.target.value }))
+                    setValues((current) => ({
+                      ...current,
+                      [field.name]: event.target.value,
+                    }))
                   }
                 />
               ) : (
@@ -112,7 +116,10 @@ export function ProfileEditDialog({
                   requiredMark={field.required}
                   value={values[field.name] ?? ''}
                   onChange={(event) =>
-                    setValues((current) => ({ ...current, [field.name]: event.target.value }))
+                    setValues((current) => ({
+                      ...current,
+                      [field.name]: event.target.value,
+                    }))
                   }
                 />
               )}

@@ -5,7 +5,7 @@ import { ApiError } from '@/lib/ApiError';
 import { farmerApi } from '../../../api/farmer/farmerApi';
 import { QUERY_KEYS } from '@/config/constants';
 
-export function useFarmerMyReviews(params                = {}) {
+export function useFarmerMyReviews(params = {}) {
   return useQuery({
     queryKey: QUERY_KEYS.FARMER_MY_REVIEWS(params),
     queryFn: () => farmerApi.getReviews(params),
@@ -15,8 +15,7 @@ export function useFarmerMyReviews(params                = {}) {
 export function useReplyReview() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reply }                               ) =>
-      farmerApi.replyReview(id, reply),
+    mutationFn: ({ id, reply }) => farmerApi.replyReview(id, reply),
     onSuccess: () => {
       toast.success('Reply sent');
       void queryClient.invalidateQueries({

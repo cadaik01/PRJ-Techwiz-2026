@@ -6,7 +6,7 @@ import { ArrowRight, ShieldCheck, Store, UserRound } from 'lucide-react';
 import { Button } from '@/components/common/forms/Button';
 import { Input } from '@/components/common/forms/Input';
 import { useAuth } from '../../../hooks/authentication/useAuth';
-import { loginSchema,                      } from '../../../schemas/auth/auth.schemas';
+import { loginSchema } from '../../../schemas/auth/auth.schemas';
 import { ApiError } from '@/lib/ApiError';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
@@ -28,7 +28,7 @@ const DEMO_ACCOUNTS = [
     password: 'Demo@12345',
     icon: Store,
   },
-]         ;
+];
 
 export function LoginForm() {
   const { login, loginPending } = useAuth();
@@ -39,12 +39,12 @@ export function LoginForm() {
     setValue,
     setError,
     formState: { errors },
-  } = useForm                 ({
+  } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
 
-  const submitLogin = async (values                 ) => {
+  const submitLogin = async (values) => {
     try {
       await login(values);
     } catch (error) {
@@ -59,8 +59,8 @@ export function LoginForm() {
         <p className="login-form__intro-eyebrow">Welcome back</p>
         <h1 className="login-form__title">Sign in to MarketLink</h1>
         <p className="login-form__subtitle">
-          Pick up where you left off — browse stalls, reserve produce, and collect
-          on your schedule.
+          Pick up where you left off — browse stalls, reserve produce, and collect on your
+          schedule.
         </p>
       </div>
 

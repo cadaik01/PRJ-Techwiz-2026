@@ -9,16 +9,16 @@ const MAIN_STEPS = [
   { key: 'ACCEPTED', label: 'Accepted' },
   { key: 'READY_FOR_PICKUP', label: 'Ready' },
   { key: 'COMPLETED', label: 'Completed' },
-]         ;
+];
 
-const BRANCH                                                                    = {
+const BRANCH = {
   DECLINED: { label: 'Declined', tone: 'danger' },
   CANCELLED: { label: 'Cancelled', tone: 'danger' },
   EXPIRED: { label: 'Expired', tone: 'muted' },
   NO_SHOW: { label: 'No-show', tone: 'warning' },
 };
 
-function stepIndex(status             ) {
+function stepIndex(status) {
   if (status === 'COMPLETED') return 3;
   if (status === 'READY_FOR_PICKUP') return 2;
   if (status === 'ACCEPTED') return 1;
@@ -26,13 +26,13 @@ function stepIndex(status             ) {
   return -1;
 }
 
-function branchModifier(tone            ) {
+function branchModifier(tone) {
   if (tone === 'danger') return 'order-timeline__branch--danger';
   if (tone === 'warning') return 'order-timeline__branch--warning';
   return 'order-timeline__branch--muted';
 }
 
-export function OrderTimeline({ status }                         ) {
+export function OrderTimeline({ status }) {
   const branch = BRANCH[status];
   const active = stepIndex(status);
 

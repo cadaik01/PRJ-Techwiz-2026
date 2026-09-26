@@ -6,10 +6,10 @@ import { QUERY_KEYS } from '@/config/constants';
 import { notificationsApi } from '../../../api/common/notificationsApi';
 import { useNotificationSocket } from './useNotificationSocket';
 
-export function useNotifications(role                  ) {
+export function useNotifications(role) {
   useNotificationSocket(true);
   const queryClient = useQueryClient();
-  const listKey = [...QUERY_KEYS.NOTIFICATIONS_LIST, role]         ;
+  const listKey = [...QUERY_KEYS.NOTIFICATIONS_LIST, role];
 
   const query = useQuery({
     queryKey: listKey,
@@ -29,7 +29,7 @@ export function useNotifications(role                  ) {
   });
 
   const markOne = useMutation({
-    mutationFn: (id        ) => notificationsApi.markRead(id),
+    mutationFn: (id) => notificationsApi.markRead(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.NOTIFICATIONS_LIST,

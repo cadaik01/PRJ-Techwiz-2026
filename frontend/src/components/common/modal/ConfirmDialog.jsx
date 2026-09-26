@@ -23,7 +23,7 @@ export function ConfirmDialog({
   confirmDisabled = false,
   onConfirm,
   children,
-}                    ) {
+}) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>

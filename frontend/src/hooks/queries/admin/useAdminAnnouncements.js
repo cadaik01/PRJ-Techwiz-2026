@@ -15,7 +15,7 @@ export function useAdminAnnouncements() {
 export function useCreateAnnouncement() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload                     ) => adminApi.createAnnouncement(payload),
+    mutationFn: (payload) => adminApi.createAnnouncement(payload),
     onSuccess: () => {
       toast.success('Announcement created');
       void queryClient.invalidateQueries({
@@ -43,8 +43,7 @@ export function useDeleteAnnouncement() {
 export function useToggleAnnouncement() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, is_active }                                    ) =>
-      adminApi.updateAnnouncement(id, { is_active }),
+    mutationFn: ({ id, is_active }) => adminApi.updateAnnouncement(id, { is_active }),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.ADMIN_ANNOUNCEMENTS,

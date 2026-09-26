@@ -4,24 +4,15 @@ import { cn } from '@/lib/cn';
 
 import './Avatar.css';
 
-export function Avatar({
-  className,
-  ...props
-}                                                   ) {
+export function Avatar({ className, ...props }) {
   return <AvatarPrimitive.Root className={cn('avatar', className)} {...props} />;
 }
 
-export function AvatarImage({
-  className,
-  ...props
-}                                                    ) {
+export function AvatarImage({ className, ...props }) {
   return <AvatarPrimitive.Image className={cn('avatar__image', className)} {...props} />;
 }
 
-export function AvatarFallback({
-  className,
-  ...props
-}                                                       ) {
+export function AvatarFallback({ className, ...props }) {
   return (
     <AvatarPrimitive.Fallback className={cn('avatar__fallback', className)} {...props} />
   );

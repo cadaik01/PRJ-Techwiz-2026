@@ -12,17 +12,22 @@ import {
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
-import { Badge,                   } from '@/components/common/badges/Badge';
+import { Badge } from '@/components/common/badges/Badge';
 import { Button } from '@/components/common/forms/Button';
 import { Input } from '@/components/common/forms/Input';
 import { Label } from '@/components/common/forms/Label';
 import { SortableTh } from '@/components/common/table/SortableTh';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/common/drawer/Sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/common/drawer/Sheet';
 import { formatDateTime } from '@/utils/formatters';
 
 import './AdminAuditLogsPage.css';
 
-const TONE_VARIANT                               = {
+const TONE_VARIANT = {
   neutral: 'secondary',
   good: 'success',
   warning: 'warning',
@@ -31,7 +36,7 @@ const TONE_VARIANT                               = {
 
 // The technical columns the A-11 spec lists live in the drawer rather than the table: an
 // administrator reads the table to find the event and opens a row only to prove it.
-function technicalRows(log              )                          {
+function technicalRows(log) {
   return [
     ['Request', [log.method, log.endpoint].filter(Boolean).join(' ') || '—'],
     ['HTTP status', log.status_code === null ? '—' : String(log.status_code)],
@@ -62,10 +67,10 @@ const SUMMARISED_KEYS = new Set([
   'to',
 ]);
 
-function extraDetails(log              )                          {
+function extraDetails(log) {
   return Object.entries(log.details ?? {})
     .filter(([key]) => !SUMMARISED_KEYS.has(key))
-    .map(([key, value])                   => [
+    .map(([key, value]) => [
       key.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase()),
       Array.isArray(value)
         ? value.map((item) => String(item).replaceAll('_', ' ')).join(', ')
@@ -75,7 +80,7 @@ function extraDetails(log              )                          {
     ]);
 }
 
-function outcomeText(log              )         {
+function outcomeText(log) {
   const outcome = auditOutcome(log);
   if (outcome === 'ok') return 'Succeeded';
   if (outcome === 'refused') return 'Blocked';
@@ -86,15 +91,15 @@ export default function AdminAuditLogsPage() {
   const [action, setAction] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [actor, setActor] = useState              (null);
+  const [actor, setActor] = useState(null);
   const [filters, setFilters] = useState({ action: '', from: '', to: '' });
   const [page, setPage] = useState(1);
-  const [ordering, setOrdering] = useState                    (undefined);
-  const sortBy = (next        ) => {
+  const [ordering, setOrdering] = useState(undefined);
+  const sortBy = (next) => {
     setOrdering(next);
     setPage(1);
   };
-  const [selected, setSelected] = useState                     (null);
+  const [selected, setSelected] = useState(null);
 
   const query = useAdminAuditLogs({
     action: filters.action || undefined,
@@ -212,7 +217,7 @@ export default function AdminAuditLogsPage() {
                           type="button"
                           className="admin-audit-logs-page__actor"
                           onClick={() => {
-                            const { id, email } = log.user ;
+                            const { id, email } = log.user;
                             setActor({ id, email });
                             setPage(1);
                           }}
@@ -226,7 +231,11 @@ export default function AdminAuditLogsPage() {
                     <td className="page-primitive__table-td">{auditSubject(log)}</td>
                     <td className="page-primitive__table-td">{outcomeText(log)}</td>
                     <td className="page-primitive__table-td">
-                      <Button size="sm" variant="outline" onClick={() => setSelected(log)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelected(log)}
+                      >
                         Details
                       </Button>
                     </td>
@@ -269,7 +278,9 @@ export default function AdminAuditLogsPage() {
       >
         <SheetContent className="page-primitive__sheet-md">
           <SheetHeader>
-            <SheetTitle>{selected ? auditActionLabel(selected.action) : 'Event'}</SheetTitle>
+            <SheetTitle>
+              {selected ? auditActionLabel(selected.action) : 'Event'}
+            </SheetTitle>
           </SheetHeader>
           {selected ? (
             <div className="admin-audit-logs-page__detail">

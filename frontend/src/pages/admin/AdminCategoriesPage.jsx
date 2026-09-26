@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   DndContext,
   closestCenter,
-
   PointerSensor,
   useSensor,
   useSensors,
@@ -24,10 +23,7 @@ import {
   useDeleteCategory,
   useReorderCategories,
 } from '../../hooks/queries/admin/useAdminCategories';
-import {
-  categorySchema,
-
-} from '../../schemas/admin/category.schema';
+import { categorySchema } from '../../schemas/admin/category.schema';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -41,17 +37,12 @@ import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
 
 import './AdminCategoriesPage.css';
 
-function SortableRow({
-  cat,
-  onDelete,
-}
-
- ) {
+function SortableRow({ cat, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: cat.id,
   });
 
-  const bindSortableNode = (node                       ) => {
+  const bindSortableNode = (node) => {
     setNodeRef(node);
     if (!node) return;
     node.style.transform = CSS.Transform.toString(transform) ?? '';
@@ -103,10 +94,10 @@ function SortableRow({
 
 export default function AdminCategoriesPage() {
   const query = useAdminCategories();
-  const [items, setItems] = useState                 ([]);
+  const [items, setItems] = useState([]);
   const [syncedData, setSyncedData] = useState(query.data);
   const [deleting, setDeleting] = useState(null);
-  const form = useForm                    ({
+  const form = useForm({
     resolver: zodResolver(categorySchema),
     defaultValues: { name: '', icon: 'leaf' },
   });
@@ -121,7 +112,7 @@ export default function AdminCategoriesPage() {
   const create = useCreateCategory();
   const remove = useDeleteCategory();
 
-  const onDragEnd = (event              ) => {
+  const onDragEnd = (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = items.findIndex((i) => i.id === active.id);
@@ -177,7 +168,9 @@ export default function AdminCategoriesPage() {
               {...form.register('name')}
             />
             {form.formState.errors.name ? (
-              <p className="page-primitive__error">{form.formState.errors.name.message}</p>
+              <p className="page-primitive__error">
+                {form.formState.errors.name.message}
+              </p>
             ) : null}
           </div>
           <Button type="submit" loading={create.isPending}>

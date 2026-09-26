@@ -4,18 +4,18 @@ import { formatDateTime } from '@/utils/formatters';
 
 import './ChangeLogPanel.css';
 
-const TYPE_LABEL                                                = {
+const TYPE_LABEL = {
   CREATED: 'Created',
   UPDATED: 'Edited',
   DELETED: 'Deleted',
 };
 
-function fieldName(field        )         {
+function fieldName(field) {
   const words = field.replaceAll('_', ' ').toLowerCase();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-function shown(value         )         {
+function shown(value) {
   if (value === null || value === undefined || value === '') return 'empty';
   if (typeof value === 'boolean') return value ? 'yes' : 'no';
   if (Array.isArray(value)) return value.join(', ') || 'empty';
@@ -24,7 +24,7 @@ function shown(value         )         {
 
 /** The audit trail: how this one record changed over time. Separate from the System log,
  *  which records admin actions across the platform and has no before/after to show. */
-export function ChangeLogPanel({ model, id }                                     ) {
+export function ChangeLogPanel({ model, id }) {
   const query = useAdminChangeLog(model, id);
 
   return (

@@ -1,14 +1,14 @@
 /** Current model fields + leftover serializer (verb / audience / payload). */
 
-function isPayloadRecord(value         )                                   {
+function isPayloadRecord(value) {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
-function parsePayload(payload                           )                        {
+function parsePayload(payload) {
   if (!payload) return {};
   if (typeof payload === 'string') {
     try {
-      const parsed          = JSON.parse(payload);
+      const parsed = JSON.parse(payload);
       if (!isPayloadRecord(parsed)) {
         return { message: payload };
       }
@@ -27,9 +27,9 @@ function parsePayload(payload                           )                       
   return payload;
 }
 
-export function adaptNotification(raw                )                   {
+export function adaptNotification(raw) {
   const payload = parsePayload(raw.payload);
-  const type                            = raw.type ?? raw.verb ?? 'ORDER_PLACED';
+  const type = raw.type ?? raw.verb ?? 'ORDER_PLACED';
 
   const title =
     (raw.title && raw.title.trim()) ||
@@ -59,13 +59,11 @@ export function adaptNotification(raw                )                   {
   };
 }
 
-export function adaptNotificationList(items                  )                     {
+export function adaptNotificationList(items) {
   return items.map(adaptNotification);
 }
 
-export function adaptNotificationPage(
-  page                               ,
-)                                  {
+export function adaptNotificationPage(page) {
   return {
     ...page,
     results: adaptNotificationList(page.results),

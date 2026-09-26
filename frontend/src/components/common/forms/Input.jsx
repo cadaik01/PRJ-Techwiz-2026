@@ -5,8 +5,11 @@ import { cn } from '@/lib/cn';
 
 import './Input.css';
 
-export const Input = React.forwardRef                              (
-  ({ className, type, id, label, placeholder, disabled, requiredMark, ...props }, ref) => {
+export const Input = React.forwardRef(
+  (
+    { className, type, id, label, placeholder, disabled, requiredMark, ...props },
+    ref,
+  ) => {
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
     const floatingLabel = label ?? placeholder;
@@ -66,7 +69,9 @@ export const Input = React.forwardRef                              (
     }
 
     return (
-      <div className={cn('input-field', isPassword && 'input-field--password', className)}>
+      <div
+        className={cn('input-field', isPassword && 'input-field--password', className)}
+      >
         <input
           id={inputId}
           type={inputType}
@@ -80,7 +85,8 @@ export const Input = React.forwardRef                              (
           {floatingLabel}
           {requiredMark ? (
             <span className="input-field__required" aria-hidden>
-              {' '}*
+              {' '}
+              *
             </span>
           ) : null}
         </label>

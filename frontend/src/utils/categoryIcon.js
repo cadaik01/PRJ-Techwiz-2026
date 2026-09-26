@@ -20,13 +20,12 @@ import {
   ShoppingBasket,
   Soup,
   Wheat,
-
 } from 'lucide-react';
 
 // categories.icon stores a lucide name. The seeded set is carrot / apple / egg / croissant /
 // pepper / basket, so anything missing here silently becomes a leaf on the shopper's home page.
 // "pepper" and "basket" have no lucide icon of that name, hence the deliberate stand-ins.
-const ICONS                             = {
+const ICONS = {
   apple: Apple,
   banana: Banana,
   basket: ShoppingBasket,
@@ -51,7 +50,7 @@ const ICONS                             = {
   wheat: Wheat,
 };
 
-export function resolveCategoryIcon(icon                           )             {
+export function resolveCategoryIcon(icon) {
   return ICONS[(icon ?? '').trim().toLowerCase()] ?? Leaf;
 }
 

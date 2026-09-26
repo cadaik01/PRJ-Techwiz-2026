@@ -10,20 +10,13 @@ export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 export const DialogPortal = DialogPrimitive.Portal;
 
-export function DialogOverlay({
-  className,
-  ...props
-}                                                      ) {
+export function DialogOverlay({ className, ...props }) {
   return (
     <DialogPrimitive.Overlay className={cn('dialog-overlay', className)} {...props} />
   );
 }
 
-export function DialogContent({
-  className,
-  children,
-  ...props
-}                                                      ) {
+export function DialogContent({ className, children, ...props }) {
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -38,24 +31,15 @@ export function DialogContent({
   );
 }
 
-export function DialogHeader({
-  className,
-  ...props
-}                                      ) {
+export function DialogHeader({ className, ...props }) {
   return <div className={cn('dialog-header', className)} {...props} />;
 }
 
-export function DialogTitle({
-  className,
-  ...props
-}                                                    ) {
+export function DialogTitle({ className, ...props }) {
   return <DialogPrimitive.Title className={cn('dialog-title', className)} {...props} />;
 }
 
-export function DialogDescription({
-  className,
-  ...props
-}                                                          ) {
+export function DialogDescription({ className, ...props }) {
   return (
     <DialogPrimitive.Description
       className={cn('dialog-description', className)}

@@ -43,7 +43,7 @@ export default function AdminReportsPage() {
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
   const [marketId, setMarketId] = useState('');
-  const [applied, setApplied] = useState                ({
+  const [applied, setApplied] = useState({
     ...initial,
     market_id: undefined,
   });
@@ -110,10 +110,20 @@ export default function AdminReportsPage() {
 
       <div className="page-primitive__filters-bar">
         <div>
-          <Input type="date" label="From" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <Input
+            type="date"
+            label="From"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
         </div>
         <div>
-          <Input type="date" label="To" value={to} onChange={(e) => setTo(e.target.value)} />
+          <Input
+            type="date"
+            label="To"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+          />
         </div>
         <div>
           <Label className="page-primitive__label-xs">Market</Label>

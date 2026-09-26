@@ -30,8 +30,8 @@ const SORT_OPTIONS = [
 ];
 
 export default function AdminMarketsPage() {
-  const [ordering, setOrdering] = useState                    (undefined);
-  const [closing, setClosing] = useState                    (null);
+  const [ordering, setOrdering] = useState(undefined);
+  const [closing, setClosing] = useState(null);
   const [reason, setReason] = useState('');
   const [farmerMessage, setFarmerMessage] = useState('');
   const [typed, setTyped] = useState('');

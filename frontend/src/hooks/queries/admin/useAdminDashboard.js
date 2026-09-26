@@ -32,7 +32,7 @@ export function useDashboardApproveFarmer() {
 export function useDashboardRejectFarmer() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id        ) =>
+    mutationFn: (id) =>
       adminApi.rejectFarmer(id, 'Profile incomplete — please provide more information.'),
     onSuccess: () => {
       toast.success('Application declined');

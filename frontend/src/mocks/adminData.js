@@ -9,19 +9,13 @@ import {
 import { customerOrders } from './orders';
 import { productAvailability } from '@/utils/helpers/domain';
 
-function isoDays(days        ) {
+function isoDays(days) {
   const d = new Date();
   d.setDate(d.getDate() + days);
   return d.toISOString();
 }
 
-;
-
-function baseFromSeed(
-  f                              ,
-  status              ,
-  email        ,
-)                    {
+function baseFromSeed(f, status, email) {
   const open = customerOrders.filter(
     (o) =>
       o.farmer.id === f.id &&
@@ -67,7 +61,7 @@ function baseFromSeed(
   };
 }
 
-export let adminFarmers                      = [
+export let adminFarmers = [
   baseFromSeed(seedFarmers[0], 'APPROVED', 'farmer@demo.vn'),
   baseFromSeed(seedFarmers[1], 'APPROVED', 'xoai@demo.vn'),
   baseFromSeed(seedFarmers[2], 'APPROVED', 'ga@demo.vn'),
@@ -84,7 +78,8 @@ export let adminFarmers                      = [
     open_order_count: 0,
     product_count: 0,
     rating_avg: null,
-    description: 'Grows clean greens in the eastern area; wants to join the Thu Duc market session.',
+    description:
+      'Grows clean greens in the eastern area; wants to join the Thu Duc market session.',
     image: null,
     markets: [],
     operating_days: [],
@@ -145,15 +140,11 @@ export let adminFarmers                      = [
   },
 ];
 
-export function setAdminFarmers(next                     ) {
+export function setAdminFarmers(next) {
   adminFarmers = next;
 }
 
-export function pushFarmerHistory(
-  farmer                   ,
-  to              ,
-  reason               ,
-)                    {
+export function pushFarmerHistory(farmer, to, reason) {
   return {
     ...farmer,
     status: to,
@@ -172,7 +163,7 @@ export function pushFarmerHistory(
   };
 }
 
-export let adminCustomers                  = [
+export let adminCustomers = [
   {
     id: 1,
     email: 'customer@demo.vn',
@@ -214,11 +205,11 @@ export let adminCustomers                  = [
   },
 ];
 
-export function setAdminCustomers(next                 ) {
+export function setAdminCustomers(next) {
   adminCustomers = next;
 }
 
-export let adminMarkets                = seedMarkets.map((m) => ({
+export let adminMarkets = seedMarkets.map((m) => ({
   ...m,
   is_active: m.id !== 5,
   open_order_count: customerOrders.filter(
@@ -232,37 +223,35 @@ export let adminMarkets                = seedMarkets.map((m) => ({
   updated_at: isoDays(-1),
 }));
 
-export function setAdminMarkets(next               ) {
+export function setAdminMarkets(next) {
   adminMarkets = next;
 }
 
-export let adminCategories                  = seedCategories.map((c) => ({
+export let adminCategories = seedCategories.map((c) => ({
   ...c,
   is_active: true,
   product_count: seedProducts.filter((p) => p.category.id === c.id).length,
 }));
 
-export function setAdminCategories(next                 ) {
+export function setAdminCategories(next) {
   adminCategories = next;
 }
 
-export let moderationProducts                      = seedProducts
-  .slice(0, 6)
-  .map((p) => ({
-    id: p.id,
-    name: p.name,
-    farmer: { id: p.farmer.id, stall_name: p.farmer.stall_name },
-    image: p.image,
-    is_hidden_by_admin: false,
-    hidden_reason: null,
-    created_at: isoDays(-20),
-  }));
+export let moderationProducts = seedProducts.slice(0, 6).map((p) => ({
+  id: p.id,
+  name: p.name,
+  farmer: { id: p.farmer.id, stall_name: p.farmer.stall_name },
+  image: p.image,
+  is_hidden_by_admin: false,
+  hidden_reason: null,
+  created_at: isoDays(-20),
+}));
 
-export function setModerationProducts(next                     ) {
+export function setModerationProducts(next) {
   moderationProducts = next;
 }
 
-export let moderationReviews                     = seedReviews.map((r) => ({
+export let moderationReviews = seedReviews.map((r) => ({
   id: r.id,
   rating: r.rating,
   comment: r.comment,
@@ -277,11 +266,11 @@ export let moderationReviews                     = seedReviews.map((r) => ({
   created_at: r.created_at,
 }));
 
-export function setModerationReviews(next                    ) {
+export function setModerationReviews(next) {
   moderationReviews = next;
 }
 
-export let adminAnnouncements                      = seedAnnouncements.map((a) => ({
+export let adminAnnouncements = seedAnnouncements.map((a) => ({
   ...a,
   is_active: true,
   created_by_name: 'Administrator',
@@ -289,11 +278,11 @@ export let adminAnnouncements                      = seedAnnouncements.map((a) =
   updated_at: isoDays(-30),
 }));
 
-export function setAdminAnnouncements(next                     ) {
+export function setAdminAnnouncements(next) {
   adminAnnouncements = next;
 }
 
-export let auditLogs                 = [
+export let auditLogs = [
   {
     id: 1,
     user: { id: 3, email: 'admin@demo.vn' },
@@ -335,7 +324,7 @@ export let auditLogs                 = [
   },
 ];
 
-export function pushAudit(entry                                         ) {
+export function pushAudit(entry) {
   auditLogs = [
     {
       ...entry,
@@ -346,7 +335,7 @@ export function pushAudit(entry                                         ) {
   ];
 }
 
-export function toFarmerSummary(f                   )                     {
+export function toFarmerSummary(f) {
   return {
     id: f.id,
     stall_name: f.stall_name,
@@ -360,7 +349,7 @@ export function toFarmerSummary(f                   )                     {
   };
 }
 
-function toAdminFarmerProduct(p                               )                {
+function toAdminFarmerProduct(p) {
   const now = isoDays(-15);
   return {
     ...p,
@@ -376,7 +365,7 @@ function toAdminFarmerProduct(p                               )                {
   };
 }
 
-export function toFarmerDetail(f                   )                    {
+export function toFarmerDetail(f) {
   const products = seedProducts
     .filter((p) => p.farmer.id === f.id)
     .map(toAdminFarmerProduct);

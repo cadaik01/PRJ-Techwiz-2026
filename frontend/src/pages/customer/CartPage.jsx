@@ -56,7 +56,7 @@ export default function CartPage() {
   const openOrdersQuery = useCustomerOrders({ tab: 'open', page_size: 20 });
 
   const grouped = useMemo(() => {
-    return items.reduce                              ((acc, item) => {
+    return items.reduce((acc, item) => {
       const list = acc[item.farmer_id] ?? [];
       list.push(item);
       acc[item.farmer_id] = list;
@@ -111,14 +111,14 @@ export default function CartPage() {
           <div>
             {wouldExceedTotal ? (
               <p>
-                You currently have {openCount} open orders. Adding {farmerCount} more would exceed the
-                limit of {maxOpen} open orders.
+                You currently have {openCount} open orders. Adding {farmerCount} more
+                would exceed the limit of {maxOpen} open orders.
               </p>
             ) : null}
             {conflictingFarmers.length > 0 ? (
               <p className="cart-page__warn-note">
-                You already have an open order with this stall (max {maxPerFarmer}/farmer). Complete
-                or cancel the existing order first.
+                You already have an open order with this stall (max {maxPerFarmer}
+                /farmer). Complete or cancel the existing order first.
               </p>
             ) : null}
           </div>

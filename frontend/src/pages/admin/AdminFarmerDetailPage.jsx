@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { useAdminFarmer, useUpdateFarmer } from '../../hooks/queries/admin/useAdminFarmers';
+import {
+  useAdminFarmer,
+  useUpdateFarmer,
+} from '../../hooks/queries/admin/useAdminFarmers';
 import { ProfileEditDialog } from '../../components/admin/ProfileEditDialog';
 import { ChangeLogPanel } from '../../components/admin/ChangeLogPanel';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
@@ -62,10 +65,31 @@ export default function AdminFarmerDetailPage() {
         pending={update.isPending}
         onSave={(values) => update.mutateAsync(values)}
         fields={[
-          { required: true, name: 'stall_name', label: 'Stall name', value: f.stall_name },
-          { required: true, name: 'contact_person', label: 'Contact person', value: f.contact_person ?? '' },
-          { required: true, name: 'phone', label: 'Phone', value: f.phone ?? '', type: 'tel' },
-          { name: 'description', label: 'Description', value: f.description ?? '', multiline: true },
+          {
+            required: true,
+            name: 'stall_name',
+            label: 'Stall name',
+            value: f.stall_name,
+          },
+          {
+            required: true,
+            name: 'contact_person',
+            label: 'Contact person',
+            value: f.contact_person ?? '',
+          },
+          {
+            required: true,
+            name: 'phone',
+            label: 'Phone',
+            value: f.phone ?? '',
+            type: 'tel',
+          },
+          {
+            name: 'description',
+            label: 'Description',
+            value: f.description ?? '',
+            multiline: true,
+          },
         ]}
       />
 
@@ -81,7 +105,9 @@ export default function AdminFarmerDetailPage() {
       <div className="page-primitive__stat-grid-3">
         <Card>
           <CardHeader className="page-primitive__card-header-tight">
-            <CardTitle className="page-primitive__card-title-muted">Total orders</CardTitle>
+            <CardTitle className="page-primitive__card-title-muted">
+              Total orders
+            </CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__stat-value">
             {f.order_stats.total}

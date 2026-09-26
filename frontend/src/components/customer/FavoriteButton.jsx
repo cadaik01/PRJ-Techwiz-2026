@@ -9,14 +9,7 @@ import { cn } from '@/lib/cn';
 
 import './FavoriteButton.css';
 
-export function FavoriteButton({
-  active,
-  onToggle,
-  className,
-  label = 'Favorites',
-}
-
- ) {
+export function FavoriteButton({ active, onToggle, className, label = 'Favorites' }) {
   const accessToken = useAuthStore((s) => s.accessToken);
   const navigate = useNavigate();
 

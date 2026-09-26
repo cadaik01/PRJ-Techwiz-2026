@@ -15,7 +15,7 @@ const SUGGESTIONS = [
 ];
 
 const panelTransition = {
-  type: 'spring'         ,
+  type: 'spring',
   stiffness: 340,
   damping: 34,
   mass: 0.85,

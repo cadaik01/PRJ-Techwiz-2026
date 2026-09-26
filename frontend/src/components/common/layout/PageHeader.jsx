@@ -2,7 +2,7 @@ import { cn } from '@/lib/cn';
 
 import './PageHeader.css';
 
-export function PageHeader({ title, description, actions, className }                 ) {
+export function PageHeader({ title, description, actions, className }) {
   return (
     <div className={cn('page-header', className)}>
       <div>

@@ -4,7 +4,7 @@ import { catalogApi } from '../../../api/guest/catalogApi';
 import { customerApi } from '../../../api/customer/customerApi';
 import { QUERY_KEYS } from '@/config/constants';
 
-export function useCartProductRefresh(ids          ) {
+export function useCartProductRefresh(ids) {
   return useQuery({
     queryKey: QUERY_KEYS.PRODUCTS({ ids }),
     queryFn: async () => {
@@ -15,7 +15,7 @@ export function useCartProductRefresh(ids          ) {
   });
 }
 
-export function useFarmerPickupOptionsList(farmerIds          ) {
+export function useFarmerPickupOptionsList(farmerIds) {
   return useQueries({
     queries: farmerIds.map((farmerId) => ({
       queryKey: QUERY_KEYS.FARMER_PICKUP(farmerId),
@@ -27,7 +27,7 @@ export function useFarmerPickupOptionsList(farmerIds          ) {
 export function useCreateOrders() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload                     ) => customerApi.createOrders(payload),
+    mutationFn: (payload) => customerApi.createOrders(payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.ORDERS()[0]],
@@ -39,7 +39,7 @@ export function useCreateOrders() {
   });
 }
 
-export function useCheckout(farmerIds          ) {
+export function useCheckout(farmerIds) {
   const pickupQueries = useFarmerPickupOptionsList(farmerIds);
   const createOrders = useCreateOrders();
   return { pickupQueries, createOrders };

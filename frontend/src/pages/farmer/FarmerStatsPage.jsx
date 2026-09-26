@@ -50,7 +50,9 @@ export default function FarmerStatsPage() {
         </Card>
         <Card>
           <CardHeader className="page-primitive__card-header-tight">
-            <CardTitle className="page-primitive__card-title-muted">Total orders</CardTitle>
+            <CardTitle className="page-primitive__card-title-muted">
+              Total orders
+            </CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__stat-value">
             {data.kpis.total_orders}
@@ -58,7 +60,9 @@ export default function FarmerStatsPage() {
         </Card>
         <Card>
           <CardHeader className="page-primitive__card-header-tight">
-            <CardTitle className="page-primitive__card-title-muted">In progress</CardTitle>
+            <CardTitle className="page-primitive__card-title-muted">
+              In progress
+            </CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__stat-value">
             {data.kpis.in_progress}

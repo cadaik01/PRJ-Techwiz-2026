@@ -6,10 +6,7 @@ import { ApiError } from '@/lib/ApiError';
 import { useCheckout } from '../../hooks/queries/customer/useCheckout';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
-import {
-  TimeSlotPicker,
-
-} from '../../components/customer/TimeSlotPicker';
+import { TimeSlotPicker } from '../../components/customer/TimeSlotPicker';
 import { Button } from '@/components/common/forms/Button';
 import { Textarea } from '@/components/common/forms/Textarea';
 import {
@@ -26,16 +23,16 @@ import { usePublicConfigData } from '../../hooks/queries/guest/usePublicConfig';
 import { moneyToNumber } from '@/utils/helpers/domain';
 import './CheckoutPage.css';
 
-function readCreateOrderDetails(data         )                           {
+function readCreateOrderDetails(data) {
   if (!data || typeof data !== 'object' || !('details' in data)) return [];
   const details = data.details;
   if (!Array.isArray(details)) return [];
-  const out                           = [];
+  const out = [];
   for (const item of details) {
     if (!item || typeof item !== 'object') continue;
     if (!('code' in item) || !('message' in item)) continue;
     if (typeof item.code !== 'string' || typeof item.message !== 'string') continue;
-    const detail                         = {
+    const detail = {
       code: item.code,
       message: item.message,
     };
@@ -53,7 +50,7 @@ function readCreateOrderDetails(data         )                           {
   return out;
 }
 
-function stepClass(step        , current        ) {
+function stepClass(step, current) {
   if (step === current) return 'checkout-page__step checkout-page__step--active';
   if (step < current) return 'checkout-page__step checkout-page__step--done';
   return 'checkout-page__step';
@@ -66,13 +63,13 @@ export default function CheckoutPage() {
   const clearFarmer = useCartStore((s) => s.clearFarmer);
   const config = usePublicConfigData();
   const [step, setStep] = useState(1);
-  const [slots, setSlots] = useState                                     ({});
-  const [notes, setNotes] = useState                        ({});
-  const [errorDetails, setErrorDetails] = useState                          ([]);
+  const [slots, setSlots] = useState({});
+  const [notes, setNotes] = useState({});
+  const [errorDetails, setErrorDetails] = useState([]);
   const [errorOpen, setErrorOpen] = useState(false);
 
   const grouped = useMemo(() => {
-    return items.reduce                              ((acc, item) => {
+    return items.reduce((acc, item) => {
       if (!item.is_available) return acc;
       const list = acc[item.farmer_id] ?? [];
       list.push(item);
@@ -255,7 +252,7 @@ export default function CheckoutPage() {
                       state: { orders: data.orders },
                     });
                   })
-                  .catch((error         ) => {
+                  .catch((error) => {
                     const apiError = ApiError.fromUnknown(error);
                     const details = readCreateOrderDetails(apiError.data);
                     if (details.length > 0) {

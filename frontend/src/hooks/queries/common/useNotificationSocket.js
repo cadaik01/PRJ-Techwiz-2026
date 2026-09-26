@@ -3,27 +3,24 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { authApi } from '../../../api/common/authApi';
-import {
-  adaptNotification,
-
-} from '@/lib/adapters/notification.adapter';
+import { adaptNotification } from '@/lib/adapters/notification.adapter';
 import { QUERY_KEYS } from '@/config/constants';
 import { env, wsUrl } from '@/config/env';
 import { useAuthStore } from '@/stores/auth.store';
 
-function isWsEnvelope(value         )                      {
+function isWsEnvelope(value) {
   if (!value || typeof value !== 'object') return false;
   if (!('event' in value) || !('data' in value)) return false;
   return typeof value.event === 'string';
 }
 
-function isBeNotification(value         )                          {
+function isBeNotification(value) {
   if (!value || typeof value !== 'object') return false;
   if (!('id' in value)) return false;
   return typeof value.id === 'number';
 }
 
-async function pushMockNotification(item                  ) {
+async function pushMockNotification(item) {
   const role = useAuthStore.getState().role;
   if (role === 'FARMER') {
     const { farmerNotifications } = await import('@/mocks/farmerData');
@@ -39,7 +36,7 @@ async function pushMockNotification(item                  ) {
  * When WS is unavailable (empty BE routing), silently falls back to HTTP
  * short-polling every 30s without noisy reconnect loops.
  */
-export function useNotificationSocket(enabled         ) {
+export function useNotificationSocket(enabled) {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
 
@@ -47,9 +44,9 @@ export function useNotificationSocket(enabled         ) {
     if (!enabled || !accessToken) return;
 
     let cancelled = false;
-    let mockTimer                                            ;
-    let pollTimer                                            ;
-    let socket                   = null;
+    let mockTimer;
+    let pollTimer;
+    let socket = null;
     let polling = false;
 
     const invalidate = () => {
@@ -60,7 +57,7 @@ export function useNotificationSocket(enabled         ) {
       });
     };
 
-    const handleNotification = (item                  ) => {
+    const handleNotification = (item) => {
       toast.message(item.title, { description: item.message });
       invalidate();
     };
@@ -81,7 +78,7 @@ export function useNotificationSocket(enabled         ) {
         invalidate();
         mockTimer = setInterval(() => {
           if (cancelled) return;
-          const item                   = {
+          const item = {
             id: Date.now(),
             type: 'ORDER_PLACED',
             title: 'Order update',
@@ -118,7 +115,7 @@ export function useNotificationSocket(enabled         ) {
 
         socket.onmessage = (event) => {
           try {
-            const parsed          = JSON.parse(String(event.data));
+            const parsed = JSON.parse(String(event.data));
             if (!isWsEnvelope(parsed)) return;
             if (parsed.event === 'NEW_NOTIFICATION') {
               if (!isBeNotification(parsed.data)) return;

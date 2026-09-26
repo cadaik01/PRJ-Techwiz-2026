@@ -7,7 +7,7 @@ import { customerApi } from '../../../api/customer/customerApi';
 import { QUERY_KEYS } from '@/config/constants';
 import { useAuthStore } from '@/stores/auth.store';
 
-function emptyFavoriteIds()              {
+function emptyFavoriteIds() {
   return { farmer_ids: [], product_ids: [], market_ids: [] };
 }
 
@@ -20,18 +20,13 @@ export function useFavoriteIds() {
   });
 }
 
-function useOptimisticFavoriteToggle(
-  kind                                 ,
-  add                               ,
-  remove                               ,
-) {
+function useOptimisticFavoriteToggle(kind, add, remove) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id        ) => {
+    mutationFn: async (id) => {
       const current =
-        queryClient.getQueryData             (QUERY_KEYS.FAVORITE_IDS) ??
-        emptyFavoriteIds();
+        queryClient.getQueryData(QUERY_KEYS.FAVORITE_IDS) ?? emptyFavoriteIds();
       const listKey =
         kind === 'market'
           ? 'market_ids'
@@ -44,7 +39,7 @@ function useOptimisticFavoriteToggle(
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEYS.FAVORITE_IDS });
-      const previous = queryClient.getQueryData             (QUERY_KEYS.FAVORITE_IDS);
+      const previous = queryClient.getQueryData(QUERY_KEYS.FAVORITE_IDS);
       const base = previous ?? emptyFavoriteIds();
       const listKey =
         kind === 'market'
@@ -53,7 +48,7 @@ function useOptimisticFavoriteToggle(
             ? 'farmer_ids'
             : 'product_ids';
       const active = base[listKey].includes(id);
-      queryClient.setQueryData             (QUERY_KEYS.FAVORITE_IDS, {
+      queryClient.setQueryData(QUERY_KEYS.FAVORITE_IDS, {
         ...base,
         [listKey]: active
           ? base[listKey].filter((x) => x !== id)
@@ -112,12 +107,12 @@ export function useFavorites() {
     marketIds,
     farmerIds,
     productIds,
-    hasMarket: (id        ) => marketIds.includes(id),
-    hasFarmer: (id        ) => farmerIds.includes(id),
-    hasProduct: (id        ) => productIds.includes(id),
-    toggleMarket: (id        ) => toggleMarketMutation.mutateAsync(id),
-    toggleFarmer: (id        ) => toggleFarmerMutation.mutateAsync(id),
-    toggleProduct: (id        ) => toggleProductMutation.mutateAsync(id),
+    hasMarket: (id) => marketIds.includes(id),
+    hasFarmer: (id) => farmerIds.includes(id),
+    hasProduct: (id) => productIds.includes(id),
+    toggleMarket: (id) => toggleMarketMutation.mutateAsync(id),
+    toggleFarmer: (id) => toggleFarmerMutation.mutateAsync(id),
+    toggleProduct: (id) => toggleProductMutation.mutateAsync(id),
   };
 }
 

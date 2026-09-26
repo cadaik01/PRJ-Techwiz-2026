@@ -5,22 +5,20 @@ import { ApiError } from '@/lib/ApiError';
 import { farmerApi } from '../../../api/farmer/farmerApi';
 import { QUERY_KEYS } from '@/config/constants';
 
-function invalidateMyProducts(queryClient
-
- ) {
+function invalidateMyProducts(queryClient) {
   return queryClient.invalidateQueries({
     queryKey: [QUERY_KEYS.FARMER_MY_PRODUCTS()[0]],
   });
 }
 
-export function useFarmerMyProducts(params                 = {}) {
+export function useFarmerMyProducts(params = {}) {
   return useQuery({
     queryKey: QUERY_KEYS.FARMER_MY_PRODUCTS(params),
     queryFn: () => farmerApi.getProducts(params),
   });
 }
 
-export function useFarmerMyProduct(id        , enabled = true) {
+export function useFarmerMyProduct(id, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.FARMER_MY_PRODUCT(id),
     queryFn: () => farmerApi.getProduct(id),
@@ -28,12 +26,12 @@ export function useFarmerMyProduct(id        , enabled = true) {
   });
 }
 
-export function useSaveFarmerProduct(productId         ) {
+export function useSaveFarmerProduct(productId) {
   const queryClient = useQueryClient();
   const isEdit = productId !== undefined && Number.isFinite(productId);
 
   return useMutation({
-    mutationFn: async (values                      ) => {
+    mutationFn: async (values) => {
       if (isEdit && productId !== undefined) {
         return farmerApi.updateProduct(productId, values);
       }
@@ -49,7 +47,7 @@ export function useSaveFarmerProduct(productId         ) {
 export function useUpdateFarmerStock() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, stock_quantity }                                        ) =>
+    mutationFn: ({ id, stock_quantity }) =>
       farmerApi.updateProduct(id, { stock_quantity }),
     onSuccess: () => {
       toast.success('Stock updated');

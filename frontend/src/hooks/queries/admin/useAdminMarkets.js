@@ -5,22 +5,20 @@ import { ApiError } from '@/lib/ApiError';
 import { adminApi } from '../../../api/admin/adminApi';
 import { QUERY_KEYS } from '@/config/constants';
 
-function invalidateMarkets(queryClient
-
- ) {
+function invalidateMarkets(queryClient) {
   return queryClient.invalidateQueries({
     queryKey: [QUERY_KEYS.ADMIN_MARKETS()[0]],
   });
 }
 
-export function useAdminMarkets(params                = {}) {
+export function useAdminMarkets(params = {}) {
   return useQuery({
     queryKey: QUERY_KEYS.ADMIN_MARKETS(params),
     queryFn: () => adminApi.getMarkets(params),
   });
 }
 
-export function useAdminMarket(id        , enabled = true) {
+export function useAdminMarket(id, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.ADMIN_MARKET(id),
     queryFn: () => adminApi.getMarket(id),
@@ -31,13 +29,7 @@ export function useAdminMarket(id        , enabled = true) {
 export function useToggleAdminMarket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      id,
-      active,
-      reason,
-    }
-
-     ) => {
+    mutationFn: async ({ id, active, reason }) => {
       if (active) return adminApi.activateMarket(id);
       return adminApi.deactivateMarket(id, reason ?? '');
     },
@@ -45,7 +37,7 @@ export function useToggleAdminMarket() {
       if (vars.active) {
         toast.success('Market reopened');
       } else {
-        const cancelled = (data                                 ).cancelled_orders ?? 0;
+        const cancelled = data.cancelled_orders ?? 0;
         toast.success(
           cancelled
             ? `Market closed. ${cancelled} open order${cancelled === 1 ? '' : 's'} cancelled.`
@@ -58,12 +50,12 @@ export function useToggleAdminMarket() {
   });
 }
 
-export function useSaveAdminMarket(marketId         ) {
+export function useSaveAdminMarket(marketId) {
   const queryClient = useQueryClient();
   const isEdit = marketId !== undefined && Number.isFinite(marketId);
 
   return useMutation({
-    mutationFn: async (payload                    ) => {
+    mutationFn: async (payload) => {
       if (isEdit && marketId !== undefined) {
         return adminApi.updateMarket(marketId, payload);
       }
@@ -78,7 +70,7 @@ export function useSaveAdminMarket(marketId         ) {
 }
 
 // AD-31 to AD-33. Closures hang off one market, so they get their own query key.
-export function useMarketClosures(marketId        , enabled         ) {
+export function useMarketClosures(marketId, enabled) {
   return useQuery({
     queryKey: QUERY_KEYS.ADMIN_MARKET_CLOSURES(marketId),
     queryFn: () => adminApi.getMarketClosures(marketId),
@@ -86,11 +78,10 @@ export function useMarketClosures(marketId        , enabled         ) {
   });
 }
 
-export function useCreateMarketClosure(marketId        ) {
+export function useCreateMarketClosure(marketId) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload                      ) =>
-      adminApi.createMarketClosure(marketId, payload),
+    mutationFn: (payload) => adminApi.createMarketClosure(marketId, payload),
     onSuccess: () => {
       toast.success('Closure period added');
       void queryClient.invalidateQueries({
@@ -102,7 +93,7 @@ export function useCreateMarketClosure(marketId        ) {
   });
 }
 
-export function useDeleteMarketClosure(marketId        ) {
+export function useDeleteMarketClosure(marketId) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: adminApi.deleteMarketClosure,

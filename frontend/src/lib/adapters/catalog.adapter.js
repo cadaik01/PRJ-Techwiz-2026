@@ -1,10 +1,10 @@
 import { adaptPaginated } from '@/lib/adapters/pagination.adapter';
 
-function isRecord(value         )                                   {
+function isRecord(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function readNumber(value         )                {
+function readNumber(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string' && value.trim() !== '') {
     const parsed = Number(value);
@@ -13,21 +13,21 @@ function readNumber(value         )                {
   return null;
 }
 
-function readId(value         )                {
+function readId(value) {
   if (typeof value === 'number') return value;
   if (isRecord(value)) return readNumber(value.id);
   return null;
 }
 
-function isUnit(value         )                {
+function isUnit(value) {
   return value === 'KG' || value === 'BUNCH' || value === 'PIECE' || value === 'PACK';
 }
 
-function isAvailability(value         )                               {
+function isAvailability(value) {
   return value === 'IN_STOCK' || value === 'OUT_OF_STOCK' || value === 'UNAVAILABLE';
 }
 
-function isDay(value         )                     {
+function isDay(value) {
   return (
     value === 1 ||
     value === 2 ||
@@ -39,15 +39,12 @@ function isDay(value         )                     {
   );
 }
 
-function readDays(value         )              {
+function readDays(value) {
   if (!Array.isArray(value)) return [];
   return value.filter(isDay);
 }
 
-function availabilityOf(
-  raw                         ,
-  stock        ,
-)                      {
+function availabilityOf(raw, stock) {
   if (isAvailability(raw.availability)) return raw.availability;
   if (
     raw.is_available === false ||
@@ -61,7 +58,7 @@ function availabilityOf(
 }
 
 /** DRF ModelSerializer returns category/farmer as PK. UI reads nested name fields. */
-export function adaptProduct(raw         )                     {
+export function adaptProduct(raw) {
   if (!isRecord(raw) || typeof raw.id !== 'number' || typeof raw.name !== 'string') {
     return null;
   }
@@ -105,7 +102,7 @@ export function adaptProduct(raw         )                     {
   };
 }
 
-export function adaptProductDetail(raw         )                       {
+export function adaptProductDetail(raw) {
   const card = adaptProduct(raw);
   if (!card || !isRecord(raw)) return null;
   return {
@@ -115,7 +112,7 @@ export function adaptProductDetail(raw         )                       {
   };
 }
 
-export function adaptFarmerProduct(raw         )                       {
+export function adaptFarmerProduct(raw) {
   const detail = adaptProductDetail(raw);
   if (!detail || !isRecord(raw)) return null;
   return {
@@ -131,8 +128,8 @@ export function adaptFarmerProduct(raw         )                       {
   };
 }
 
-export function adaptProductPage(raw         )                             {
-  const page = adaptPaginated         (raw);
+export function adaptProductPage(raw) {
+  const page = adaptPaginated(raw);
   return {
     ...page,
     results: page.results.flatMap((item) => {
@@ -142,8 +139,8 @@ export function adaptProductPage(raw         )                             {
   };
 }
 
-export function adaptFarmerProductPage(raw         )                               {
-  const page = adaptPaginated         (raw);
+export function adaptFarmerProductPage(raw) {
+  const page = adaptPaginated(raw);
   return {
     ...page,
     results: page.results.flatMap((item) => {
@@ -153,7 +150,7 @@ export function adaptFarmerProductPage(raw         )                            
   };
 }
 
-export function adaptMarket(raw         )                       {
+export function adaptMarket(raw) {
   if (!isRecord(raw) || typeof raw.id !== 'number' || typeof raw.name !== 'string') {
     return null;
   }
@@ -182,7 +179,7 @@ export function adaptMarket(raw         )                       {
   };
 }
 
-export function adaptMarketDetail(raw         )                {
+export function adaptMarketDetail(raw) {
   const summary = adaptMarket(raw);
   if (!summary || !isRecord(raw)) return null;
   return {
@@ -192,8 +189,8 @@ export function adaptMarketDetail(raw         )                {
   };
 }
 
-export function adaptMarketPage(raw         )                               {
-  const page = adaptPaginated         (raw);
+export function adaptMarketPage(raw) {
+  const page = adaptPaginated(raw);
   return {
     ...page,
     results: page.results.flatMap((item) => {
@@ -203,7 +200,7 @@ export function adaptMarketPage(raw         )                               {
   };
 }
 
-export function adaptFarmerSummary(raw         )                       {
+export function adaptFarmerSummary(raw) {
   if (!isRecord(raw) || typeof raw.id !== 'number') return null;
   if (typeof raw.stall_name !== 'string' || raw.stall_name.trim() === '') {
     return null;
@@ -224,8 +221,8 @@ export function adaptFarmerSummary(raw         )                       {
   };
 }
 
-export function adaptFarmerPage(raw         )                               {
-  const page = adaptPaginated         (raw);
+export function adaptFarmerPage(raw) {
+  const page = adaptPaginated(raw);
   return {
     ...page,
     results: page.results.flatMap((item) => {

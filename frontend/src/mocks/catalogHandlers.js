@@ -15,13 +15,13 @@ import { numParam, pageParams } from './mockUtils';
 import { moneyToNumber } from '@/utils/helpers/domain';
 import { http, HttpResponse } from 'msw';
 
-function forwardFarmer(request         , pathname        ) {
+function forwardFarmer(request, pathname) {
   const url = new URL(request.url);
   url.pathname = pathname;
   return fetch(url, { headers: request.headers });
 }
 
-function haversineKm(lat1        , lon1        , lat2        , lon2        )         {
+function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -33,8 +33,8 @@ function haversineKm(lat1        , lon1        , lat2        , lon2        )    
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function ratingSummary(list          )                {
-  const distribution = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+function ratingSummary(list) {
+  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   for (const r of list) {
     if (r.rating === 1) distribution['1'] += 1;
     else if (r.rating === 2) distribution['2'] += 1;
@@ -48,7 +48,7 @@ function ratingSummary(list          )                {
   return { rating_avg, rating_count, distribution };
 }
 
-function reviewsPage(list          , page        , pageSize        ) {
+function reviewsPage(list, page, pageSize) {
   const paged = paginate(list, page, pageSize);
   return {
     summary: ratingSummary(list),
@@ -105,7 +105,7 @@ export const catalogHandlers = [
       );
     }
     if (day) {
-      const d = Number(day)             ;
+      const d = Number(day);
       list = list.filter((m) => m.operating_days.includes(d));
     }
     if (ordering === 'distance' && hasCoords) {
@@ -179,7 +179,7 @@ export const catalogHandlers = [
       list = list.filter((f) => f.markets.some((m) => m.market_id === Number(marketId)));
     }
     if (day) {
-      const d = Number(day)             ;
+      const d = Number(day);
       list = list.filter((f) => f.operating_days.includes(d));
     }
     if (categoryId) {
@@ -260,7 +260,7 @@ export const catalogHandlers = [
     const inStock = url.searchParams.get('in_stock');
     const ordering = url.searchParams.get('ordering') ?? 'newest';
 
-    let list                = products.map(toProductCard);
+    let list = products.map(toProductCard);
 
     if (ids.length) {
       list = list.filter((p) => ids.includes(p.id));
@@ -279,7 +279,7 @@ export const catalogHandlers = [
       list = list.filter((p) => categoryIds.includes(p.category.id));
     }
     if (day) {
-      const d = Number(day)             ;
+      const d = Number(day);
       list = list.filter((p) =>
         products
           .find((full) => full.id === p.id)
@@ -335,9 +335,8 @@ export const catalogHandlers = [
   }),
 
   http.post('/api/chat/messages/', async ({ request }) => {
-    const body = (await request.json())
+    const body = await request.json();
 
-     ;
     const last = body.messages?.[body.messages.length - 1]?.content ?? '';
     return HttpResponse.json(
       envelope({

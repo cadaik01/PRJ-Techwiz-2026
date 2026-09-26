@@ -7,7 +7,7 @@ import { Button } from '@/components/common/forms/Button';
 import { Input } from '@/components/common/forms/Input';
 import { DASHBOARD_PATH } from '@/config/constants';
 import { useAuth } from '../../../hooks/authentication/useAuth';
-import { loginSchema,                      } from '../../../schemas/auth/auth.schemas';
+import { loginSchema } from '../../../schemas/auth/auth.schemas';
 import { ApiError } from '@/lib/ApiError';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
@@ -15,9 +15,9 @@ import './AdminLoginForm.css';
 
 // Only a path inside the admin area may be resumed after signing in, so a crafted "from"
 // cannot bounce an admin somewhere else.
-function resumePath(from         )                {
+function resumePath(from) {
   if (typeof from !== 'object' || from === null) return null;
-  const pathname = (from                          ).pathname;
+  const pathname = from.pathname;
   if (typeof pathname !== 'string') return null;
   if (!pathname.startsWith(`${DASHBOARD_PATH.ADMIN}/`)) return null;
   return pathname === '/admin/login' ? null : pathname;
@@ -34,7 +34,7 @@ export function AdminLoginForm() {
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm                 ({
+  } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
@@ -59,7 +59,7 @@ export function AdminLoginForm() {
           try {
             await adminLogin(values);
             // useAuth already sent us to /admin; go deeper only if that is where we came from.
-            const resume = resumePath((location.state                             )?.from);
+            const resume = resumePath(location.state?.from);
             if (resume) navigate(resume, { replace: true });
           } catch (error) {
             mapServerErrorsToForm(ApiError.fromUnknown(error).fieldErrors, setError);

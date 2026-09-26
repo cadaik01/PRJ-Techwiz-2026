@@ -6,12 +6,12 @@ import { ApiError } from '@/lib/ApiError';
 
 let messageSeq = 0;
 
-function createMessage(role          , content        )                {
+function createMessage(role, content) {
   messageSeq += 1;
   return { id: `msg-${messageSeq}`, role, content };
 }
 
-const INITIAL_MESSAGES                  = [
+const INITIAL_MESSAGES = [
   createMessage(
     'assistant',
     'Hi! I can help find markets, check stock, or guide you for stall pickup.',
@@ -21,13 +21,13 @@ const INITIAL_MESSAGES                  = [
 export function useAiChat() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
-  const [error, setError] = useState               (null);
-  const [messages, setMessages] = useState                 (INITIAL_MESSAGES);
-  const [tools, setTools] = useState          ([]);
-  const bottomRef = useRef                (null);
+  const [error, setError] = useState(null);
+  const [messages, setMessages] = useState(INITIAL_MESSAGES);
+  const [tools, setTools] = useState([]);
+  const bottomRef = useRef(null);
 
   const sendMutation = useMutation({
-    mutationFn: (payload                      ) => chatApi.send(payload),
+    mutationFn: (payload) => chatApi.send(payload),
     onSuccess: (result) => {
       setMessages((prev) => [...prev, createMessage('assistant', result.reply)]);
       setTools(result.tools_used);
@@ -41,7 +41,7 @@ export function useAiChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sendMutation.isPending, open]);
 
-  const send = (text        ) => {
+  const send = (text) => {
     const content = text.trim().slice(0, 1000);
     if (!content || sendMutation.isPending) return;
     const nextMessages = [...messages, createMessage('user', content)].slice(-10);

@@ -5,4 +5,4 @@ export const STORAGE_KEYS = {
   UI: 'marketlink-ui',
   CART: 'marketlink-cart',
   GEO: 'marketlink-geo',
-}         ;
+};

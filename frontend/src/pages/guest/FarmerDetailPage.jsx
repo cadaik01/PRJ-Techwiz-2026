@@ -21,7 +21,12 @@ import { useFavorites } from '../../hooks/queries/customer/useFavorites';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/common/avatar/Avatar';
 import { Badge } from '@/components/common/badges/Badge';
 import { Button } from '@/components/common/forms/Button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/common/layout/Tabs';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/common/layout/Tabs';
 import { Skeleton } from '@/components/common/feedback/Skeleton';
 
 import './FarmerDetailPage.css';
@@ -148,7 +153,9 @@ export default function FarmerDetailPage() {
                 </p>
                 {review.reply ? (
                   <div className="farmer-detail-page__reply">
-                    <p className="farmer-detail-page__reply-title">Reply from the stall</p>
+                    <p className="farmer-detail-page__reply-title">
+                      Reply from the stall
+                    </p>
                     <p className="farmer-detail-page__reply-body">{review.reply}</p>
                   </div>
                 ) : null}

@@ -6,9 +6,7 @@ import { catalogApi } from '../../../api/guest/catalogApi';
 import { farmerApi } from '../../../api/farmer/farmerApi';
 import { QUERY_KEYS } from '@/config/constants';
 
-function invalidateFarmerMarkets(queryClient
-
- ) {
+function invalidateFarmerMarkets(queryClient) {
   return queryClient.invalidateQueries({
     queryKey: QUERY_KEYS.FARMER_MARKETS,
   });
@@ -31,8 +29,7 @@ export function usePublicMarketsForJoin() {
 export function useAddFarmerMarket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload                                            ) =>
-      farmerApi.addMarket(payload),
+    mutationFn: (payload) => farmerApi.addMarket(payload),
     onSuccess: () => {
       toast.success('Market added');
       void invalidateFarmerMarkets(queryClient);
@@ -44,12 +41,8 @@ export function useAddFarmerMarket() {
 export function useUpdateFarmerMarketStall() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      farmerMarketId,
-      stall_label,
-    }
-
-     ) => farmerApi.updateMarket(farmerMarketId, { stall_label }),
+    mutationFn: ({ farmerMarketId, stall_label }) =>
+      farmerApi.updateMarket(farmerMarketId, { stall_label }),
     onSuccess: () => {
       toast.success('Stall label saved');
       void invalidateFarmerMarkets(queryClient);
@@ -61,7 +54,7 @@ export function useUpdateFarmerMarketStall() {
 export function useRemoveFarmerMarket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (farmerMarketId        ) => farmerApi.removeMarket(farmerMarketId),
+    mutationFn: (farmerMarketId) => farmerApi.removeMarket(farmerMarketId),
     onSuccess: () => {
       toast.success('Left market');
       void invalidateFarmerMarkets(queryClient);
@@ -73,9 +66,7 @@ export function useRemoveFarmerMarket() {
 export function useCreatePickupSlot() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload
-
-     ) => farmerApi.createPickupSlot(payload),
+    mutationFn: (payload) => farmerApi.createPickupSlot(payload),
     onSuccess: () => {
       toast.success('Pickup slot added');
       void invalidateFarmerMarkets(queryClient);
@@ -87,7 +78,7 @@ export function useCreatePickupSlot() {
 export function useTogglePickupSlot() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ slotId, is_active }                                        ) =>
+    mutationFn: ({ slotId, is_active }) =>
       farmerApi.updatePickupSlot(slotId, { is_active }),
     onSuccess: () => {
       void invalidateFarmerMarkets(queryClient);

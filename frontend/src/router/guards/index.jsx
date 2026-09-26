@@ -4,7 +4,7 @@ import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { DASHBOARD_PATH } from '@/config/constants';
 import { useAuth } from '../../hooks/authentication/useAuth';
 
-function homePathForRole(role      )         {
+function homePathForRole(role) {
   if (role === 'ADMIN') return DASHBOARD_PATH.ADMIN;
   if (role === 'FARMER') return DASHBOARD_PATH.FARMER;
   return DASHBOARD_PATH.CUSTOMER;
@@ -50,7 +50,7 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
-export function RequireRole({ allow }                   ) {
+export function RequireRole({ allow }) {
   const { user, isLoadingMe } = useAuth();
 
   if (isLoadingMe || !user) {

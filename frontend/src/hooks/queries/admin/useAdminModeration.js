@@ -7,9 +7,7 @@ import { QUERY_KEYS } from '@/config/constants';
 
 // A product needs only its id; a review also needs the table its id belongs to.
 
-function invalidateModeration(queryClient
-
- ) {
+function invalidateModeration(queryClient) {
   // Only the first key segment, so every sort order of the list is refreshed.
   void queryClient.invalidateQueries({
     queryKey: [QUERY_KEYS.ADMIN_MODERATION_PRODUCTS()[0]],
@@ -19,14 +17,14 @@ function invalidateModeration(queryClient
   });
 }
 
-export function useModerationProducts(params                        = {}) {
+export function useModerationProducts(params = {}) {
   return useQuery({
     queryKey: QUERY_KEYS.ADMIN_MODERATION_PRODUCTS(params),
     queryFn: () => adminApi.getModerationProducts(params),
   });
 }
 
-export function useModerationReviews(params                        = {}) {
+export function useModerationReviews(params = {}) {
   return useQuery({
     queryKey: QUERY_KEYS.ADMIN_MODERATION_REVIEWS(params),
     queryFn: () => adminApi.getModerationReviews(params),
@@ -36,7 +34,7 @@ export function useModerationReviews(params                        = {}) {
 export function useHideModerationItem() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input                                       ) => {
+    mutationFn: async (input) => {
       if (input.type === 'product') {
         return adminApi.hideProduct(input.id, input.reason);
       }
@@ -68,8 +66,7 @@ export function useRestoreModerationProduct() {
 export function useRestoreModerationReview() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input                                        ) =>
-      adminApi.restoreReview(input.id, input.reviewType),
+    mutationFn: (input) => adminApi.restoreReview(input.id, input.reviewType),
     onSuccess: () => {
       toast.success('Content restored');
       void queryClient.invalidateQueries({

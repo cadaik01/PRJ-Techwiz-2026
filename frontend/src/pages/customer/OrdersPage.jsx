@@ -19,15 +19,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/common/modal/Dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/common/layout/Tabs';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/common/layout/Tabs';
 import { useCartStore } from '@/stores/cart.store';
 
 import './OrdersPage.css';
 
 export default function OrdersPage() {
-  const [tab, setTab] = useState                    ('open');
-  const [status, setStatus] = useState                  ('');
-  const [preview, setPreview] = useState                       (null);
+  const [tab, setTab] = useState('open');
+  const [status, setStatus] = useState('');
+  const [preview, setPreview] = useState(null);
   const queryClient = useQueryClient();
   const addItem = useCartStore((s) => s.addItem);
 

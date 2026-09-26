@@ -21,4 +21,3 @@ export const marketSchema = z.object({
   operating_days: z.array(dayOfWeekSchema).min(1, 'Select at least one day'),
   description: z.string(),
 });
-

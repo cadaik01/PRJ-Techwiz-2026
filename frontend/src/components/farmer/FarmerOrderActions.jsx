@@ -8,11 +8,11 @@ import { useFarmerOrderActions } from '../../hooks/queries/farmer/useFarmerOrder
 
 import './FarmerOrderActions.css';
 
-export function FarmerOrderActions({ order, size = 'sm' }       ) {
+export function FarmerOrderActions({ order, size = 'sm' }) {
   const { run } = useFarmerOrderActions(order);
   const [declineOpen, setDeclineOpen] = useState(false);
   const [reason, setReason] = useState('');
-  const [confirmAction, setConfirmAction] = useState                          (null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const afterSuccess = () => {
     setDeclineOpen(false);
@@ -20,7 +20,7 @@ export function FarmerOrderActions({ order, size = 'sm' }       ) {
     setReason('');
   };
 
-  const mutate = (action                   ) => {
+  const mutate = (action) => {
     run.mutate(
       { action, reason },
       {
@@ -31,11 +31,7 @@ export function FarmerOrderActions({ order, size = 'sm' }       ) {
     );
   };
 
-  const renderBtn = (
-    action                   ,
-    label        ,
-    variant                                                   = 'default',
-  ) => {
+  const renderBtn = (action, label, variant = 'default') => {
     if (!order.allowed_actions.includes(action)) return null;
 
     return (

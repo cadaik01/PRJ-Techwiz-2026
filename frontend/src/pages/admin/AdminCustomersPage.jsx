@@ -1,4 +1,6 @@
 import { useState } from 'react';
+
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -27,18 +29,19 @@ const REASON_MIN_LENGTH = 5;
 
 export default function AdminCustomersPage() {
   const [q, setQ] = useState('');
-  const [submittedQ, setSubmittedQ] = useState('');
-  const [deactivateId, setDeactivateId] = useState               (null);
+  // Searching as the admin types, but one request per pause rather than one per keystroke.
+  const searchTerm = useDebouncedValue(q);
+  const [deactivateId, setDeactivateId] = useState(null);
   const [reason, setReason] = useState('');
   const [impactText, setImpactText] = useState('');
 
-  const [ordering, setOrdering] = useState                    (undefined);
+  const [ordering, setOrdering] = useState(undefined);
 
-  const query = useAdminCustomers({ q: submittedQ || undefined, ordering });
+  const query = useAdminCustomers({ q: searchTerm || undefined, ordering });
   const deactivate = useDeactivateCustomer();
   const activate = useActivateCustomer();
 
-  const openDeactivate = async (id        ) => {
+  const openDeactivate = async (id) => {
     try {
       const impact = await fetchCustomerImpact(id);
       setImpactText(
@@ -57,23 +60,14 @@ export default function AdminCustomersPage() {
         title="Customers"
         description="Lock or unlock accounts and monitor no-show history."
       />
-      <form
-        className="page-primitive__actions-row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setSubmittedQ(q);
-        }}
-      >
+      <div className="page-primitive__actions-row">
         <Input
           label="Search email / name"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="page-primitive__input-narrow"
         />
-        <Button type="submit" size="sm">
-          Search
-        </Button>
-      </form>
+      </div>
 
       {query.isLoading ? (
         <PageSkeleton />
@@ -90,7 +84,11 @@ export default function AdminCustomersPage() {
                 <SortableTh column="total_orders" current={ordering} onSort={setOrdering}>
                   Orders
                 </SortableTh>
-                <SortableTh column="no_show_count" current={ordering} onSort={setOrdering}>
+                <SortableTh
+                  column="no_show_count"
+                  current={ordering}
+                  onSort={setOrdering}
+                >
                   No-show
                 </SortableTh>
                 <SortableTh column="is_active" current={ordering} onSort={setOrdering}>
@@ -189,7 +187,6 @@ export default function AdminCustomersPage() {
           placeholder="Lock reason…"
         />
       </ConfirmDialog>
-
     </div>
   );
 }

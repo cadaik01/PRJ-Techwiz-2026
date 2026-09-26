@@ -10,23 +10,23 @@ import { formatDateTime, formatVnd } from '@/utils/formatters';
 
 import './OrderSuccessPage.css';
 
-function isOrderSummary(value         )                        {
+function isOrderSummary(value) {
   if (!value || typeof value !== 'object') return false;
   return 'id' in value && typeof value.id === 'number';
 }
 
-function isSuccessState(value         )                        {
+function isSuccessState(value) {
   if (!value || typeof value !== 'object') return false;
   if (!('orders' in value) || !Array.isArray(value.orders)) return false;
   return value.orders.every(isOrderSummary);
 }
 
-function confettiPosClass(index        ) {
+function confettiPosClass(index) {
   const pos = index % 10;
   return `order-success-page__confetti--pos-${pos}`;
 }
 
-function confettiColorClass(index        ) {
+function confettiColorClass(index) {
   const mod = index % 3;
   if (mod === 0) return 'order-success-page__confetti--primary';
   if (mod === 1) return 'order-success-page__confetti--accent';

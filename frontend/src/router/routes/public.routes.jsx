@@ -12,7 +12,7 @@ const ProductDetailPage = lazy(() => import('@/pages/guest/ProductDetailPage'));
 const FarmersPage = lazy(() => import('@/pages/guest/FarmersPage'));
 const FarmerDetailPage = lazy(() => import('@/pages/guest/FarmerDetailPage'));
 
-export const publicRoutes                = [
+export const publicRoutes = [
   {
     element: <PublicLayout />,
     children: [

@@ -17,7 +17,12 @@ import { LazyImage } from '@/components/common/cards/LazyImage';
 import { RatingStars } from '@/components/common/badges/RatingStars';
 import { Badge } from '@/components/common/badges/Badge';
 import { Button } from '@/components/common/forms/Button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/common/layout/Tabs';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/common/layout/Tabs';
 import { SortSelect } from '@/components/common/table/SortSelect';
 import { Textarea } from '@/components/common/forms/Textarea';
 
@@ -27,7 +32,7 @@ import './AdminModerationPage.css';
 // saves a round trip that would come back as a 400.
 const REASON_MIN_LENGTH = 5;
 
-function reviewTarget(review                  )         {
+function reviewTarget(review) {
   return review.product
     ? review.product.name
     : `Stall review · Order #${review.order_id}`;
@@ -49,12 +54,12 @@ const REVIEW_SORT = [
 ];
 
 export default function AdminModerationPage() {
-  const [hideTarget, setHideTarget] = useState                         (null);
+  const [hideTarget, setHideTarget] = useState(null);
   const [reason, setReason] = useState('');
 
   // The two tabs sort independently: they are different lists with different columns.
-  const [productOrdering, setProductOrdering] = useState                    (undefined);
-  const [reviewOrdering, setReviewOrdering] = useState                    (undefined);
+  const [productOrdering, setProductOrdering] = useState(undefined);
+  const [reviewOrdering, setReviewOrdering] = useState(undefined);
   const productsQuery = useModerationProducts({ ordering: productOrdering });
   const reviewsQuery = useModerationReviews({ ordering: reviewOrdering });
   const hide = useHideModerationItem();

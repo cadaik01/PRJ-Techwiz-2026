@@ -26,13 +26,13 @@ import { customerOrders } from './orders';
 
 import { moneyToNumber } from '@/utils/helpers/domain';
 
-function authAdmin(request         ) {
+function authAdmin(request) {
   const user = getUserByAccess(request.headers.get('Authorization'));
   if (!user || user.role !== 'ADMIN') return null;
   return user;
 }
 
-function dayKey(offset        ) {
+function dayKey(offset) {
   const d = new Date();
   d.setDate(d.getDate() + offset);
   return d.toISOString().slice(0, 10);
@@ -53,7 +53,7 @@ export const adminHandlers = [
       ).length;
       return { date, count: count || (i % 5 === 0 ? 3 : i % 3) };
     });
-    const statusMap = new Map                     ();
+    const statusMap = new Map();
     for (const o of customerOrders) {
       statusMap.set(o.status, (statusMap.get(o.status) ?? 0) + 1);
     }
@@ -85,7 +85,7 @@ export const adminHandlers = [
     }
     const url = new URL(request.url);
     const q = (url.searchParams.get('q') ?? '').toLowerCase();
-    const status = url.searchParams.get('status')                       ;
+    const status = url.searchParams.get('status');
     const page = Number(url.searchParams.get('page') ?? 1);
     const page_size = Number(url.searchParams.get('page_size') ?? 10);
     let list = [...adminFarmers];
@@ -188,7 +188,7 @@ export const adminHandlers = [
         status: 404,
       });
     }
-    const body = (await request.json())                       ;
+    const body = await request.json();
     const reason = body.reason?.trim() ?? '';
     if (reason.length < 5) {
       return HttpResponse.json(
@@ -226,7 +226,7 @@ export const adminHandlers = [
         status: 404,
       });
     }
-    const body = (await request.json())                       ;
+    const body = await request.json();
     const reason = body.reason?.trim() ?? '';
     if (reason.length < 5) {
       return HttpResponse.json(
@@ -338,7 +338,7 @@ export const adminHandlers = [
         status: 404,
       });
     }
-    const body = (await request.json())                       ;
+    const body = await request.json();
     const next = { ...adminCustomers[idx], is_active: false };
     const copy = [...adminCustomers];
     copy[idx] = next;
@@ -420,7 +420,7 @@ export const adminHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())                      ;
+    const body = await request.json();
     const now = new Date().toISOString();
     const market = {
       id: Math.max(0, ...adminMarkets.map((m) => m.id)) + 1,
@@ -470,7 +470,7 @@ export const adminHandlers = [
         status: 404,
       });
     }
-    const body = (await request.json())                               ;
+    const body = await request.json();
     const next = { ...adminMarkets[idx], ...body };
     const copy = [...adminMarkets];
     copy[idx] = next;
@@ -504,7 +504,7 @@ export const adminHandlers = [
       });
     }
     // AD-17 now takes a reason, and refuses without one.
-    const body = (await request.json().catch(() => ({})))                       ;
+    const body = await request.json().catch(() => ({}));
     if (!body.reason || body.reason.trim().length < 5) {
       return HttpResponse.json(
         errorEnvelope('Invalid request', 'VALIDATION_ERROR', {
@@ -534,9 +534,7 @@ export const adminHandlers = [
       request_id: null,
       details: { name: next.name, reason: body.reason, cancelled_orders: 0 },
     });
-    return HttpResponse.json(
-      envelope({ ...next, cancelled_orders: 0 }, 'Market closed'),
-    );
+    return HttpResponse.json(envelope({ ...next, cancelled_orders: 0 }, 'Market closed'));
   }),
 
   http.get('/api/admin/categories/', ({ request }) => {
@@ -555,9 +553,8 @@ export const adminHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())
+    const body = await request.json();
 
-     ;
     const cat = {
       id: Math.max(0, ...adminCategories.map((c) => c.id)) + 1,
       name: body.name,
@@ -582,9 +579,8 @@ export const adminHandlers = [
         status: 404,
       });
     }
-    const body = (await request.json())
+    const body = await request.json();
 
-      ;
     const next = {
       ...adminCategories[idx],
       name: body.name ?? adminCategories[idx].name,
@@ -610,10 +606,9 @@ export const adminHandlers = [
       });
     }
     if (cat.product_count > 0) {
-      return HttpResponse.json(
-        errorEnvelope('Category is in use', 'RESOURCE_IN_USE'),
-        { status: 400 },
-      );
+      return HttpResponse.json(errorEnvelope('Category is in use', 'RESOURCE_IN_USE'), {
+        status: 400,
+      });
     }
     setAdminCategories(adminCategories.filter((c) => c.id !== Number(params.id)));
     return HttpResponse.json(envelope(null, 'Category deleted'));
@@ -640,7 +635,7 @@ export const adminHandlers = [
         status: 404,
       });
     }
-    const body = (await request.json())                       ;
+    const body = await request.json();
     const reason = body.reason?.trim() ?? '';
     if (reason.length < 3) {
       return HttpResponse.json(errorEnvelope('Enter a hide reason', 'VALIDATION_ERROR'), {
@@ -702,7 +697,7 @@ export const adminHandlers = [
         status: 404,
       });
     }
-    const body = (await request.json())                       ;
+    const body = await request.json();
     const reason = body.reason?.trim() ?? '';
     if (reason.length < 3) {
       return HttpResponse.json(errorEnvelope('Enter a hide reason', 'VALIDATION_ERROR'), {
@@ -755,7 +750,7 @@ export const adminHandlers = [
         status: 404,
       });
     }
-    const body = (await request.json())                       ;
+    const body = await request.json();
     const reason = body.reason?.trim() ?? '';
     if (reason.length < 3) {
       return HttpResponse.json(errorEnvelope('Enter a hide reason', 'VALIDATION_ERROR'), {
@@ -811,7 +806,7 @@ export const adminHandlers = [
     if (to) orders = orders.filter((o) => o.created_at.slice(0, 10) <= to);
     if (marketId) orders = orders.filter((o) => o.market.id === Number(marketId));
 
-    const statusMap = new Map                     ();
+    const statusMap = new Map();
     for (const o of orders) {
       statusMap.set(o.status, (statusMap.get(o.status) ?? 0) + 1);
     }
@@ -920,9 +915,8 @@ export const adminHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())
+    const body = await request.json();
 
-     ;
     const now = new Date().toISOString();
     const item = {
       id: Math.max(0, ...adminAnnouncements.map((a) => a.id)) + 1,
@@ -952,7 +946,7 @@ export const adminHandlers = [
         status: 404,
       });
     }
-    const body = (await request.json())                                                ;
+    const body = await request.json();
     const next = { ...adminAnnouncements[idx], ...body, id: adminAnnouncements[idx].id };
     const copy = [...adminAnnouncements];
     copy[idx] = next;

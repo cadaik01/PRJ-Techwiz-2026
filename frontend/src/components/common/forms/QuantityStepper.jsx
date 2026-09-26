@@ -12,9 +12,7 @@ export function QuantityStepper({
   onChange,
   className,
   disabled = false,
-}
-
- ) {
+}) {
   return (
     <div className={cn('quantity-stepper', className)}>
       <Button

@@ -9,11 +9,7 @@ export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 export const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 export const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
 
-export function DropdownMenuContent({
-  className,
-  sideOffset = 8,
-  ...props
-}                                                            ) {
+export function DropdownMenuContent({ className, sideOffset = 8, ...props }) {
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
@@ -25,10 +21,7 @@ export function DropdownMenuContent({
   );
 }
 
-export function DropdownMenuItem({
-  className,
-  ...props
-}                                                         ) {
+export function DropdownMenuItem({ className, ...props }) {
   return (
     <DropdownMenuPrimitive.Item
       className={cn('dropdown-menu__item', className)}
@@ -37,10 +30,7 @@ export function DropdownMenuItem({
   );
 }
 
-export function DropdownMenuLabel({
-  className,
-  ...props
-}                                                          ) {
+export function DropdownMenuLabel({ className, ...props }) {
   return (
     <DropdownMenuPrimitive.Label
       className={cn('dropdown-menu__label', className)}
@@ -49,10 +39,7 @@ export function DropdownMenuLabel({
   );
 }
 
-export function DropdownMenuSeparator({
-  className,
-  ...props
-}                                                              ) {
+export function DropdownMenuSeparator({ className, ...props }) {
   return (
     <DropdownMenuPrimitive.Separator
       className={cn('dropdown-menu__separator', className)}

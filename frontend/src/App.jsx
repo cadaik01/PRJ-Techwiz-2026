@@ -1,4 +1,4 @@
-import { useEffect, useState,                } from 'react';
+import { useEffect, useState } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -28,7 +28,7 @@ async function enableMocking() {
   mockingStarted = true;
 }
 
-function waitForAuthHydration()                {
+function waitForAuthHydration() {
   if (useAuthStore.persist.hasHydrated()) return Promise.resolve();
   return new Promise((resolve) => {
     const unsub = useAuthStore.persist.onFinishHydration(() => {
@@ -38,7 +38,7 @@ function waitForAuthHydration()                {
   });
 }
 
-function BootProvider({ children }                         ) {
+function BootProvider({ children }) {
   const [ready, setReady] = useState(false);
   const setTokens = useAuthStore((s) => s.setTokens);
   const setRole = useAuthStore((s) => s.setRole);

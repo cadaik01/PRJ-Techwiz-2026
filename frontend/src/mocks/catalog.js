@@ -7,7 +7,7 @@ const PRODUCT_IMG =
 const AVATAR =
   'https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=200&q=80';
 
-export const categories             = [
+export const categories = [
   { id: 1, name: 'Vegetables', icon: 'leaf', display_order: 1 },
   { id: 2, name: 'Fruits', icon: 'apple', display_order: 2 },
   { id: 3, name: 'Dairy', icon: 'milk', display_order: 3 },
@@ -16,7 +16,7 @@ export const categories             = [
   { id: 6, name: 'Spices', icon: 'flame', display_order: 6 },
 ];
 
-export const markets           = [
+export const markets = [
   {
     id: 1,
     name: 'Ben Thanh Market',
@@ -104,12 +104,7 @@ export const markets           = [
   },
 ];
 
-function farmerMarketsToPickupWindows(
-  farmerId        ,
-  marketRefs
-
-    ,
-)                                 {
+function farmerMarketsToPickupWindows(farmerId, marketRefs) {
   return marketRefs.map((m, index) => ({
     farmer_market_id: farmerId * 100 + index + 1,
     market_id: m.market_id,
@@ -136,7 +131,7 @@ function farmerMarketsToPickupWindows(
   }));
 }
 
-export const farmers               = [
+export const farmers = [
   {
     id: 2,
     stall_name: 'Da Lat Greens Stall',
@@ -145,7 +140,11 @@ export const farmers               = [
     rating_count: 126,
     markets: [
       { market_id: 4, market_name: 'Da Lat Market', stall_label: 'Row A · Stall 12' },
-      { market_id: 1, market_name: 'Ben Thanh Market', stall_label: 'Produce aisle · Stall 08' },
+      {
+        market_id: 1,
+        market_name: 'Ben Thanh Market',
+        stall_label: 'Produce aisle · Stall 08',
+      },
     ],
     operating_days: [1, 2, 3, 4, 5, 6, 7],
     in_stock_product_count: 6,
@@ -155,7 +154,8 @@ export const farmers               = [
     contact_person: 'Lan Huong',
     phone: '0912345678',
     address: 'Da Lat, Lam Dong',
-    description: 'Family has grown Da Lat greens for over 15 years. Pesticide-free commitment.',
+    description:
+      'Family has grown Da Lat greens for over 15 years. Pesticide-free commitment.',
     latitude: 11.941,
     longitude: 108.459,
     order_cutoff_hours: 12,
@@ -236,7 +236,11 @@ export const farmers               = [
     rating_avg: 4.6,
     rating_count: 78,
     markets: [
-      { market_id: 1, market_name: 'Ben Thanh Market', stall_label: 'Meat aisle · Stall 15' },
+      {
+        market_id: 1,
+        market_name: 'Ben Thanh Market',
+        stall_label: 'Meat aisle · Stall 15',
+      },
     ],
     operating_days: [1, 2, 3, 4, 5, 6, 7],
     in_stock_product_count: 3,
@@ -306,7 +310,11 @@ export const farmers               = [
     rating_avg: 4.5,
     rating_count: 61,
     markets: [
-      { market_id: 2, market_name: 'Binh Tay Market', stall_label: 'Produce aisle · Stall 05' },
+      {
+        market_id: 2,
+        market_name: 'Binh Tay Market',
+        stall_label: 'Produce aisle · Stall 05',
+      },
       { market_id: 5, market_name: 'Dong Ba Market', stall_label: 'Stall 18' },
     ],
     operating_days: [1, 3, 5, 7],
@@ -317,7 +325,8 @@ export const farmers               = [
     contact_person: 'Kim Anh',
     phone: '0977000111',
     address: 'District 6, Ho Chi Minh City',
-    description: 'Water spinach, greens, and herbs — cut in the morning, sold at the stall in the afternoon.',
+    description:
+      'Water spinach, greens, and herbs — cut in the morning, sold at the stall in the afternoon.',
     latitude: 10.7504,
     longitude: 106.6518,
     order_cutoff_hours: 12,
@@ -343,11 +352,7 @@ export const farmers               = [
   },
 ];
 
-function product(
-  partial
-
-   ,
-)                {
+function product(partial) {
   return {
     ...partial,
     is_favorite: partial.is_favorite ?? false,
@@ -355,7 +360,7 @@ function product(
   };
 }
 
-export const products                  = [
+export const products = [
   product({
     id: 1,
     name: 'Clean water spinach',
@@ -402,7 +407,9 @@ export const products                  = [
     rating_avg: 4.7,
     rating_count: 35,
     description: 'Crisp, sweet baby bok choy — great for stir-fries or soup.',
-    markets: [{ market_id: 4, market_name: 'Da Lat Market', days: [1, 2, 3, 4, 5, 6, 7] }],
+    markets: [
+      { market_id: 4, market_name: 'Da Lat Market', days: [1, 2, 3, 4, 5, 6, 7] },
+    ],
   }),
   product({
     id: 4,
@@ -417,7 +424,9 @@ export const products                  = [
     rating_avg: 4.5,
     rating_count: 22,
     description: 'Red/yellow/green bell peppers, uniform size.',
-    markets: [{ market_id: 1, market_name: 'Ben Thanh Market', days: [1, 2, 3, 4, 5, 6] }],
+    markets: [
+      { market_id: 1, market_name: 'Ben Thanh Market', days: [1, 2, 3, 4, 5, 6] },
+    ],
   }),
   product({
     id: 5,
@@ -432,7 +441,9 @@ export const products                  = [
     rating_avg: 4.4,
     rating_count: 18,
     description: 'Fresh watercress, stays crisp when refrigerated.',
-    markets: [{ market_id: 4, market_name: 'Da Lat Market', days: [1, 2, 3, 4, 5, 6, 7] }],
+    markets: [
+      { market_id: 4, market_name: 'Da Lat Market', days: [1, 2, 3, 4, 5, 6, 7] },
+    ],
   }),
   product({
     id: 6,
@@ -479,27 +490,29 @@ export const products                  = [
     rating_avg: 4.6,
     rating_count: 51,
     description: 'Same-day pasteurized fresh milk.',
-    markets: [{ market_id: 3, market_name: 'Thu Duc Produce Market', days: [2, 4, 6, 7] }],
+    markets: [
+      { market_id: 3, market_name: 'Thu Duc Produce Market', days: [2, 4, 6, 7] },
+    ],
   }),
 ];
 
-function tomorrowDate()         {
+function tomorrowDate() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   return d.toISOString().slice(0, 10);
 }
 
 function buildPickupDates(
-  marketId        ,
-  marketName        ,
-  stallLabel        ,
-  latitude        ,
-  longitude        ,
-  slotIdBase        ,
-)               {
+  marketId,
+  marketName,
+  stallLabel,
+  latitude,
+  longitude,
+  slotIdBase,
+) {
   const date = tomorrowDate();
   const day = ((new Date(date + 'T12:00:00').getDay() + 6) % 7) + 1;
-  const day_of_week = day             ;
+  const day_of_week = day;
   return {
     market_id: marketId,
     market_name: marketName,
@@ -531,16 +544,37 @@ function buildPickupDates(
   };
 }
 
-export const pickupOptions                                 = {
+export const pickupOptions = {
   2: [
-    buildPickupDates(1, 'Ben Thanh Market', 'Produce aisle · Stall 08', 10.7728, 106.6982, 10),
+    buildPickupDates(
+      1,
+      'Ben Thanh Market',
+      'Produce aisle · Stall 08',
+      10.7728,
+      106.6982,
+      10,
+    ),
     buildPickupDates(4, 'Da Lat Market', 'Row A · Stall 12', 11.941, 108.459, 20),
   ],
   101: [
-    buildPickupDates(2, 'Binh Tay Market', 'Fruit aisle · Stall 21', 10.7505, 106.652, 30),
+    buildPickupDates(
+      2,
+      'Binh Tay Market',
+      'Fruit aisle · Stall 21',
+      10.7505,
+      106.652,
+      30,
+    ),
   ],
   102: [
-    buildPickupDates(1, 'Ben Thanh Market', 'Meat aisle · Stall 15', 10.7726, 106.6981, 40),
+    buildPickupDates(
+      1,
+      'Ben Thanh Market',
+      'Meat aisle · Stall 15',
+      10.7726,
+      106.6981,
+      40,
+    ),
   ],
   103: [
     buildPickupDates(
@@ -552,10 +586,19 @@ export const pickupOptions                                 = {
       50,
     ),
   ],
-  104: [buildPickupDates(2, 'Binh Tay Market', 'Produce aisle · Stall 05', 10.7504, 106.6518, 60)],
+  104: [
+    buildPickupDates(
+      2,
+      'Binh Tay Market',
+      'Produce aisle · Stall 05',
+      10.7504,
+      106.6518,
+      60,
+    ),
+  ],
 };
 
-export const reviews           = [
+export const reviews = [
   {
     id: 1,
     type: 'FARMER',
@@ -600,7 +643,7 @@ export const reviews           = [
   },
 ];
 
-export const announcements                 = [
+export const announcements = [
   {
     id: 1,
     title: 'Weekend market session',
@@ -619,7 +662,7 @@ export const announcements                 = [
   },
 ];
 
-export function toFarmerSummary(f            )                {
+export function toFarmerSummary(f) {
   return {
     id: f.id,
     stall_name: f.stall_name,
@@ -635,7 +678,7 @@ export function toFarmerSummary(f            )                {
   };
 }
 
-export function toProductCard(p               )              {
+export function toProductCard(p) {
   return {
     id: p.id,
     name: p.name,

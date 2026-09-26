@@ -13,10 +13,7 @@ import {
   useAdminMarket,
   useSaveAdminMarket,
 } from '../../hooks/queries/admin/useAdminMarkets';
-import {
-  marketSchema,
-
-} from '../../schemas/admin/market.schema';
+import { marketSchema } from '../../schemas/admin/market.schema';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -36,7 +33,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const DAYS                                             = [
+const DAYS = [
   { value: 1, label: 'Mon' },
   { value: 2, label: 'Tue' },
   { value: 3, label: 'Wed' },
@@ -46,7 +43,7 @@ const DAYS                                             = [
   { value: 7, label: 'Sun' },
 ];
 
-const DEFAULT_VALUES                   = {
+const DEFAULT_VALUES = {
   name: '',
   address: '',
   latitude: 10.7725,
@@ -59,7 +56,7 @@ const DEFAULT_VALUES                   = {
   description: '',
 };
 
-function MapClick({ onPick }                                                           ) {
+function MapClick({ onPick }) {
   useMapEvents({
     click(e) {
       onPick(e.latlng.lat, e.latlng.lng);
@@ -68,11 +65,11 @@ function MapClick({ onPick }                                                    
   return null;
 }
 
-function readDragLatLng(target         )                                      {
+function readDragLatLng(target) {
   if (!target || typeof target !== 'object' || !('getLatLng' in target)) return null;
   const getter = target.getLatLng;
   if (typeof getter !== 'function') return null;
-  const point          = getter.call(target);
+  const point = getter.call(target);
   if (!point || typeof point !== 'object') return null;
   if (!('lat' in point) || !('lng' in point)) return null;
   if (typeof point.lat !== 'number' || typeof point.lng !== 'number') return null;
@@ -84,11 +81,11 @@ export default function AdminMarketFormPage() {
   const marketId = id ? Number(id) : NaN;
   const isEdit = Number.isFinite(marketId);
   const navigate = useNavigate();
-  const [seededId, setSeededId] = useState               (null);
+  const [seededId, setSeededId] = useState(null);
 
   const marketQuery = useAdminMarket(marketId, isEdit);
   const save = useSaveAdminMarket(isEdit ? marketId : undefined);
-  const form = useForm                  ({
+  const form = useForm({
     resolver: zodResolver(marketSchema),
     defaultValues: DEFAULT_VALUES,
   });
@@ -127,7 +124,7 @@ export default function AdminMarketFormPage() {
   }
   if (isEdit && seededId !== market?.id) return <PageSkeleton />;
 
-  const toggleDay = (day           ) => {
+  const toggleDay = (day) => {
     const current = form.getValues('operating_days');
     const next = current.includes(day)
       ? current.filter((value) => value !== day)
@@ -135,7 +132,7 @@ export default function AdminMarketFormPage() {
     form.setValue('operating_days', next, { shouldValidate: true });
   };
 
-  const onSubmit = (values                  ) => {
+  const onSubmit = (values) => {
     save.mutate(
       {
         name: values.name,
@@ -164,15 +161,25 @@ export default function AdminMarketFormPage() {
         <div className="admin-market-form-page__fields">
           <div className="page-primitive__form-grid-2">
             <div className="page-primitive__form-field page-primitive__form-span-2">
-              <Input id="name" label="Market name"
-            requiredMark {...form.register('name')} />
+              <Input
+                id="name"
+                label="Market name"
+                requiredMark
+                {...form.register('name')}
+              />
               {form.formState.errors.name ? (
-                <p className="page-primitive__error">{form.formState.errors.name.message}</p>
+                <p className="page-primitive__error">
+                  {form.formState.errors.name.message}
+                </p>
               ) : null}
             </div>
             <div className="page-primitive__form-field page-primitive__form-span-2">
-              <Input id="address" label="Address"
-            requiredMark {...form.register('address')} />
+              <Input
+                id="address"
+                label="Address"
+                requiredMark
+                {...form.register('address')}
+              />
               {form.formState.errors.address ? (
                 <p className="page-primitive__error">
                   {form.formState.errors.address.message}
@@ -184,7 +191,7 @@ export default function AdminMarketFormPage() {
                 id="open_time"
                 type="time"
                 label="Open time"
-            requiredMark
+                requiredMark
                 {...form.register('open_time')}
               />
               {form.formState.errors.open_time ? (
@@ -198,7 +205,7 @@ export default function AdminMarketFormPage() {
                 id="close_time"
                 type="time"
                 label="Close time"
-            requiredMark
+                requiredMark
                 {...form.register('close_time')}
               />
               {form.formState.errors.close_time ? (

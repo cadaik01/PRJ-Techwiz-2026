@@ -30,7 +30,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const WEEKDAYS                                             = [
+const WEEKDAYS = [
   { value: 1, label: 'Mon' },
   { value: 2, label: 'Tue' },
   { value: 3, label: 'Wed' },
@@ -44,7 +44,7 @@ export default function FarmerMarketsPage() {
   const marketsQuery = useFarmerMarkets();
   const publicMarketsQuery = usePublicMarketsForJoin();
 
-  const [selectedId, setSelectedId] = useState               (null);
+  const [selectedId, setSelectedId] = useState(null);
   const [addMarketId, setAddMarketId] = useState('');
   const [stallLabel, setStallLabel] = useState('');
   const [editStall, setEditStall] = useState('');
@@ -66,7 +66,7 @@ export default function FarmerMarketsPage() {
   const joinedIds = new Set(marketsQuery.data?.map((m) => m.market.id) ?? []);
   const availableToJoin = publicList.filter((m) => !joinedIds.has(m.id));
 
-  const selectMarket = (membershipId        , label        ) => {
+  const selectMarket = (membershipId, label) => {
     setSelectedId(membershipId);
     setEditStall(label);
   };

@@ -7,4 +7,3 @@ export const announcementSchema = z.object({
   starts_at: z.string().min(1, 'Select start time'),
   is_active: z.boolean(),
 });
-

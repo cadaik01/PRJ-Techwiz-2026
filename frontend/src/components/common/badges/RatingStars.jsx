@@ -4,14 +4,7 @@ import { cn } from '@/lib/cn';
 
 import './RatingStars.css';
 
-export function RatingStars({
-  value,
-  count,
-  size = 'sm',
-  className,
-}
-
- ) {
+export function RatingStars({ value, count, size = 'sm', className }) {
   const display = value === null ? '—' : value.toFixed(1);
   return (
     <div className={cn('rating-stars', className)}>

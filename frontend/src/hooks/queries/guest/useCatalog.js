@@ -1,16 +1,13 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 
-import {
-  catalogApi,
-
-} from '../../../api/guest/catalogApi';
+import { catalogApi } from '../../../api/guest/catalogApi';
 import { QUERY_KEYS } from '@/config/constants';
 
-function toNumberId(id        )         {
+function toNumberId(id) {
   return Number(id);
 }
 
-function wrapArrayAsPage(data               )                             {
+function wrapArrayAsPage(data) {
   return {
     results: data,
     count: data.length,
@@ -36,14 +33,14 @@ export function useAnnouncements() {
   });
 }
 
-export function useMarkets(query              ) {
+export function useMarkets(query) {
   return useQuery({
     queryKey: QUERY_KEYS.MARKETS(query),
     queryFn: () => catalogApi.getMarkets(query),
   });
 }
 
-export function useMarket(id        , coords                                 ) {
+export function useMarket(id, coords) {
   const numericId = toNumberId(id);
   return useQuery({
     queryKey: QUERY_KEYS.MARKET(id),
@@ -52,7 +49,7 @@ export function useMarket(id        , coords                                 ) {
   });
 }
 
-export function useMarketFarmers(marketId        ) {
+export function useMarketFarmers(marketId) {
   const numericId = toNumberId(marketId);
   return useQuery({
     queryKey: QUERY_KEYS.MARKET_FARMERS(marketId),
@@ -61,14 +58,14 @@ export function useMarketFarmers(marketId        ) {
   });
 }
 
-export function useFarmers(query              ) {
+export function useFarmers(query) {
   return useQuery({
     queryKey: QUERY_KEYS.FARMERS(query),
     queryFn: () => catalogApi.getFarmers(query),
   });
 }
 
-export function useFarmer(id        ) {
+export function useFarmer(id) {
   const numericId = toNumberId(id);
   return useQuery({
     queryKey: QUERY_KEYS.FARMER(id),
@@ -77,7 +74,7 @@ export function useFarmer(id        ) {
   });
 }
 
-export function useFarmerPickupOptions(id        ) {
+export function useFarmerPickupOptions(id) {
   const numericId = toNumberId(id);
   return useQuery({
     queryKey: QUERY_KEYS.FARMER_PICKUP(id),
@@ -86,7 +83,7 @@ export function useFarmerPickupOptions(id        ) {
   });
 }
 
-export function useFarmerReviews(id        ) {
+export function useFarmerReviews(id) {
   const numericId = toNumberId(id);
   return useQuery({
     queryKey: QUERY_KEYS.FARMER_REVIEWS(id),
@@ -95,7 +92,7 @@ export function useFarmerReviews(id        ) {
   });
 }
 
-export function useFarmerProducts(id        ) {
+export function useFarmerProducts(id) {
   const numericId = toNumberId(id);
   return useQuery({
     queryKey: QUERY_KEYS.FARMER_PRODUCTS(id),
@@ -111,7 +108,7 @@ export function useFarmerProducts(id        ) {
   });
 }
 
-export function useProducts(query               ) {
+export function useProducts(query) {
   return useQuery({
     queryKey: QUERY_KEYS.PRODUCTS(query),
     queryFn: async () => {
@@ -122,7 +119,7 @@ export function useProducts(query               ) {
   });
 }
 
-export function useInfiniteProducts(query                             ) {
+export function useInfiniteProducts(query) {
   return useInfiniteQuery({
     queryKey: QUERY_KEYS.PRODUCTS({ ...query, infinite: true }),
     queryFn: async ({ pageParam }) => {
@@ -135,7 +132,7 @@ export function useInfiniteProducts(query                             ) {
   });
 }
 
-export function useProduct(id        ) {
+export function useProduct(id) {
   const numericId = toNumberId(id);
   return useQuery({
     queryKey: QUERY_KEYS.PRODUCT(id),
@@ -144,7 +141,7 @@ export function useProduct(id        ) {
   });
 }
 
-export function useProductReviews(id        ) {
+export function useProductReviews(id) {
   const numericId = toNumberId(id);
   return useQuery({
     queryKey: QUERY_KEYS.PRODUCT_REVIEWS(id),
@@ -153,7 +150,7 @@ export function useProductReviews(id        ) {
   });
 }
 
-export function useProductRating(id        ) {
+export function useProductRating(id) {
   const numericId = toNumberId(id);
   return useQuery({
     queryKey: QUERY_KEYS.PRODUCT_RATING(id),
@@ -165,7 +162,7 @@ export function useProductRating(id        ) {
   });
 }
 
-export function useFarmerRating(id        ) {
+export function useFarmerRating(id) {
   const numericId = toNumberId(id);
   return useQuery({
     queryKey: QUERY_KEYS.FARMER_RATING(id),
@@ -177,7 +174,7 @@ export function useFarmerRating(id        ) {
   });
 }
 
-export function useSearch(q        ) {
+export function useSearch(q) {
   return useQuery({
     queryKey: QUERY_KEYS.SEARCH(q),
     queryFn: async () => {

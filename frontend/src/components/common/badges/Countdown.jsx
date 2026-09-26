@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn';
 
 import './Countdown.css';
 
-function formatRemaining(ms        ) {
+function formatRemaining(ms) {
   if (ms <= 0) return 'Expired';
   const totalSec = Math.floor(ms / 1000);
   const h = Math.floor(totalSec / 3600);
@@ -17,13 +17,7 @@ function formatRemaining(ms        ) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} left`;
 }
 
-export function Countdown({
-  targetIso,
-  label,
-  className,
-}
-
- ) {
+export function Countdown({ targetIso, label, className }) {
   const [text, setText] = useState(() =>
     formatRemaining(new Date(targetIso).getTime() - Date.now()),
   );

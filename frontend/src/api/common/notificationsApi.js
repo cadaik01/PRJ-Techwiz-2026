@@ -2,7 +2,7 @@ import { authApi } from './authApi';
 import { customerApi } from '../customer/customerApi';
 
 export const notificationsApi = {
-  list: async ()                                => {
+  list: async () => {
     const [list, unread] = await Promise.all([
       customerApi.getNotifications({ page_size: 10 }),
       customerApi.getUnreadCount(),
@@ -13,7 +13,7 @@ export const notificationsApi = {
     };
   },
 
-  markRead: async (id        ) => {
+  markRead: async (id) => {
     await customerApi.markNotificationRead(id);
   },
 

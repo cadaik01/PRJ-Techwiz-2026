@@ -26,18 +26,18 @@ import {
 import { moneyToNumber, productAvailability } from '@/utils/helpers/domain';
 import { http, HttpResponse } from 'msw';
 
-function authFarmer(request         ) {
+function authFarmer(request) {
   const user = getUserByAccess(request.headers.get('Authorization'));
   if (!user || user.role !== 'FARMER') return null;
   return user;
 }
 
-function isOverdue(order             , now = Date.now()) {
+function isOverdue(order, now = Date.now()) {
   return isOpenStatus(order.status) && new Date(order.pickup_end_at).getTime() < now;
 }
 
-function computeActions(order             , now = Date.now())                      {
-  const available                      = [];
+function computeActions(order, now = Date.now()) {
+  const available = [];
   const cutoffPassed = now >= new Date(order.cutoff_at).getTime();
   const pickupEnded = now >= new Date(order.pickup_end_at).getTime();
 
@@ -60,25 +60,25 @@ function computeActions(order             , now = Date.now())                   
   return available;
 }
 
-function toFarmerSummary(order             )                     {
+function toFarmerSummary(order) {
   return {
     ...toOrderSummary(order),
     allowed_actions: computeActions(order),
   };
 }
 
-function toFarmerDetail(order             )                    {
+function toFarmerDetail(order) {
   return {
     ...order,
     allowed_actions: computeActions(order),
   };
 }
 
-function farmerOrderList(farmerId        ) {
+function farmerOrderList(farmerId) {
   return customerOrders.filter((o) => o.farmer.id === farmerId);
 }
 
-function replaceOrder(updated             ) {
+function replaceOrder(updated) {
   const idx = customerOrders.findIndex((o) => o.id === updated.id);
   if (idx < 0) return;
   const copy = [...customerOrders];
@@ -86,7 +86,7 @@ function replaceOrder(updated             ) {
   setOrders(copy);
 }
 
-function checkIfMatch(request         , version        ) {
+function checkIfMatch(request, version) {
   const match = request.headers.get('If-Match');
   if (match && Number(match) !== version) {
     return HttpResponse.json(
@@ -97,7 +97,7 @@ function checkIfMatch(request         , version        ) {
   return null;
 }
 
-function productStateFilter(p               , state               )          {
+function productStateFilter(p, state) {
   if (!state) return !p.is_archived;
   if (state === 'archived') return p.is_archived;
   if (state === 'hidden') return p.is_hidden_by_admin;
@@ -135,7 +135,7 @@ export const farmerHandlers = [
     ).length;
     const overdue = orders.filter((o) => isOverdue(o)).length;
 
-    const dayMap = new Map                ();
+    const dayMap = new Map();
     for (const o of completed) {
       const day = o.pickup_date;
       dayMap.set(day, (dayMap.get(day) ?? 0) + moneyToNumber(o.total_amount));
@@ -328,7 +328,7 @@ export const farmerHandlers = [
     }
     const conflict = checkIfMatch(request, order.version);
     if (conflict) return conflict;
-    const body = (await request.json())                       ;
+    const body = await request.json();
     const reason = body.reason?.trim() ?? '';
     if (reason.length < 5 || reason.length > 500) {
       return HttpResponse.json(
@@ -385,9 +385,12 @@ export const farmerHandlers = [
       );
     }
     if (Date.now() < new Date(order.cutoff_at).getTime()) {
-      return HttpResponse.json(errorEnvelope('Cut-off not reached yet', 'CUTOFF_NOT_REACHED'), {
-        status: 400,
-      });
+      return HttpResponse.json(
+        errorEnvelope('Cut-off not reached yet', 'CUTOFF_NOT_REACHED'),
+        {
+          status: 400,
+        },
+      );
     }
     const next = bumpOrderVersion({
       ...order,
@@ -564,11 +567,11 @@ export const farmerHandlers = [
         { status: 403 },
       );
     }
-    const body = (await request.json())                        ;
+    const body = await request.json();
     const id = Math.max(0, ...farmerProducts.map((p) => p.id)) + 1;
     const now = new Date().toISOString();
     const is_available = body.is_available ?? true;
-    const product                = {
+    const product = {
       id,
       name: body.name,
       image: body.image ?? null,
@@ -615,10 +618,10 @@ export const farmerHandlers = [
       });
     }
     const current = farmerProducts[idx];
-    const body = (await request.json())                                 ;
+    const body = await request.json();
     const stock_quantity = body.stock_quantity ?? current.stock_quantity;
     const is_available = body.is_available ?? current.is_available;
-    let next                = {
+    let next = {
       ...current,
       name: body.name ?? current.name,
       price: body.price ?? current.price,
@@ -755,7 +758,9 @@ export const farmerHandlers = [
       });
     });
     setFarmerProducts(next);
-    return HttpResponse.json(envelope({ applied: true }, 'Weekly stock template applied'));
+    return HttpResponse.json(
+      envelope({ applied: true }, 'Weekly stock template applied'),
+    );
   }),
 
   http.get('/api/farmer-markets/', ({ request }) => {
@@ -775,13 +780,15 @@ export const farmerHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())
+    const body = await request.json();
 
-     ;
     if (farmerMarkets.some((m) => m.market.id === body.market_id)) {
-      return HttpResponse.json(errorEnvelope('Already joined this market', 'VALIDATION_ERROR'), {
-        status: 400,
-      });
+      return HttpResponse.json(
+        errorEnvelope('Already joined this market', 'VALIDATION_ERROR'),
+        {
+          status: 400,
+        },
+      );
     }
     const market = allMarkets.find((m) => m.id === body.market_id);
     if (!market) {
@@ -807,7 +814,7 @@ export const farmerHandlers = [
         is_favorite: market.is_favorite,
       },
       stall_label: body.stall_label,
-      slots: []                ,
+      slots: [],
       open_order_count: 0,
     };
     setFarmerMarkets([...farmerMarkets, membership]);
@@ -827,7 +834,7 @@ export const farmerHandlers = [
         status: 404,
       });
     }
-    const body = (await request.json())                                    ;
+    const body = await request.json();
     const next = {
       ...farmerMarkets[idx],
       stall_label: body.stall_label ?? farmerMarkets[idx].stall_label,
@@ -856,9 +863,8 @@ export const farmerHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())
+    const body = await request.json();
 
-     ;
     const idx = farmerMarkets.findIndex((m) => m.id === body.farmer_market_id);
     if (idx < 0) {
       return HttpResponse.json(errorEnvelope('Market not found', 'NOT_FOUND'), {
@@ -887,7 +893,7 @@ export const farmerHandlers = [
       });
     }
     const slotId = Number(params.slotId);
-    const body = (await request.json())                       ;
+    const body = await request.json();
     const idx = farmerMarkets.findIndex((m) => m.slots.some((s) => s.id === slotId));
     if (idx < 0) {
       return HttpResponse.json(errorEnvelope('Market not found', 'NOT_FOUND'), {
@@ -946,7 +952,7 @@ export const farmerHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())                                 ;
+    const body = await request.json();
     const next = { ...farmerProfile, ...body, email: farmerProfile.email };
     setFarmerProfile(next);
     return HttpResponse.json(envelope(next, 'Stall profile updated'));
@@ -980,7 +986,7 @@ export const farmerHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())                      ;
+    const body = await request.json();
     const reply = body.reply?.trim() ?? '';
     if (reply.length < 1 || reply.length > 500) {
       return HttpResponse.json(

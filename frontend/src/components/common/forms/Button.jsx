@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn';
 
 import './Button.css';
 
-function sizeClass(size            )         {
+function sizeClass(size) {
   if (size === 'sm') return 'btn--sm';
   if (size === 'lg') return 'btn--lg';
   if (size === 'icon') return 'btn--icon';
@@ -20,7 +20,7 @@ export function Button({
   disabled,
   children,
   ...props
-}             ) {
+}) {
   const Comp = asChild ? Slot : 'button';
   const isDisabled = Boolean(disabled || loading);
 

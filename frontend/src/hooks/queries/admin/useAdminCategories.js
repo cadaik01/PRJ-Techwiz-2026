@@ -15,7 +15,7 @@ export function useAdminCategories() {
 export function useReorderCategories() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (ids          ) => adminApi.reorderCategories(ids),
+    mutationFn: (ids) => adminApi.reorderCategories(ids),
     onSuccess: () => {
       toast.success('Category order saved');
       void queryClient.invalidateQueries({
@@ -29,9 +29,7 @@ export function useReorderCategories() {
 export function useCreateCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload
-
-     ) => adminApi.createCategory(payload),
+    mutationFn: (payload) => adminApi.createCategory(payload),
     onSuccess: () => {
       toast.success('Category added');
       void queryClient.invalidateQueries({

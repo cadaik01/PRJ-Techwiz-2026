@@ -24,7 +24,7 @@ export function PublicLayout() {
   const isCustomer = Boolean(accessToken) && role === 'CUSTOMER';
   const appHome = role === 'ADMIN' ? '/admin' : role === 'FARMER' ? '/farmer' : '/app';
 
-  const navLinkClass = ({ isActive }                       ) =>
+  const navLinkClass = ({ isActive }) =>
     cn('public-layout__nav-link', isActive && 'is-active');
 
   return (
@@ -148,8 +148,8 @@ export function PublicLayout() {
                   </span>
                 </Link>
                 <p className="public-layout__footer-desc">
-                  Local markets, reserved for you — pre-order from trusted stalls,
-                  pick up on your schedule, and pay when you collect.
+                  Local markets, reserved for you — pre-order from trusted stalls, pick up
+                  on your schedule, and pay when you collect.
                 </p>
               </div>
 

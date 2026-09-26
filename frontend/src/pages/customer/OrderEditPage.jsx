@@ -13,10 +13,7 @@ import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { QuantityStepper } from '@/components/common/forms/QuantityStepper';
 import { PriceTag } from '@/components/common/badges/PriceTag';
-import {
-  TimeSlotPicker,
-
-} from '../../components/customer/TimeSlotPicker';
+import { TimeSlotPicker } from '../../components/customer/TimeSlotPicker';
 import { Button } from '@/components/common/forms/Button';
 import { Textarea } from '@/components/common/forms/Textarea';
 import { usePublicConfigData } from '../../hooks/queries/guest/usePublicConfig';
@@ -68,18 +65,16 @@ function OrderEditForm({
   onSaved,
   onConflict,
   onCancel,
-}
-
- ) {
+}) {
   const [quantities, setQuantities] = useState(() => {
-    const qty                         = {};
+    const qty = {};
     for (const item of order.items) {
       qty[item.product_id] = item.quantity;
     }
     return qty;
   });
   const [note, setNote] = useState(order.note ?? '');
-  const [slot, setSlot] = useState                     (() => {
+  const [slot, setSlot] = useState(() => {
     if (order.pickup_slot_id === null) return null;
     return {
       market_id: order.market.id,

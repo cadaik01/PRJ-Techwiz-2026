@@ -1,22 +1,22 @@
-import { Component,                                } from 'react';
+import { Component } from 'react';
 
 import { Button } from '@/components/common/forms/Button';
 
 import './ErrorBoundary.css';
 
 /** Catches render errors in the React tree and shows a recovery UI. */
-export class ErrorBoundary extends Component                                         {
-  state                     = { hasError: false };
+export class ErrorBoundary extends Component {
+  state = { hasError: false };
 
-  static getDerivedStateFromError()                     {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
-  componentDidCatch(error       , info           ) {
+  componentDidCatch(error, info) {
     console.error('Unhandled UI error', error, info.componentStack);
   }
 
-          handleRetry = () => {
+  handleRetry = () => {
     this.setState({ hasError: false });
   };
 

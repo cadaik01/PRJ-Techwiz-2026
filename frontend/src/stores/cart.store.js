@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 import { STORAGE_KEYS } from '@/config/constants';
 
-export const useCartStore = create           ()(
+export const useCartStore = create()(
   persist(
     (set, get) => ({
       items: [],

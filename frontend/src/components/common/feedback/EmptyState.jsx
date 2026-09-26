@@ -12,7 +12,7 @@ export function EmptyState({
   onAction,
   icon,
   className,
-}                 ) {
+}) {
   return (
     <div className={cn('empty-state', className)}>
       <div className="empty-state__icon-wrap">

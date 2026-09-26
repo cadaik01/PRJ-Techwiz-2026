@@ -5,23 +5,27 @@ import { ApiError } from '@/lib/ApiError';
 import { adminApi } from '../../../api/admin/adminApi';
 import { QUERY_KEYS } from '@/config/constants';
 
-function invalidateFarmers(queryClient
-
- ) {
+function invalidateFarmers(queryClient) {
   void queryClient.invalidateQueries({
     queryKey: [QUERY_KEYS.ADMIN_FARMERS()[0]],
   });
   void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_DASHBOARD });
 }
 
-export function useAdminFarmers(params                = {}) {
+export function useAdminFarmers(params = {}) {
   return useQuery({
     queryKey: QUERY_KEYS.ADMIN_FARMERS(params),
     queryFn: () => adminApi.getFarmers(params),
+    // The client defaults to a 30s staleTime, which is wrong for a list being searched and
+    // moderated: the answer has to be what the server holds now.
+    staleTime: 0,
+    // Keeps the previous results on screen while the next query runs, so the table does not
+    // blink empty between keystrokes.
+    placeholderData: (previous) => previous,
   });
 }
 
-export function useAdminFarmer(id        , enabled = true) {
+export function useAdminFarmer(id, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.ADMIN_FARMER(id),
     queryFn: () => adminApi.getFarmer(id),
@@ -29,7 +33,7 @@ export function useAdminFarmer(id        , enabled = true) {
   });
 }
 
-export function useAdminFarmerImpact(id        , enabled = false) {
+export function useAdminFarmerImpact(id, enabled = false) {
   return useQuery({
     queryKey: QUERY_KEYS.ADMIN_FARMER_IMPACT(id),
     queryFn: () => adminApi.getFarmerImpact(id),
@@ -52,8 +56,7 @@ export function useApproveFarmer() {
 export function useRejectFarmer() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reason }                                ) =>
-      adminApi.rejectFarmer(id, reason),
+    mutationFn: ({ id, reason }) => adminApi.rejectFarmer(id, reason),
     onSuccess: () => {
       toast.success('Application declined');
       invalidateFarmers(queryClient);
@@ -65,8 +68,7 @@ export function useRejectFarmer() {
 export function useSuspendFarmer() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reason }                                ) =>
-      adminApi.suspendFarmer(id, reason),
+    mutationFn: ({ id, reason }) => adminApi.suspendFarmer(id, reason),
     onSuccess: () => {
       toast.success('Stall suspended');
       invalidateFarmers(queryClient);
@@ -87,15 +89,14 @@ export function useReinstateFarmer() {
   });
 }
 
-export function fetchFarmerImpact(id        ) {
+export function fetchFarmerImpact(id) {
   return adminApi.getFarmerImpact(id);
 }
 
-export function useUpdateFarmer(id        ) {
+export function useUpdateFarmer(id) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload                                             ) =>
-      adminApi.updateFarmer(id, payload),
+    mutationFn: (payload) => adminApi.updateFarmer(id, payload),
     onSuccess: () => {
       toast.success('Stall updated');
       void invalidateFarmers(queryClient);

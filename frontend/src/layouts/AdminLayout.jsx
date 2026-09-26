@@ -42,7 +42,7 @@ const navItems = [
   { to: '/admin/password', label: 'My password', icon: KeyRound, end: false },
 ];
 
-function SideNav({ collapsed }                        ) {
+function SideNav({ collapsed }) {
   return (
     <nav className="admin-layout__nav">
       {navItems.map((item) => (

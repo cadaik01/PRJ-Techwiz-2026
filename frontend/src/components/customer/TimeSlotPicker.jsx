@@ -4,14 +4,7 @@ import { cn } from '@/lib/cn';
 
 import './TimeSlotPicker.css';
 
-export function TimeSlotPicker({
-  options,
-  value,
-  onChange,
-  className,
-}
-
- ) {
+export function TimeSlotPicker({ options, value, onChange, className }) {
   return (
     <div className={cn('time-slot-picker', className)}>
       {options.map((option) => (

@@ -64,7 +64,13 @@ export default function AdminCustomerDetailPage() {
         onSave={(values) => update.mutateAsync(values)}
         fields={[
           { required: true, name: 'full_name', label: 'Full name', value: c.full_name },
-          { required: true, name: 'phone', label: 'Phone', value: c.phone ?? '', type: 'tel' },
+          {
+            required: true,
+            name: 'phone',
+            label: 'Phone',
+            value: c.phone ?? '',
+            type: 'tel',
+          },
           { required: true, name: 'address', label: 'Address', value: c.address ?? '' },
         ]}
       />
@@ -82,7 +88,9 @@ export default function AdminCustomerDetailPage() {
       <div className="page-primitive__stat-grid-3">
         <Card>
           <CardHeader className="page-primitive__card-header-tight">
-            <CardTitle className="page-primitive__card-title-muted">Total orders</CardTitle>
+            <CardTitle className="page-primitive__card-title-muted">
+              Total orders
+            </CardTitle>
           </CardHeader>
           <CardContent className="page-primitive__stat-value">
             {c.total_orders}
@@ -90,9 +98,13 @@ export default function AdminCustomerDetailPage() {
         </Card>
         <Card>
           <CardHeader className="page-primitive__card-header-tight">
-            <CardTitle className="page-primitive__card-title-muted">Open orders</CardTitle>
+            <CardTitle className="page-primitive__card-title-muted">
+              Open orders
+            </CardTitle>
           </CardHeader>
-          <CardContent className="page-primitive__stat-value">{c.open_orders}</CardContent>
+          <CardContent className="page-primitive__stat-value">
+            {c.open_orders}
+          </CardContent>
         </Card>
         <Card>
           <CardHeader className="page-primitive__card-header-tight">

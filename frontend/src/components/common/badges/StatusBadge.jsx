@@ -5,7 +5,7 @@ import { orderStatusLabel } from '@/utils/labels';
 import './StatusBadge.css';
 
 // Colours only: the wording lives in utils/labels so every screen says the same thing.
-const STATUS_MODIFIER                              = {
+const STATUS_MODIFIER = {
   PLACED: 'status-badge--placed',
   ACCEPTED: 'status-badge--accepted',
   READY_FOR_PICKUP: 'status-badge--ready',
@@ -16,12 +16,7 @@ const STATUS_MODIFIER                              = {
   NO_SHOW: 'status-badge--noshow',
 };
 
-export function StatusBadge({
-  status,
-  className,
-}
-
- ) {
+export function StatusBadge({ status, className }) {
   return (
     <span className={cn('status-badge', STATUS_MODIFIER[status], className)}>
       {orderStatusLabel(status)}

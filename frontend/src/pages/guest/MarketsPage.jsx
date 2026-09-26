@@ -10,12 +10,12 @@ import { Skeleton } from '@/components/common/feedback/Skeleton';
 
 import './MarketsPage.css';
 
-function parseMarketSort(value        )             {
+function parseMarketSort(value) {
   if (value === 'distance' || value === 'name' || value === 'name_desc') return value;
   return 'name';
 }
 
-const DAY_OPTIONS                                             = [
+const DAY_OPTIONS = [
   { value: 1, label: WEEKDAY_LABELS[1] },
   { value: 2, label: WEEKDAY_LABELS[2] },
   { value: 3, label: WEEKDAY_LABELS[3] },
@@ -28,8 +28,8 @@ const DAY_OPTIONS                                             = [
 export default function MarketsPage() {
   const { lat, lng } = useGeolocation();
   const [q, setQ] = useState('');
-  const [weekday, setWeekday] = useState                       ();
-  const [sort, setSort] = useState            (lat != null ? 'distance' : 'name');
+  const [weekday, setWeekday] = useState();
+  const [sort, setSort] = useState(lat != null ? 'distance' : 'name');
 
   const query = useMarkets({
     lat: lat ?? undefined,

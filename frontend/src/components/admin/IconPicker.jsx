@@ -5,12 +5,7 @@ import './IconPicker.css';
 
 /** A category stores its icon by lucide name. Typing that name from memory is guesswork, so
  *  the admin picks from the set the app can actually draw. */
-export function IconPicker({
-  value,
-  onChange,
-}
-
- ) {
+export function IconPicker({ value, onChange }) {
   return (
     <div className="icon-picker">
       <p className="page-primitive__label-xs">Icon</p>

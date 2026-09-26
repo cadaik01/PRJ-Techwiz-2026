@@ -1,6 +1,6 @@
 /** DRF PageNumberPagination default shape. */
 
-function pageFromUrl(url               )                {
+function pageFromUrl(url) {
   if (!url) return null;
   try {
     const parsed = new URL(url, 'http://localhost');
@@ -13,19 +13,17 @@ function pageFromUrl(url               )                {
   }
 }
 
-function isRecord(value         )                                   {
+function isRecord(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function readNullableString(value         )                {
+function readNullableString(value) {
   if (value === null) return null;
   if (typeof value === 'string') return value;
   return null;
 }
 
-function isPaginatedData   (
-  value                         ,
-)                                                      {
+function isPaginatedData(value) {
   return (
     typeof value.page === 'number' &&
     typeof value.page_size === 'number' &&
@@ -37,7 +35,7 @@ function isPaginatedData   (
 /**
  * Normalize DRF pagination (or a bare array) into the FE PaginatedData contract.
  */
-export function adaptPaginated   (raw         , fallbackPageSize = 20)                   {
+export function adaptPaginated(raw, fallbackPageSize = 20) {
   if (!raw) {
     return {
       count: 0,
@@ -58,7 +56,7 @@ export function adaptPaginated   (raw         , fallbackPageSize = 20)          
       total_pages: raw.length > 0 ? 1 : 0,
       next: null,
       previous: null,
-      results: raw.filter((_item)             => true),
+      results: raw.filter((_item) => true),
     };
   }
 
@@ -74,7 +72,7 @@ export function adaptPaginated   (raw         , fallbackPageSize = 20)          
     };
   }
 
-  if (isPaginatedData   (raw)) {
+  if (isPaginatedData(raw)) {
     return {
       count: typeof raw.count === 'number' ? raw.count : raw.results.length,
       page: raw.page,
@@ -87,9 +85,7 @@ export function adaptPaginated   (raw         , fallbackPageSize = 20)          
     };
   }
 
-  const results = Array.isArray(raw.results)
-    ? raw.results.filter((_item)             => true)
-    : [];
+  const results = Array.isArray(raw.results) ? raw.results.filter((_item) => true) : [];
   const count = typeof raw.count === 'number' ? raw.count : results.length;
   const pageSize =
     results.length > 0 && count > results.length
@@ -112,6 +108,6 @@ export function adaptPaginated   (raw         , fallbackPageSize = 20)          
   };
 }
 
-export function emptyPage   (pageSize = 20)                   {
-  return adaptPaginated   (undefined, pageSize);
+export function emptyPage(pageSize = 20) {
+  return adaptPaginated(undefined, pageSize);
 }

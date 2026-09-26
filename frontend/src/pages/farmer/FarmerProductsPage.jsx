@@ -19,9 +19,7 @@ import { Input } from '@/components/common/forms/Input';
 
 import './FarmerProductsPage.css';
 
-const STATE_OPTIONS
-
-   = [
+const STATE_OPTIONS = [
   { value: '', label: 'All statuses' },
   { value: 'in_stock', label: 'In stock' },
   { value: 'out_of_stock', label: 'Out of stock' },
@@ -30,7 +28,7 @@ const STATE_OPTIONS
   { value: 'archived', label: 'Archived' },
 ];
 
-const AVAILABILITY_LABEL                                      = {
+const AVAILABILITY_LABEL = {
   IN_STOCK: 'In stock',
   OUT_OF_STOCK: 'Out of stock',
   UNAVAILABLE: 'Unavailable',

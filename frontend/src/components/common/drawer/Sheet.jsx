@@ -10,23 +10,13 @@ export const SheetTrigger = DialogPrimitive.Trigger;
 export const SheetClose = DialogPrimitive.Close;
 export const SheetPortal = DialogPrimitive.Portal;
 
-export function SheetOverlay({
-  className,
-  ...props
-}                                                      ) {
+export function SheetOverlay({ className, ...props }) {
   return (
     <DialogPrimitive.Overlay className={cn('sheet-overlay', className)} {...props} />
   );
 }
 
-export function SheetContent({
-  side = 'right',
-  className,
-  children,
-  ...props
-}
-
- ) {
+export function SheetContent({ side = 'right', className, children, ...props }) {
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -44,16 +34,10 @@ export function SheetContent({
   );
 }
 
-export function SheetHeader({
-  className,
-  ...props
-}                                      ) {
+export function SheetHeader({ className, ...props }) {
   return <div className={cn('sheet-header', className)} {...props} />;
 }
 
-export function SheetTitle({
-  className,
-  ...props
-}                                                    ) {
+export function SheetTitle({ className, ...props }) {
   return <DialogPrimitive.Title className={cn('sheet-title', className)} {...props} />;
 }

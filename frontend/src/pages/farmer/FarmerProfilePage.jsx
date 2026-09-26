@@ -8,10 +8,7 @@ import {
   useFarmerProfile,
   useUpdateFarmerProfile,
 } from '../../hooks/queries/farmer/useFarmerProfile';
-import {
-  farmerProfileSchema,
-
-} from '../../schemas/farmer/profile.schema';
+import { farmerProfileSchema } from '../../schemas/farmer/profile.schema';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -26,7 +23,7 @@ import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
 import './FarmerProfilePage.css';
 
-function initials(name        , email        ) {
+function initials(name, email) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
     return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
@@ -39,7 +36,7 @@ export default function FarmerProfilePage() {
   const query = useFarmerProfile();
   const mutation = useUpdateFarmerProfile();
 
-  const form = useForm                         ({
+  const form = useForm({
     resolver: zodResolver(farmerProfileSchema),
     values: query.data
       ? {
@@ -78,11 +75,7 @@ export default function FarmerProfilePage() {
       />
 
       {profile.image ? (
-        <LazyImage
-          src={profile.image}
-          alt=""
-          className="farmer-profile-page__banner"
-        />
+        <LazyImage src={profile.image} alt="" className="farmer-profile-page__banner" />
       ) : null}
 
       <Card className="farmer-profile-page__card">
@@ -117,7 +110,11 @@ export default function FarmerProfilePage() {
             )}
           >
             <div className="page-primitive__form-field">
-              <Input id="stall_name" label="Stall name" {...form.register('stall_name')} />
+              <Input
+                id="stall_name"
+                label="Stall name"
+                {...form.register('stall_name')}
+              />
               {form.formState.errors.stall_name ? (
                 <p className="page-primitive__error">
                   {form.formState.errors.stall_name.message}

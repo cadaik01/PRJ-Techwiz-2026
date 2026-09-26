@@ -2,13 +2,12 @@ import axiosClient from '@/lib/axiosClient';
 import {
   adaptNotification,
   adaptNotificationPage,
-
 } from '@/lib/adapters/notification.adapter';
 import { adaptPaginated } from '@/lib/adapters/pagination.adapter';
 
 export const customerApi = {
   getDashboard: async () => {
-    const { data } = await axiosClient.get                   ('/dashboard/');
+    const { data } = await axiosClient.get('/dashboard/');
     if (!data) {
       throw new Error('Customer dashboard response missing');
     }
@@ -20,34 +19,32 @@ export const customerApi = {
     return data;
   },
 
-  getOrders: async (params
-
-   ) => {
+  getOrders: async (params) => {
     const { data } = await axiosClient.get('/orders/', { params });
-    return adaptPaginated              (data);
+    return adaptPaginated(data);
   },
 
-  getOrder: async (id        ) => {
-    const { data } = await axiosClient.get             (`/orders/${id}/`);
+  getOrder: async (id) => {
+    const { data } = await axiosClient.get(`/orders/${id}/`);
     return data;
   },
 
-  createOrders: async (payload                     ) => {
-    const { data } = await axiosClient.post                    ('/orders/', payload, {
+  createOrders: async (payload) => {
+    const { data } = await axiosClient.post('/orders/', payload, {
       idempotent: true,
     });
     return data;
   },
 
-  updateOrder: async (id        , payload                    , version        ) => {
-    const { data } = await axiosClient.patch             (`/orders/${id}/`, payload, {
+  updateOrder: async (id, payload, version) => {
+    const { data } = await axiosClient.patch(`/orders/${id}/`, payload, {
       ifMatch: String(version),
     });
     return data;
   },
 
-  cancelOrder: async (id        , reason        , version        ) => {
-    const { data } = await axiosClient.post             (
+  cancelOrder: async (id, reason, version) => {
+    const { data } = await axiosClient.post(
       `/orders/${id}/cancel/`,
       { reason },
       { ifMatch: String(version) },
@@ -55,72 +52,66 @@ export const customerApi = {
     return data;
   },
 
-  reorderPreview: async (id        ) => {
-    const { data } = await axiosClient.get                (
-      `/orders/${id}/reorder-preview/`,
-    );
+  reorderPreview: async (id) => {
+    const { data } = await axiosClient.get(`/orders/${id}/reorder-preview/`);
     return data;
   },
 
-  reviewFarmer: async (orderId        , payload                                     ) => {
+  reviewFarmer: async (orderId, payload) => {
     await axiosClient.post(`/orders/${orderId}/farmer-review/`, payload);
   },
 
-  reviewProduct: async (
-    orderId        ,
-    itemId        ,
-    payload                                     ,
-  ) => {
+  reviewProduct: async (orderId, itemId, payload) => {
     await axiosClient.post(`/orders/${orderId}/items/${itemId}/review/`, payload);
   },
 
   getFavoriteIds: async () => {
-    const { data } = await axiosClient.get             ('/favorite-ids/');
+    const { data } = await axiosClient.get('/favorite-ids/');
     return data;
   },
 
-  addFavoriteFarmer: async (farmerId        ) => {
+  addFavoriteFarmer: async (farmerId) => {
     await axiosClient.post('/favorite-farmers/', {
       farmer_id: farmerId,
     });
   },
 
-  removeFavoriteFarmer: async (farmerId        ) => {
+  removeFavoriteFarmer: async (farmerId) => {
     await axiosClient.delete(`/favorite-farmers/${farmerId}/`);
   },
 
-  addFavoriteProduct: async (productId        ) => {
+  addFavoriteProduct: async (productId) => {
     await axiosClient.post('/favorite-products/', {
       product_id: productId,
     });
   },
 
-  removeFavoriteProduct: async (productId        ) => {
+  removeFavoriteProduct: async (productId) => {
     await axiosClient.delete(`/favorite-products/${productId}/`);
   },
 
-  addFavoriteMarket: async (marketId        ) => {
+  addFavoriteMarket: async (marketId) => {
     await axiosClient.post('/favorite-markets/', {
       market_id: marketId,
     });
   },
 
-  removeFavoriteMarket: async (marketId        ) => {
+  removeFavoriteMarket: async (marketId) => {
     await axiosClient.delete(`/favorite-markets/${marketId}/`);
   },
 
-  getNotifications: async (params                                          = {}) => {
+  getNotifications: async (params = {}) => {
     const { data } = await axiosClient.get('/notifications/', { params });
-    const page = adaptPaginated                (data);
+    const page = adaptPaginated(data);
     return adaptNotificationPage(page);
   },
 
   getUnreadCount: async () => {
-    const { data } = await axiosClient.get             ('/notifications/unread-count/');
+    const { data } = await axiosClient.get('/notifications/unread-count/');
     return data;
   },
 
-  markNotificationRead: async (id        ) => {
+  markNotificationRead: async (id) => {
     await axiosClient.post(`/notifications/${id}/read/`);
   },
 
@@ -129,17 +120,12 @@ export const customerApi = {
   },
 
   getProfile: async () => {
-    const { data } = await axiosClient.get                 ('/customer-profiles/me/');
+    const { data } = await axiosClient.get('/customer-profiles/me/');
     return data;
   },
 
-  updateProfile: async (payload
-
-   ) => {
-    const { data } = await axiosClient.patch                 (
-      '/customer-profiles/me/',
-      payload,
-    );
+  updateProfile: async (payload) => {
+    const { data } = await axiosClient.patch('/customer-profiles/me/', payload);
     return data;
   },
 };

@@ -1,4 +1,4 @@
-const ERROR_MAP                              = {
+const ERROR_MAP = {
   INSUFFICIENT_STOCK: {
     title: 'Insufficient stock',
     suggestion: 'Reduce the quantity or choose another product.',
@@ -93,7 +93,7 @@ const ERROR_MAP                              = {
   },
 };
 
-export function mapErrorCode(code                           )              {
+export function mapErrorCode(code) {
   if (!code) {
     return { title: 'Something went wrong', suggestion: 'Please try again.' };
   }
@@ -105,10 +105,7 @@ export function mapErrorCode(code                           )              {
   );
 }
 
-export function getErrorMessage(
-  code                           ,
-  fallback         ,
-)         {
+export function getErrorMessage(code, fallback) {
   if (fallback) return fallback;
   return mapErrorCode(code).title;
 }

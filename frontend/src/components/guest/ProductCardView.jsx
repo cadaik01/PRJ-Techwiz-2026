@@ -16,25 +16,20 @@ import { cn } from '@/lib/cn';
 
 import './ProductCardView.css';
 
-function availabilityBadge(availability                     , stock        ) {
+function availabilityBadge(availability, stock) {
   if (availability === 'UNAVAILABLE') {
-    return { label: 'Unavailable', variant: 'secondary'          };
+    return { label: 'Unavailable', variant: 'secondary' };
   }
   if (availability === 'OUT_OF_STOCK') {
-    return { label: 'Out of stock', variant: 'danger'          };
+    return { label: 'Out of stock', variant: 'danger' };
   }
   if (stock <= 10) {
-    return { label: `Low stock · ${stock} left`, variant: 'warning'          };
+    return { label: `Low stock · ${stock} left`, variant: 'warning' };
   }
-  return { label: `${stock} left`, variant: 'success'          };
+  return { label: `${stock} left`, variant: 'success' };
 }
 
-export function ProductCardView({
-  product,
-  className,
-}
-
- ) {
+export function ProductCardView({ product, className }) {
   const addItem = useCartStore((s) => s.addItem);
   const { hasProduct, toggleProduct } = useFavorites();
   const favorited = Boolean(product.is_favorite) || hasProduct(product.id);
@@ -67,7 +62,9 @@ export function ProductCardView({
               active={favorited}
               onToggle={() => {
                 void toggleProduct(product.id).then(() => {
-                  toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
+                  toast.success(
+                    favorited ? 'Removed from favorites' : 'Added to favorites',
+                  );
                 });
               }}
               className="product-card__favorite-btn"

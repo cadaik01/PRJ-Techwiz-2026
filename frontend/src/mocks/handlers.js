@@ -21,7 +21,7 @@ import { customerHandlers } from './customerHandlers';
 import { farmerHandlers } from './farmerHandlers';
 import { adminHandlers } from './adminHandlers';
 
-function authHeader(request         ) {
+function authHeader(request) {
   return request.headers.get('Authorization');
 }
 
@@ -36,7 +36,7 @@ export const handlers = [
   }),
 
   http.post('/api/auth/login/', async ({ request }) => {
-    const body = (await request.json())                                         ;
+    const body = await request.json();
     const email = (body.email ?? '').toLowerCase();
     const user = findDemoByEmail(email);
     if (!user || user.password !== body.password) {
@@ -68,7 +68,7 @@ export const handlers = [
   }),
 
   http.post('/api/auth/admin/login/', async ({ request }) => {
-    const body = (await request.json())                                         ;
+    const body = await request.json();
     const email = (body.email ?? '').toLowerCase();
     const user = findDemoByEmail(email);
     if (!user || user.password !== body.password || user.role !== 'ADMIN') {
@@ -94,19 +94,18 @@ export const handlers = [
   }),
 
   http.post('/api/auth/refresh/', async ({ request }) => {
-    const body = (await request.json())                        ;
+    const body = await request.json();
     const result = body.refresh ? refreshTokens(body.refresh) : null;
     if (!result) {
-      return HttpResponse.json(
-        errorEnvelope('Session expired', 'TOKEN_INVALID'),
-        { status: 401 },
-      );
+      return HttpResponse.json(errorEnvelope('Session expired', 'TOKEN_INVALID'), {
+        status: 401,
+      });
     }
     return HttpResponse.json(envelope(result));
   }),
 
   http.post('/api/auth/logout/', async ({ request }) => {
-    const body = (await request.json())                                         ;
+    const body = await request.json();
     if (body.access) revokeAccess(body.access);
     if (body.refresh) revokeRefresh(body.refresh);
     return HttpResponse.json(envelope(null, 'Signed out.'));
@@ -115,10 +114,9 @@ export const handlers = [
   http.get('/api/auth/me/', ({ request }) => {
     const demo = getDemoUserByAccess(authHeader(request));
     if (!demo) {
-      return HttpResponse.json(
-        errorEnvelope('Session expired', 'TOKEN_INVALID'),
-        { status: 401 },
-      );
+      return HttpResponse.json(errorEnvelope('Session expired', 'TOKEN_INVALID'), {
+        status: 401,
+      });
     }
     return HttpResponse.json(envelope(toBeMe(demo)));
   }),
@@ -126,14 +124,12 @@ export const handlers = [
   http.post('/api/auth/change-password/', async ({ request }) => {
     const user = getUserByAccess(authHeader(request));
     if (!user) {
-      return HttpResponse.json(
-        errorEnvelope('Session expired', 'TOKEN_INVALID'),
-        { status: 401 },
-      );
+      return HttpResponse.json(errorEnvelope('Session expired', 'TOKEN_INVALID'), {
+        status: 401,
+      });
     }
-    const body = (await request.json())
+    const body = await request.json();
 
-     ;
     const result = updatePassword(
       user.id,
       body.current_password ?? '',
@@ -153,10 +149,9 @@ export const handlers = [
   http.post('/api/auth/ws-ticket/', ({ request }) => {
     const user = getUserByAccess(authHeader(request));
     if (!user) {
-      return HttpResponse.json(
-        errorEnvelope('Session expired', 'TOKEN_INVALID'),
-        { status: 401 },
-      );
+      return HttpResponse.json(errorEnvelope('Session expired', 'TOKEN_INVALID'), {
+        status: 401,
+      });
     }
     return HttpResponse.json(
       envelope({
@@ -167,35 +162,38 @@ export const handlers = [
   }),
 
   http.post('/api/auth/register/customer/', async ({ request }) => {
-    const body = (await request.json())
+    const body = await request.json();
 
-     ;
     const result = registerCustomerUser(body);
     if ('error' in result) {
-      return HttpResponse.json(errorEnvelope('Email already registered', 'EMAIL_EXISTS'), {
-        status: 400,
-      });
+      return HttpResponse.json(
+        errorEnvelope('Email already registered', 'EMAIL_EXISTS'),
+        {
+          status: 400,
+        },
+      );
     }
     return HttpResponse.json(envelope(result.tokens), { status: 201 });
   }),
 
   http.post('/api/auth/register/farmer/', async ({ request }) => {
-    const body = (await request.json())
+    const body = await request.json();
 
-     ;
     const result = registerFarmerUser(body);
     if ('error' in result) {
-      return HttpResponse.json(errorEnvelope('Email already registered', 'EMAIL_EXISTS'), {
-        status: 400,
-      });
+      return HttpResponse.json(
+        errorEnvelope('Email already registered', 'EMAIL_EXISTS'),
+        {
+          status: 400,
+        },
+      );
     }
     return HttpResponse.json(envelope(result.tokens), { status: 201 });
   }),
 
   http.post('/api/chat/messages/', async ({ request }) => {
-    const body = (await request.json())
+    const body = await request.json();
 
-     ;
     const last = body.messages?.[body.messages.length - 1]?.content ?? '';
     return HttpResponse.json(
       envelope({

@@ -8,10 +8,7 @@ import {
   useCustomerProfile,
   useUpdateCustomerProfile,
 } from '../../hooks/queries/customer/useCustomerProfile';
-import {
-  profileSchema,
-
-} from '../../schemas/customer/profile.schema';
+import { profileSchema } from '../../schemas/customer/profile.schema';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
@@ -23,7 +20,7 @@ import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
 import './ProfilePage.css';
 
-function initials(fullName        , email        ) {
+function initials(fullName, email) {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
     return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
@@ -36,7 +33,7 @@ export default function ProfilePage() {
   const profileQuery = useCustomerProfile();
   const mutation = useUpdateCustomerProfile();
 
-  const form = useForm                   ({
+  const form = useForm({
     resolver: zodResolver(profileSchema),
     values: {
       full_name: profileQuery.data?.full_name ?? '',

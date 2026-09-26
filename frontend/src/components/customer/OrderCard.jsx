@@ -9,13 +9,7 @@ import { OPEN_ORDER_STATUSES } from '@/utils/helpers/domain';
 
 import './OrderCard.css';
 
-export function OrderCard({
-  order,
-  onReorder,
-  canReview = false,
-}
-
- ) {
+export function OrderCard({ order, onReorder, canReview = false }) {
   const isOpen = OPEN_ORDER_STATUSES.includes(order.status);
 
   return (

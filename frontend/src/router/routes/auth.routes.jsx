@@ -9,7 +9,7 @@ const AdminLoginPage = lazy(() => import('@/pages/auth/AdminLoginPage'));
 const RegisterCustomerPage = lazy(() => import('@/pages/auth/RegisterCustomerPage'));
 const RegisterFarmerPage = lazy(() => import('@/pages/auth/RegisterFarmerPage'));
 
-export const authRoutes                = [
+export const authRoutes = [
   {
     element: <GuestOnly />,
     children: [

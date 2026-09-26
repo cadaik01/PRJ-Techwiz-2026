@@ -1,4 +1,4 @@
-import { lazy, Suspense,                } from 'react';
+import { lazy, Suspense } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Clock3, ExternalLink, MapPin, Navigation, Store } from 'lucide-react';
 import { toast } from 'sonner';
@@ -81,7 +81,9 @@ export default function MarketDetailPage() {
               className="market-detail-page__fav-btn"
               onToggle={() => {
                 toggleMarket(market.id);
-                toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
+                toast.success(
+                  favorited ? 'Removed from favorites' : 'Added to favorites',
+                );
               }}
             />
           </div>
@@ -217,7 +219,7 @@ export default function MarketDetailPage() {
   );
 }
 
-function MetaChip({ icon, label }                                    ) {
+function MetaChip({ icon, label }) {
   return (
     <span className="market-detail-page__meta-chip">
       <span className="market-detail-page__meta-chip-icon">{icon}</span>

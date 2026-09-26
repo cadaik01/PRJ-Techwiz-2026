@@ -22,7 +22,7 @@ const FarmerStatsPage = lazy(() => import('@/pages/farmer/FarmerStatsPage'));
 const ChangePasswordPage = lazy(() => import('@/pages/auth/ChangePasswordPage'));
 
 /** Nested under a shared RequireAuth parent in AppRouter. */
-export const farmerRoutes                = [
+export const farmerRoutes = [
   {
     element: <RequireRole allow={['FARMER']} />,
     children: [

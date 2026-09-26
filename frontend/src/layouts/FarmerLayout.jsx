@@ -34,7 +34,12 @@ const navItems = [
   { to: '/farmer', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/farmer/orders', label: 'Orders', icon: Package, end: false },
   { to: '/farmer/products', label: 'Products', icon: Boxes, end: false },
-  { to: '/farmer/stock-template', label: 'Stock template', icon: CalendarClock, end: false },
+  {
+    to: '/farmer/stock-template',
+    label: 'Stock template',
+    icon: CalendarClock,
+    end: false,
+  },
   { to: '/farmer/markets', label: 'Markets & slots', icon: Store, end: false },
   { to: '/farmer/reviews', label: 'Reviews', icon: MessageSquare, end: false },
   { to: '/farmer/stats', label: 'Stats', icon: BarChart3, end: false },
@@ -42,7 +47,7 @@ const navItems = [
   { to: '/farmer/settings', label: 'Change password', icon: Settings, end: false },
 ];
 
-function SideNav({ collapsed }                        ) {
+function SideNav({ collapsed }) {
   return (
     <nav className="farmer-layout__nav">
       {navItems.map((item) => (

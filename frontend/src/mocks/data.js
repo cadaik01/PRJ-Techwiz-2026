@@ -1,4 +1,4 @@
-export const publicConfig               = {
+export const publicConfig = {
   ai_chat_enabled: true,
   booking_horizon_days: 7,
   max_open_orders_total: 5,
@@ -7,7 +7,7 @@ export const publicConfig               = {
 };
 
 /** Role seed order in accounts.0002: 1=ADMIN, 2=FARMER, 3=CUSTOMER */
-export const demoUsers                           = {
+export const demoUsers = {
   'customer@demo.vn': {
     id: 1,
     email: 'customer@demo.vn',
@@ -37,11 +37,11 @@ export const demoUsers                           = {
   },
 };
 
-const sessions = new Map                 ();
-const refreshToAccess = new Map                ();
+const sessions = new Map();
+const refreshToAccess = new Map();
 const dynamicUsers = { ...demoUsers };
 
-function stripPassword(user          )     {
+function stripPassword(user) {
   return {
     id: user.id,
     email: user.email,
@@ -52,7 +52,7 @@ function stripPassword(user          )     {
 }
 
 /** BE-shaped /auth/me/ payload (role FK id + display fields). */
-function toBeMe(user          ) {
+function toBeMe(user) {
   return {
     id: user.id,
     email: user.email,
@@ -66,7 +66,7 @@ function toBeMe(user          ) {
   };
 }
 
-export function envelope   (data   , message = 'OK') {
+export function envelope(data, message = 'OK') {
   return {
     success: true,
     message,
@@ -76,11 +76,7 @@ export function envelope   (data   , message = 'OK') {
   };
 }
 
-export function errorEnvelope(
-  message        ,
-  code         ,
-  errors                           = {},
-) {
+export function errorEnvelope(message, code, errors = {}) {
   return {
     success: false,
     message,
@@ -91,7 +87,7 @@ export function errorEnvelope(
   };
 }
 
-export function paginate   (items     , page        , pageSize        ) {
+export function paginate(items, page, pageSize) {
   const allowed = pageSize === 5 || pageSize === 10 || pageSize === 20 ? pageSize : 20;
   const count = items.length;
   const total_pages = Math.max(1, Math.ceil(count / allowed));
@@ -108,7 +104,7 @@ export function paginate   (items     , page        , pageSize        ) {
   };
 }
 
-export function issueTokens(email        ) {
+export function issueTokens(email) {
   const user = dynamicUsers[email];
   if (!user) return null;
   const access = `access-${email}-${Date.now()}`;
@@ -122,7 +118,7 @@ export function issueTokens(email        ) {
   };
 }
 
-export function userFromAccess(access               )            {
+export function userFromAccess(access) {
   if (!access) return null;
   const session = sessions.get(access);
   if (!session) return null;
@@ -131,12 +127,12 @@ export function userFromAccess(access               )            {
 }
 
 /** Alias for handlers that read Bearer tokens. */
-export function getUserByAccess(authHeader               )            {
+export function getUserByAccess(authHeader) {
   if (!authHeader?.startsWith('Bearer ')) return null;
   return userFromAccess(authHeader.slice(7));
 }
 
-export function getDemoUserByAccess(authHeader               )                  {
+export function getDemoUserByAccess(authHeader) {
   if (!authHeader?.startsWith('Bearer ')) return null;
   const session = sessions.get(authHeader.slice(7));
   if (!session) return null;
@@ -145,7 +141,7 @@ export function getDemoUserByAccess(authHeader               )                  
 
 export { toBeMe };
 
-export function refreshTokens(refresh        ) {
+export function refreshTokens(refresh) {
   const oldAccess = refreshToAccess.get(refresh);
   if (!oldAccess) return null;
   const session = sessions.get(oldAccess);
@@ -157,25 +153,23 @@ export function refreshTokens(refresh        ) {
   return issueTokens(user.email);
 }
 
-export function revokeRefresh(refresh        ) {
+export function revokeRefresh(refresh) {
   const access = refreshToAccess.get(refresh);
   if (access) sessions.delete(access);
   refreshToAccess.delete(refresh);
 }
 
 /** BE LogoutView revokes the access token (FE posts `{ access }`). */
-export function revokeAccess(access        ) {
+export function revokeAccess(access) {
   const session = sessions.get(access);
   if (!session) return;
   sessions.delete(access);
   refreshToAccess.delete(session.refresh);
 }
 
-export function registerCustomerUser(input
-
- ) {
+export function registerCustomerUser(input) {
   const email = input.email.toLowerCase();
-  if (dynamicUsers[email]) return { error: 'EMAIL_EXISTS'          };
+  if (dynamicUsers[email]) return { error: 'EMAIL_EXISTS' };
   const id = 1000 + Object.keys(dynamicUsers).length;
   dynamicUsers[email] = {
     id,
@@ -189,11 +183,9 @@ export function registerCustomerUser(input
   return { tokens: issueTokens(email) };
 }
 
-export function registerFarmerUser(input
-
- ) {
+export function registerFarmerUser(input) {
   const email = input.email.toLowerCase();
-  if (dynamicUsers[email]) return { error: 'EMAIL_EXISTS'          };
+  if (dynamicUsers[email]) return { error: 'EMAIL_EXISTS' };
   const id = 2000 + Object.keys(dynamicUsers).length;
   dynamicUsers[email] = {
     id,
@@ -207,38 +199,32 @@ export function registerFarmerUser(input
   return { tokens: issueTokens(email) };
 }
 
-export function findDemoByEmail(email        ) {
+export function findDemoByEmail(email) {
   return dynamicUsers[email.toLowerCase()] ?? null;
 }
 
 export const findUserByEmail = findDemoByEmail;
 
-export function createSession(user          ) {
+export function createSession(user) {
   return issueTokens(user.email);
 }
 
-export function refreshSession(refresh        ) {
+export function refreshSession(refresh) {
   const tokens = refreshTokens(refresh);
   if (!tokens) return null;
   return { access: tokens.access, refresh: tokens.refresh };
 }
 
-export function updatePassword(
-  userId        ,
-  currentPassword        ,
-  newPassword        ,
-) {
+export function updatePassword(userId, currentPassword, newPassword) {
   const user = Object.values(dynamicUsers).find((u) => u.id === userId);
   if (!user || user.password !== currentPassword) {
-    return { error: 'INVALID_CREDENTIALS'          };
+    return { error: 'INVALID_CREDENTIALS' };
   }
   user.password = newPassword;
-  return { ok: true          };
+  return { ok: true };
 }
 
-export function registerUser(input
-
- ) {
+export function registerUser(input) {
   if (input.role === 'CUSTOMER') {
     return registerCustomerUser({
       email: input.email,
@@ -258,7 +244,7 @@ export function registerUser(input
   });
 }
 
-export function getCustomerProfile(userId        ) {
+export function getCustomerProfile(userId) {
   const user = Object.values(dynamicUsers).find((u) => u.id === userId);
   if (!user || user.role !== 'CUSTOMER') return null;
   return {

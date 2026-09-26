@@ -4,10 +4,7 @@ import { cn } from '@/lib/cn';
 
 import './Switch.css';
 
-export function Switch({
-  className,
-  ...props
-}                                                    ) {
+export function Switch({ className, ...props }) {
   return (
     <SwitchPrimitives.Root className={cn('switch', className)} {...props}>
       <SwitchPrimitives.Thumb className="switch__thumb" />

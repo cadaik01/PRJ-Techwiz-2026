@@ -16,10 +16,10 @@ import { formatRelative } from '@/utils/formatters';
 import './FarmerReviewsPage.css';
 
 export default function FarmerReviewsPage() {
-  const [targetType, setTargetType] = useState                              ('ALL');
-  const [rating, setRating] = useState        ('');
-  const [replied, setReplied] = useState        ('');
-  const [drafts, setDrafts] = useState                        ({});
+  const [targetType, setTargetType] = useState('ALL');
+  const [rating, setRating] = useState('');
+  const [replied, setReplied] = useState('');
+  const [drafts, setDrafts] = useState({});
 
   const query = useFarmerMyReviews({
     type: targetType === 'ALL' ? undefined : targetType,

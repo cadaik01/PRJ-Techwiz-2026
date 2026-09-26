@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 import { STORAGE_KEYS } from '@/config/constants';
 
-export const useAuthStore = create           ()(
+export const useAuthStore = create()(
   persist(
     (set) => ({
       accessToken: null,

@@ -10,10 +10,7 @@ import {
   useFarmerMyProduct,
   useSaveFarmerProduct,
 } from '../../hooks/queries/farmer/useFarmerProducts';
-import {
-  productSchema,
-
-} from '../../schemas/farmer/product.schema';
+import { productSchema } from '../../schemas/farmer/product.schema';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -28,7 +25,7 @@ import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
 import './FarmerProductFormPage.css';
 
-const UNITS         = ['KG', 'BUNCH', 'PIECE', 'PACK'];
+const UNITS = ['KG', 'BUNCH', 'PIECE', 'PACK'];
 
 export default function FarmerProductFormPage() {
   const { id } = useParams();
@@ -36,13 +33,13 @@ export default function FarmerProductFormPage() {
   const isEdit = Number.isFinite(productId);
   const navigate = useNavigate();
   const maxMb = usePublicConfigData().max_upload_mb;
-  const [preview, setPreview] = useState               (null);
+  const [preview, setPreview] = useState(null);
 
   const categoriesQuery = useCategories();
   const productQuery = useFarmerMyProduct(productId, isEdit);
   const saveMutation = useSaveFarmerProduct(isEdit ? productId : undefined);
 
-  const form = useForm                   ({
+  const form = useForm({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
@@ -77,7 +74,7 @@ export default function FarmerProductFormPage() {
     setPreview(p.image);
   }, [productQuery.data, form]);
 
-  const onFile = (file                  ) => {
+  const onFile = (file) => {
     if (!file) return;
     const maxBytes = maxMb * 1024 * 1024;
     if (file.size > maxBytes) {
@@ -161,7 +158,9 @@ export default function FarmerProductFormPage() {
           <div className="page-primitive__form-field">
             <Input id="name" label="Product name" {...form.register('name')} />
             {form.formState.errors.name ? (
-              <p className="page-primitive__error">{form.formState.errors.name.message}</p>
+              <p className="page-primitive__error">
+                {form.formState.errors.name.message}
+              </p>
             ) : null}
           </div>
 
@@ -199,7 +198,12 @@ export default function FarmerProductFormPage() {
 
           <div className="farmer-product-form-page__grid-3">
             <div className="page-primitive__form-field">
-              <Input id="price" type="number" label="Price ($)" {...form.register('price')} />
+              <Input
+                id="price"
+                type="number"
+                label="Price ($)"
+                {...form.register('price')}
+              />
             </div>
             <div className="page-primitive__form-field">
               <Input
@@ -229,7 +233,9 @@ export default function FarmerProductFormPage() {
           <div className="farmer-product-form-page__toggle-row">
             <div>
               <p className="page-primitive__font-medium">Open for sale</p>
-              <p className="page-primitive__muted-xs">Turn off to pause accepting orders</p>
+              <p className="page-primitive__muted-xs">
+                Turn off to pause accepting orders
+              </p>
             </div>
             <Switch
               checked={form.watch('is_available')}

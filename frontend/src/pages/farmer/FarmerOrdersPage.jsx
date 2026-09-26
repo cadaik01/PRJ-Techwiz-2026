@@ -14,7 +14,12 @@ import { StatusBadge } from '@/components/common/badges/StatusBadge';
 import { FarmerOrderActions } from '../../components/farmer/FarmerOrderActions';
 import { Button } from '@/components/common/forms/Button';
 import { Input } from '@/components/common/forms/Input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/common/layout/Tabs';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/common/layout/Tabs';
 import { formatDateTime, formatVnd } from '@/utils/formatters';
 
 import './FarmerOrdersPage.css';
@@ -25,21 +30,21 @@ const TABS = [
   { id: 'ready', label: 'Ready' },
   { id: 'overdue', label: 'Overdue' },
   { id: 'history', label: 'History' },
-]         ;
+];
 
-function isTabId(value               )                 {
+function isTabId(value) {
   return TABS.some((t) => t.id === value);
 }
 
 export default function FarmerOrdersPage() {
   const [params, setParams] = useSearchParams();
   const tabParam = params.get('tab');
-  const tab        = isTabId(tabParam) ? tabParam : 'pending';
+  const tab = isTabId(tabParam) ? tabParam : 'pending';
   const [q, setQ] = useState(params.get('q') ?? '');
   const [pickupDate, setPickupDate] = useState(
     params.get('pickup_date') ?? new Date().toISOString().slice(0, 10),
   );
-  const [mode, setMode] = useState                      ('orders');
+  const [mode, setMode] = useState('orders');
 
   const countsQuery = useFarmerOrderCounts();
 
@@ -54,7 +59,7 @@ export default function FarmerOrdersPage() {
 
   const pickingQuery = usePickingList(pickupDate, mode === 'picking');
 
-  const countMap                                 = useMemo(() => {
+  const countMap = useMemo(() => {
     const c = countsQuery.data;
     if (!c) return {};
     return {

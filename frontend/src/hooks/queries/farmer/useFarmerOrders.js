@@ -10,7 +10,7 @@ export function useFarmerOrderCounts() {
   });
 }
 
-export function useFarmerOrders(params              , enabled = true) {
+export function useFarmerOrders(params, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.FARMER_ORDERS(params),
     queryFn: () => farmerApi.getOrders(params),
@@ -18,7 +18,7 @@ export function useFarmerOrders(params              , enabled = true) {
   });
 }
 
-export function useFarmerOrder(id                 , enabled = true) {
+export function useFarmerOrder(id, enabled = true) {
   const orderId = Number(id);
   return useQuery({
     queryKey: QUERY_KEYS.FARMER_ORDER(id),
@@ -27,7 +27,7 @@ export function useFarmerOrder(id                 , enabled = true) {
   });
 }
 
-export function usePickingList(pickupDate        , enabled = true) {
+export function usePickingList(pickupDate, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.FARMER_PICKING(pickupDate),
     queryFn: () => farmerApi.getPickingList(pickupDate),

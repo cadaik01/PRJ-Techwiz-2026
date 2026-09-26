@@ -39,16 +39,9 @@ const STEPS = [
     title: 'Collect & pay',
     desc: 'Arrive on time, pay at the stall, and leave with peak-fresh produce',
   },
-]         ;
+];
 
-function SectionHeading({
-  title,
-  description,
-  href,
-  linkLabel = 'View all',
-}
-
- ) {
+function SectionHeading({ title, description, href, linkLabel = 'View all' }) {
   return (
     <div className="home-page__section-heading">
       <div className="home-page__section-copy">
@@ -104,8 +97,8 @@ export default function HomePage() {
             <p className="home-page__eyebrow">MarketLink</p>
             <h1 className="home-page__title">Local markets, reserved for you</h1>
             <p className="home-page__intro">
-              Pre-order from trusted stalls, pick up on your schedule, and pay
-              when you collect — no delivery fees, just fresher produce.
+              Pre-order from trusted stalls, pick up on your schedule, and pay when you
+              collect — no delivery fees, just fresher produce.
             </p>
 
             <form
@@ -127,11 +120,7 @@ export default function HomePage() {
                 label="Search produce, stalls, or markets"
                 className="home-page__search-input"
               />
-              <Button
-                type="submit"
-                variant="accent"
-                className="home-page__search-submit"
-              >
+              <Button type="submit" variant="accent" className="home-page__search-submit">
                 Search
               </Button>
             </form>
@@ -177,7 +166,10 @@ export default function HomePage() {
                     className="home-page__category-card"
                   >
                     <span className="home-page__category-icon-wrap">
-                      <CategoryIcon icon={cat.icon} className="home-page__category-icon" />
+                      <CategoryIcon
+                        icon={cat.icon}
+                        className="home-page__category-icon"
+                      />
                     </span>
                     <span className="home-page__category-name">{cat.name}</span>
                   </Link>
@@ -282,8 +274,8 @@ export default function HomePage() {
             <p className="home-page__how-eyebrow">How MarketLink works</p>
             <h2 className="home-page__how-title">From browse to bag in four steps</h2>
             <p className="home-page__how-desc">
-              Reserve ahead, skip the guesswork, and walk out with produce
-              waiting for you.
+              Reserve ahead, skip the guesswork, and walk out with produce waiting for
+              you.
             </p>
           </div>
 
@@ -309,8 +301,8 @@ export default function HomePage() {
           <div className="home-page__cta-copy">
             <p className="home-page__cta-title">Your next market run starts here</p>
             <p className="home-page__cta-desc">
-              Find a nearby market, choose a stall you trust, and lock in your
-              pre-order in minutes.
+              Find a nearby market, choose a stall you trust, and lock in your pre-order
+              in minutes.
             </p>
           </div>
           <div className="home-page__cta-actions">

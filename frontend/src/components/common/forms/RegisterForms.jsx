@@ -9,7 +9,6 @@ import { Input } from '@/components/common/forms/Input';
 import {
   registerCustomerSchema,
   registerFarmerSchema,
-
 } from '../../../schemas/auth/auth.schemas';
 import { useAuth } from '../../../hooks/authentication/useAuth';
 import { ApiError } from '@/lib/ApiError';
@@ -18,13 +17,7 @@ import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
 import './RegisterForms.css';
 
-function AuthFooter({
-  prompt,
-  linkTo,
-  linkLabel,
-}
-
- ) {
+function AuthFooter({ prompt, linkTo, linkLabel }) {
   return (
     <p className="register-form__footer">
       {prompt}{' '}
@@ -42,7 +35,7 @@ export function RegisterCustomerForm() {
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm                        ({
+  } = useForm({
     resolver: zodResolver(registerCustomerSchema),
   });
 
@@ -71,42 +64,25 @@ export function RegisterCustomerForm() {
         })}
       >
         <div className="register-form__field">
-          <Input
-            id="full_name"
-            label="Full name"
-            {...register('full_name')}
-          />
+          <Input id="full_name" label="Full name" {...register('full_name')} />
           {errors.full_name ? (
             <p className="register-form__error">{errors.full_name.message}</p>
           ) : null}
         </div>
         <div className="register-form__field">
-          <Input
-            id="email"
-            type="email"
-            label="Email"
-            {...register('email')}
-          />
+          <Input id="email" type="email" label="Email" {...register('email')} />
           {errors.email ? (
             <p className="register-form__error">{errors.email.message}</p>
           ) : null}
         </div>
         <div className="register-form__field">
-          <Input
-            id="phone"
-            label="Phone number"
-            {...register('phone')}
-          />
+          <Input id="phone" label="Phone number" {...register('phone')} />
           {errors.phone ? (
             <p className="register-form__error">{errors.phone.message}</p>
           ) : null}
         </div>
         <div className="register-form__field">
-          <Input
-            id="address"
-            label="Address"
-            {...register('address')}
-          />
+          <Input id="address" label="Address" {...register('address')} />
           {errors.address ? (
             <p className="register-form__error">{errors.address.message}</p>
           ) : null}
@@ -143,7 +119,11 @@ export function RegisterCustomerForm() {
         </Button>
       </form>
 
-      <AuthFooter prompt="Already shopping with us?" linkTo="/login" linkLabel="Sign in" />
+      <AuthFooter
+        prompt="Already shopping with us?"
+        linkTo="/login"
+        linkLabel="Sign in"
+      />
     </div>
   );
 }
@@ -157,7 +137,7 @@ export function RegisterFarmerForm() {
     trigger,
     setError,
     formState: { errors },
-  } = useForm                      ({
+  } = useForm({
     resolver: zodResolver(registerFarmerSchema),
   });
 
@@ -167,8 +147,8 @@ export function RegisterFarmerForm() {
         <p className="register-form__intro-eyebrow">Join as a grower</p>
         <h1 className="register-form__title">Open your stall</h1>
         <p className="register-form__subtitle">
-          Set up your profile — once approved, customers can pre-order from you
-          on MarketLink.
+          Set up your profile — once approved, customers can pre-order from you on
+          MarketLink.
         </p>
         <Link to="/register" className="register-form__alt-link">
           Looking to shop instead? Create a customer account
@@ -200,22 +180,13 @@ export function RegisterFarmerForm() {
         {step === 1 ? (
           <>
             <div className="register-form__field">
-              <Input
-                id="email"
-                type="email"
-                label="Email"
-                {...register('email')}
-              />
+              <Input id="email" type="email" label="Email" {...register('email')} />
               {errors.email ? (
                 <p className="register-form__error">{errors.email.message}</p>
               ) : null}
             </div>
             <div className="register-form__field">
-              <Input
-                id="phone"
-                label="Phone number"
-                {...register('phone')}
-              />
+              <Input id="phone" label="Phone number" {...register('phone')} />
               {errors.phone ? (
                 <p className="register-form__error">{errors.phone.message}</p>
               ) : null}
@@ -263,11 +234,7 @@ export function RegisterFarmerForm() {
         ) : (
           <>
             <div className="register-form__field">
-              <Input
-                id="stall_name"
-                label="Stall name"
-                {...register('stall_name')}
-              />
+              <Input id="stall_name" label="Stall name" {...register('stall_name')} />
               {errors.stall_name ? (
                 <p className="register-form__error">{errors.stall_name.message}</p>
               ) : null}
@@ -283,11 +250,7 @@ export function RegisterFarmerForm() {
               ) : null}
             </div>
             <div className="register-form__field">
-              <Input
-                id="address"
-                label="Address"
-                {...register('address')}
-              />
+              <Input id="address" label="Address" {...register('address')} />
               {errors.address ? (
                 <p className="register-form__error">{errors.address.message}</p>
               ) : null}
@@ -315,7 +278,11 @@ export function RegisterFarmerForm() {
         )}
       </form>
 
-      <AuthFooter prompt="Already have a stall account?" linkTo="/login" linkLabel="Sign in" />
+      <AuthFooter
+        prompt="Already have a stall account?"
+        linkTo="/login"
+        linkLabel="Sign in"
+      />
     </div>
   );
 }

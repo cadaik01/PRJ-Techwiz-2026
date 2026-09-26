@@ -10,12 +10,7 @@ import { cn } from '@/lib/cn';
 
 import './FarmerCard.css';
 
-export function FarmerCard({
-  farmer,
-  className,
-}
-
- ) {
+export function FarmerCard({ farmer, className }) {
   const { hasFarmer, toggleFarmer } = useFavorites();
   const favorited = Boolean(farmer.is_favorite) || hasFarmer(farmer.id);
 
@@ -37,7 +32,9 @@ export function FarmerCard({
               active={favorited}
               onToggle={() => {
                 void toggleFarmer(farmer.id).then(() => {
-                  toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
+                  toast.success(
+                    favorited ? 'Removed from favorites' : 'Added to favorites',
+                  );
                 });
               }}
             />

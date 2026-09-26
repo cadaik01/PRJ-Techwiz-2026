@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/common/feedback/Skeleton';
 
 import './FarmersPage.css';
 
-function parseFarmerSort(value        )             {
+function parseFarmerSort(value) {
   if (
     value === 'rating' ||
     value === 'in_stock' ||
@@ -25,7 +25,7 @@ function parseFarmerSort(value        )             {
 export default function FarmersPage() {
   const { lat, lng } = useGeolocation();
   const [q, setQ] = useState('');
-  const [sort, setSort] = useState            ('rating');
+  const [sort, setSort] = useState('rating');
 
   const query = useFarmers({
     q: q || undefined,

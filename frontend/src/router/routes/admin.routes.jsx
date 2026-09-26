@@ -21,7 +21,7 @@ const AdminAuditLogsPage = lazy(() => import('@/pages/admin/AdminAuditLogsPage')
 const ChangePasswordPage = lazy(() => import('@/pages/auth/ChangePasswordPage'));
 
 /** Nested under a shared RequireAuth parent in AppRouter. */
-export const adminRoutes                = [
+export const adminRoutes = [
   {
     element: <RequireRole allow={['ADMIN']} />,
     children: [

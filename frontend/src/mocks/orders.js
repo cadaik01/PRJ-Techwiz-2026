@@ -3,21 +3,21 @@ import { moneyToNumber } from '@/utils/helpers/domain';
 const PRODUCT_IMG =
   'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?auto=format&fit=crop&w=800&q=80';
 
-function isoDaysFromNow(days        , hour        , minute = 0)         {
+function isoDaysFromNow(days, hour, minute = 0) {
   const d = new Date();
   d.setDate(d.getDate() + days);
   d.setHours(hour, minute, 0, 0);
   return d.toISOString();
 }
 
-function reviewStateFor(status             )                          {
+function reviewStateFor(status) {
   if (status === 'COMPLETED') {
     return { farmer_reviewed: false, items_pending_review: [] };
   }
   return null;
 }
 
-function actionsFor(status             )                {
+function actionsFor(status) {
   if (status === 'PLACED') return ['CANCEL', 'MODIFY'];
   if (status === 'ACCEPTED') return ['CANCEL'];
   if (status === 'READY_FOR_PICKUP') return [];
@@ -33,13 +33,13 @@ function actionsFor(status             )                {
   return [];
 }
 
-function isOverdue(status             , pickupEndAt        )          {
+function isOverdue(status, pickupEndAt) {
   if (status !== 'ACCEPTED' && status !== 'READY_FOR_PICKUP') return false;
   return new Date(pickupEndAt).getTime() < Date.now();
 }
 
-function historyFor(status             , createdAt        )                  {
-  const entries                  = [
+function historyFor(status, createdAt) {
+  const entries = [
     {
       from_status: null,
       to_status: 'PLACED',
@@ -98,9 +98,7 @@ function historyFor(status             , createdAt        )                  {
   return entries;
 }
 
-;
-
-function makeOrder(partial                )              {
+function makeOrder(partial) {
   const pickupStart = partial.pickup_start_at ?? isoDaysFromNow(2, 8);
   const pickupEnd = partial.pickup_end_at ?? isoDaysFromNow(2, 9);
   const cutoff = partial.cutoff_at ?? isoDaysFromNow(1, 20);
@@ -130,7 +128,7 @@ function makeOrder(partial                )              {
       id: partial.id * 100 + 1,
       product_id: 2,
       product_name: 'Da Lat cherry tomatoes',
-      unit: 'KG'         ,
+      unit: 'KG',
       unit_price: '1.80',
       quantity: 2,
       line_total: '3.60',
@@ -166,7 +164,7 @@ function makeOrder(partial                )              {
   };
 }
 
-export let customerOrders                = [
+export let customerOrders = [
   makeOrder({
     id: 1,
     status: 'READY_FOR_PICKUP',
@@ -357,7 +355,7 @@ export let customerOrders                = [
   }),
 ];
 
-export const customerNotifications                     = [
+export const customerNotifications = [
   {
     id: 1,
     type: 'ORDER_READY',
@@ -390,19 +388,19 @@ export const customerNotifications                     = [
   },
 ];
 
-export function setOrders(next               ) {
+export function setOrders(next) {
   customerOrders = next;
 }
 
-export function bumpOrderVersion(order             )              {
+export function bumpOrderVersion(order) {
   return { ...order, version: order.version + 1 };
 }
 
-export function isOpenStatus(status             ) {
+export function isOpenStatus(status) {
   return status === 'PLACED' || status === 'ACCEPTED' || status === 'READY_FOR_PICKUP';
 }
 
-export function toOrderSummary(order             )               {
+export function toOrderSummary(order) {
   return {
     id: order.id,
     status: order.status,

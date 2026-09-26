@@ -28,35 +28,35 @@ import { moneyToNumber } from '@/utils/helpers/domain';
 import { http, HttpResponse } from 'msw';
 
 const favoriteIds = {
-  farmer_ids: [2]            ,
-  product_ids: [2, 6]            ,
-  market_ids: [1]            ,
+  farmer_ids: [2],
+  product_ids: [2, 6],
+  market_ids: [1],
 };
 
 let nextOrderId = 100;
 let nextItemId = 1000;
 
-function auth(request         ) {
+function auth(request) {
   return getUserByAccess(request.headers.get('Authorization'));
 }
 
-function findOrder(id        ) {
+function findOrder(id) {
   return customerOrders.find((o) => o.id === id);
 }
 
-function replaceOrder(updated             ) {
+function replaceOrder(updated) {
   setOrders(customerOrders.map((o) => (o.id === updated.id ? updated : o)));
   return updated;
 }
 
-function ifMatchVersion(request         , order             ) {
+function ifMatchVersion(request, order) {
   const header = request.headers.get('If-Match');
   if (!header) return true;
   return Number(header) === order.version;
 }
 
 /** Re-enter MSW for parked farmer-only handlers (role-shared flat paths). */
-function forwardFarmer(request         , pathname        ) {
+function forwardFarmer(request, pathname) {
   const url = new URL(request.url);
   url.pathname = pathname;
   return fetch(url, { headers: request.headers });
@@ -182,14 +182,12 @@ export const customerHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())                       ;
-    const created                = [];
+    const body = await request.json();
+    const created = [];
 
     for (const group of body.groups) {
       const options = pickupOptions[group.farmer_id] ?? [];
-      let slotMeta
-
-               = null;
+      let slotMeta = null;
 
       for (const opt of options) {
         for (const dateOpt of opt.dates) {
@@ -218,7 +216,7 @@ export const customerHandlers = [
       }
 
       const farmerSeed = farmers.find((f) => f.id === group.farmer_id);
-      const items              = [];
+      const items = [];
       for (const line of group.items) {
         const product = products.find((p) => p.id === line.product_id);
         if (!product || product.farmer.id !== group.farmer_id) {
@@ -247,7 +245,7 @@ export const customerHandlers = [
       const total = items.reduce((s, i) => s + moneyToNumber(i.line_total), 0);
       const market = markets.find((m) => m.id === slotMeta.market_id);
       const createdAt = new Date().toISOString();
-      const order              = {
+      const order = {
         id: nextOrderId++,
         status: 'PLACED',
         is_overdue: false,
@@ -321,16 +319,16 @@ export const customerHandlers = [
         status: 409,
       });
     }
-    const body = (await request.json())                      ;
+    const body = await request.json();
     let next = { ...order };
 
     if (body.items) {
-      const items              = body.items.map((line) => {
+      const items = body.items.map((line) => {
         const existing = order.items.find((i) => i.product_id === line.product_id);
         const product = products.find((p) => p.id === line.product_id);
         const unitPrice = existing?.unit_price ?? product?.price ?? '0';
         const lineTotal = moneyToNumber(unitPrice) * line.quantity;
-        const unit       = existing?.unit ?? product?.unit ?? 'KG';
+        const unit = existing?.unit ?? product?.unit ?? 'KG';
         return {
           id: existing?.id ?? nextItemId++,
           product_id: line.product_id,
@@ -417,10 +415,7 @@ export const customerHandlers = [
         skipped.push({
           product_id: item.product_id,
           product_name: item.product_name,
-          reason:
-            product && !product.is_available
-              ? ('UNAVAILABLE'         )
-              : ('OUT_OF_STOCK'         ),
+          reason: product && !product.is_available ? 'UNAVAILABLE' : 'OUT_OF_STOCK',
         });
       } else {
         items.push({
@@ -510,7 +505,7 @@ export const customerHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())                         ;
+    const body = await request.json();
     if (!favoriteIds.farmer_ids.includes(body.farmer_id)) {
       favoriteIds.farmer_ids.push(body.farmer_id);
     }
@@ -536,7 +531,7 @@ export const customerHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())                          ;
+    const body = await request.json();
     if (!favoriteIds.product_ids.includes(body.product_id)) {
       favoriteIds.product_ids.push(body.product_id);
     }
@@ -562,7 +557,7 @@ export const customerHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())                         ;
+    const body = await request.json();
     if (!favoriteIds.market_ids.includes(body.market_id)) {
       favoriteIds.market_ids.push(body.market_id);
     }
@@ -673,9 +668,8 @@ export const customerHandlers = [
         status: 401,
       });
     }
-    const body = (await request.json())
+    const body = await request.json();
 
-     ;
     return HttpResponse.json(
       envelope({
         full_name: body.full_name,

@@ -19,7 +19,7 @@ export const env = {
   IS_DEV: import.meta.env.DEV,
 };
 
-export function wsUrl(path        )         {
+export function wsUrl(path) {
   const base = env.WS_BASE_URL;
   if (base.startsWith('ws://') || base.startsWith('wss://')) {
     return `${base}${path}`;

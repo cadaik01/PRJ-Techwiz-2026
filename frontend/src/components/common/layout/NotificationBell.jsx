@@ -15,12 +15,7 @@ import { formatRelative } from '@/utils/formatters';
 
 import './NotificationBell.css';
 
-export function NotificationBell({
-  role,
-  listPath,
-}
-
- ) {
+export function NotificationBell({ role, listPath }) {
   const { unread, latest, markAll, markOne } = useNotifications(role);
 
   return (

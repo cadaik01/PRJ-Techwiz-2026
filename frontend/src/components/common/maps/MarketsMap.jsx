@@ -15,14 +15,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-export function MiniMap({
-  latitude,
-  longitude,
-  label,
-  className,
-}
-
- ) {
+export function MiniMap({ latitude, longitude, label, className }) {
   return (
     <div className={className}>
       <MapContainer

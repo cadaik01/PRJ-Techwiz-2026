@@ -11,4 +11,3 @@ export const productSchema = z.object({
   is_available: z.boolean(),
   image: z.string().url('Invalid image URL'),
 });
-

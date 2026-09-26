@@ -12,12 +12,7 @@ import { cn } from '@/lib/cn';
 
 import './FarmerStatusGate.css';
 
-export function FarmerStatusGate({
-  status,
-  rejectionReason,
-  children,
-  className,
-}                       ) {
+export function FarmerStatusGate({ status, rejectionReason, children, className }) {
   const isWriteLocked =
     status === 'PENDING' || status === 'REJECTED' || status === 'SUSPENDED';
 
@@ -29,8 +24,8 @@ export function FarmerStatusGate({
           <div>
             <p className="farmer-status-gate__title">Waiting for approval</p>
             <p className="farmer-status-gate__desc">
-              You can browse the workspace, but listing produce is unlocked after
-              an admin reviews your stall.
+              You can browse the workspace, but listing produce is unlocked after an admin
+              reviews your stall.
             </p>
           </div>
           <Badge variant="warning">Pending</Badge>

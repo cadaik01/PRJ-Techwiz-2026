@@ -20,7 +20,7 @@ export function MiniCartDrawer() {
   const count = items.reduce((sum, i) => sum + i.quantity, 0);
   const total = items.reduce((sum, i) => sum + moneyToNumber(i.price) * i.quantity, 0);
 
-  const grouped = items.reduce                              ((acc, item) => {
+  const grouped = items.reduce((acc, item) => {
     const key = String(item.farmer_id);
     const list = acc[key] ?? [];
     list.push(item);
@@ -64,7 +64,9 @@ export function MiniCartDrawer() {
             </div>
           ))}
           {items.length === 0 ? (
-            <p className="mini-cart__empty">Nothing reserved yet — add produce to get started.</p>
+            <p className="mini-cart__empty">
+              Nothing reserved yet — add produce to get started.
+            </p>
           ) : null}
         </div>
         <div className="mini-cart__footer">

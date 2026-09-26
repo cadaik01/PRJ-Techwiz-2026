@@ -9,11 +9,7 @@ import {
 
 import { productAvailability } from '@/utils/helpers/domain';
 
-function toFarmerProduct(
-  p                           ,
-  held        ,
-  weeklyDefault               ,
-)                {
+function toFarmerProduct(p, held, weeklyDefault) {
   const now = '2026-09-10T08:00:00+07:00';
   return {
     ...p,
@@ -32,7 +28,7 @@ function toFarmerProduct(
 const DEMO_FARMER_ID = 2;
 const seedFarmer = farmers.find((f) => f.id === DEMO_FARMER_ID);
 
-export let farmerProducts                  = products
+export let farmerProducts = products
   .filter((p) => p.farmer.id === DEMO_FARMER_ID)
   .map((p) =>
     toFarmerProduct(
@@ -42,11 +38,11 @@ export let farmerProducts                  = products
     ),
   );
 
-export function setFarmerProducts(next                 ) {
+export function setFarmerProducts(next) {
   farmerProducts = next;
 }
 
-export function bumpProductVersion(product               )                {
+export function bumpProductVersion(product) {
   return {
     ...product,
     updated_at: new Date().toISOString(),
@@ -56,7 +52,7 @@ export function bumpProductVersion(product               )                {
 /** @deprecated alias */
 export const bumpProductEtag = bumpProductVersion;
 
-function slotsFromPickup(option                                        )               {
+function slotsFromPickup(option) {
   const first = option.dates[0];
   return first.slots.map((s) => ({
     id: s.pickup_slot_id,
@@ -67,7 +63,7 @@ function slotsFromPickup(option                                        )        
   }));
 }
 
-function buildMemberships()                           {
+function buildMemberships() {
   const options = pickupOptions[DEMO_FARMER_ID] ?? [];
   const farmerMarkets = seedFarmer?.markets ?? [];
   return farmerMarkets.map((fm, index) => {
@@ -96,7 +92,7 @@ function buildMemberships()                           {
           image: null,
           latitude: 0,
           longitude: 0,
-          operating_days: []               ,
+          operating_days: [],
           open_time: '06:00',
           close_time: '18:00',
           upcoming_closures: [],
@@ -114,13 +110,13 @@ function buildMemberships()                           {
   });
 }
 
-export let farmerMarkets                           = buildMemberships();
+export let farmerMarkets = buildMemberships();
 
-export function setFarmerMarkets(next                          ) {
+export function setFarmerMarkets(next) {
   farmerMarkets = next;
 }
 
-export let farmerProfile                = {
+export let farmerProfile = {
   id: DEMO_FARMER_ID,
   stall_name: seedFarmer?.stall_name ?? 'Farmer stall',
   image: seedFarmer?.image ?? null,
@@ -145,11 +141,11 @@ export let farmerProfile                = {
   status_reason: null,
 };
 
-export function setFarmerProfile(next               ) {
+export function setFarmerProfile(next) {
   farmerProfile = next;
 }
 
-export const farmerReviews                     = reviews.filter((r) => {
+export const farmerReviews = reviews.filter((r) => {
   if (r.type === 'PRODUCT' && r.product) {
     return products.some((p) => p.id === r.product?.id && p.farmer.id === DEMO_FARMER_ID);
   }
@@ -159,12 +155,12 @@ export const farmerReviews                     = reviews.filter((r) => {
   return false;
 });
 
-export function replyFarmerReview(id        , reply        )                          {
+export function replyFarmerReview(id, reply) {
   const idx = farmerReviews.findIndex((r) => r.id === id);
   if (idx < 0) return null;
   const current = farmerReviews[idx];
   if (current.reply) return null;
-  const updated                   = {
+  const updated = {
     ...current,
     reply,
     replied_at: new Date().toISOString(),
@@ -173,7 +169,7 @@ export function replyFarmerReview(id        , reply        )                    
   return updated;
 }
 
-export const farmerNotifications                     = [
+export const farmerNotifications = [
   {
     id: 101,
     type: 'ORDER_PLACED',
@@ -188,7 +184,8 @@ export const farmerNotifications                     = [
     id: 102,
     type: 'ORDER_MODIFIED',
     title: 'Order #8 overdue',
-    message: 'Customer did not pick up within the window. Complete the order or mark no-show.',
+    message:
+      'Customer did not pick up within the window. Complete the order or mark no-show.',
     target_url: '/farmer/orders/8',
     is_read: false,
     read_at: null,
@@ -196,11 +193,11 @@ export const farmerNotifications                     = [
   },
 ];
 
-export function categoryName(id        ) {
+export function categoryName(id) {
   return categories.find((c) => c.id === id)?.name ?? 'Other';
 }
 
-export function createEmptySlot(day_of_week           )             {
+export function createEmptySlot(day_of_week) {
   return {
     id: Math.floor(Math.random() * 100000) + 1000,
     day_of_week,

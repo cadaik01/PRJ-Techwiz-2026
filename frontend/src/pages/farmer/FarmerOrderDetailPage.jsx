@@ -45,9 +45,7 @@ export default function FarmerOrderDetailPage() {
 
       <div className="page-primitive__grid-2-md">
         <div className="page-primitive__panel">
-          <h2 className="page-primitive__heading farmer-order-detail__heading">
-            Pickup
-          </h2>
+          <h2 className="page-primitive__heading farmer-order-detail__heading">Pickup</h2>
           <p className="page-primitive__muted-sm">{order.market.name}</p>
           <p className="page-primitive__muted-sm">{order.stall_label}</p>
           <p className="page-primitive__muted-sm farmer-order-detail__countdown--sm">
@@ -66,10 +64,10 @@ export default function FarmerOrderDetailPage() {
           />
         </div>
         <div className="page-primitive__panel">
-          <h2 className="page-primitive__heading farmer-order-detail__heading">
-            Note
-          </h2>
-          <p className="page-primitive__muted-sm">{order.note || 'No note from customer'}</p>
+          <h2 className="page-primitive__heading farmer-order-detail__heading">Note</h2>
+          <p className="page-primitive__muted-sm">
+            {order.note || 'No note from customer'}
+          </p>
         </div>
       </div>
 

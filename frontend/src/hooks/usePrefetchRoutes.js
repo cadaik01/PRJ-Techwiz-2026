@@ -3,13 +3,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { catalogApi } from '../api/guest/catalogApi';
 import { QUERY_KEYS } from '@/config/constants';
 
-const DEFAULT_MARKETS = { sort: 'name'         , page_size: 20          };
-const DEFAULT_FARMERS = { sort: 'rating'         , page_size: 20          };
-const DEFAULT_PRODUCTS = { sort: 'newest'         , page_size: 10          };
+const DEFAULT_MARKETS = { sort: 'name', page_size: 20 };
+const DEFAULT_FARMERS = { sort: 'rating', page_size: 20 };
+const DEFAULT_PRODUCTS = { sort: 'newest', page_size: 10 };
 
-async function normalizeProductsPage(
-  data                                                    ,
-)                                      {
+async function normalizeProductsPage(data) {
   if (Array.isArray(data)) {
     return {
       results: data,

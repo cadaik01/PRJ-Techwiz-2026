@@ -6,32 +6,30 @@ import {
 import { adaptPaginated } from '@/lib/adapters/pagination.adapter';
 
 export const farmerApi = {
-  getDashboard: async (params                                 = {}) => {
-    const { data } = await axiosClient.get                 ('/dashboard/', {
+  getDashboard: async (params = {}) => {
+    const { data } = await axiosClient.get('/dashboard/', {
       params,
     });
     return data;
   },
 
   getOrderCounts: async () => {
-    const { data } = await axiosClient.get                      ('/orders/counts/');
+    const { data } = await axiosClient.get('/orders/counts/');
     return data;
   },
 
-  getOrders: async (params
-
-   ) => {
+  getOrders: async (params) => {
     const { data } = await axiosClient.get('/orders/', { params });
-    return adaptPaginated                    (data);
+    return adaptPaginated(data);
   },
 
-  getOrder: async (id        ) => {
-    const { data } = await axiosClient.get                   (`/orders/${id}/`);
+  getOrder: async (id) => {
+    const { data } = await axiosClient.get(`/orders/${id}/`);
     return data;
   },
 
-  acceptOrder: async (id        , version        ) => {
-    const { data } = await axiosClient.post                   (
+  acceptOrder: async (id, version) => {
+    const { data } = await axiosClient.post(
       `/orders/${id}/accept/`,
       {},
       { ifMatch: String(version) },
@@ -39,8 +37,8 @@ export const farmerApi = {
     return data;
   },
 
-  declineOrder: async (id        , reason        , version        ) => {
-    const { data } = await axiosClient.post                   (
+  declineOrder: async (id, reason, version) => {
+    const { data } = await axiosClient.post(
       `/orders/${id}/decline/`,
       { reason },
       { ifMatch: String(version) },
@@ -48,8 +46,8 @@ export const farmerApi = {
     return data;
   },
 
-  readyOrder: async (id        , version        ) => {
-    const { data } = await axiosClient.post                   (
+  readyOrder: async (id, version) => {
+    const { data } = await axiosClient.post(
       `/orders/${id}/ready/`,
       {},
       { ifMatch: String(version) },
@@ -57,8 +55,8 @@ export const farmerApi = {
     return data;
   },
 
-  completeOrder: async (id        , version        ) => {
-    const { data } = await axiosClient.post                   (
+  completeOrder: async (id, version) => {
+    const { data } = await axiosClient.post(
       `/orders/${id}/complete/`,
       {},
       { ifMatch: String(version) },
@@ -66,8 +64,8 @@ export const farmerApi = {
     return data;
   },
 
-  noShowOrder: async (id        , version        ) => {
-    const { data } = await axiosClient.post                   (
+  noShowOrder: async (id, version) => {
+    const { data } = await axiosClient.post(
       `/orders/${id}/no-show/`,
       {},
       { ifMatch: String(version) },
@@ -75,64 +73,54 @@ export const farmerApi = {
     return data;
   },
 
-  getPickingList: async (pickup_date        ) => {
-    const { data } = await axiosClient.get                  ('/picking-list/', {
+  getPickingList: async (pickup_date) => {
+    const { data } = await axiosClient.get('/picking-list/', {
       params: { pickup_date },
     });
     return Array.isArray(data) ? data : [];
   },
 
-  getProducts: async (
-    params
-
-      = {},
-  ) => {
+  getProducts: async (params = {}) => {
     const { data } = await axiosClient.get('/products/', { params });
     return adaptFarmerProductPage(data);
   },
 
-  getProduct: async (id        ) => {
-    const { data } = await axiosClient.get               (`/products/${id}/`);
+  getProduct: async (id) => {
+    const { data } = await axiosClient.get(`/products/${id}/`);
     return data ? adaptFarmerProduct(data) : null;
   },
 
-  createProduct: async (payload                      ) => {
-    const { data } = await axiosClient.post               ('/products/', payload);
+  createProduct: async (payload) => {
+    const { data } = await axiosClient.post('/products/', payload);
     const product = adaptFarmerProduct(data);
     if (!product) throw new Error('Product response missing id');
     return product;
   },
 
-  updateProduct: async (id        , payload                               ) => {
-    const { data } = await axiosClient.patch               (`/products/${id}/`, payload);
+  updateProduct: async (id, payload) => {
+    const { data } = await axiosClient.patch(`/products/${id}/`, payload);
     const product = adaptFarmerProduct(data);
     if (!product) throw new Error('Product response missing id');
     return product;
   },
 
-  markSoldOut: async (id        ) => {
-    const { data } = await axiosClient.post               (
-      `/products/${id}/mark-sold-out/`,
-    );
+  markSoldOut: async (id) => {
+    const { data } = await axiosClient.post(`/products/${id}/mark-sold-out/`);
     return data;
   },
 
-  archiveProduct: async (id        ) => {
-    const { data } = await axiosClient.post               (`/products/${id}/archive/`);
+  archiveProduct: async (id) => {
+    const { data } = await axiosClient.post(`/products/${id}/archive/`);
     return data;
   },
 
   getStockTemplatePreview: async () => {
-    const { data } = await axiosClient.get                      (
-      '/weekly-template/preview/',
-    );
+    const { data } = await axiosClient.get('/weekly-template/preview/');
     return data;
   },
 
   applyStockTemplate: async () => {
-    const { data } = await axiosClient.post                      (
-      '/weekly-template/apply/',
-    );
+    const { data } = await axiosClient.post('/weekly-template/apply/');
     return data;
   },
 
@@ -143,75 +131,48 @@ export const farmerApi = {
     return data.results;
   },
 
-  addMarket: async (payload                                            ) => {
-    const { data } = await axiosClient.post                        (
-      '/farmer-markets/',
-      payload,
-    );
+  addMarket: async (payload) => {
+    const { data } = await axiosClient.post('/farmer-markets/', payload);
     return data;
   },
 
-  updateMarket: async (
-    farmerMarketId        ,
-    payload                                  ,
-  ) => {
-    const { data } = await axiosClient.patch                        (
+  updateMarket: async (farmerMarketId, payload) => {
+    const { data } = await axiosClient.patch(
       `/farmer-markets/${farmerMarketId}/`,
       payload,
     );
     return data;
   },
 
-  removeMarket: async (farmerMarketId        ) => {
+  removeMarket: async (farmerMarketId) => {
     await axiosClient.delete(`/farmer-markets/${farmerMarketId}/`);
   },
 
-  createPickupSlot: async (payload
-
-   ) => {
-    const { data } = await axiosClient.post            ('/pickup-slots/', payload);
+  createPickupSlot: async (payload) => {
+    const { data } = await axiosClient.post('/pickup-slots/', payload);
     return data;
   },
 
-  updatePickupSlot: async (
-    slotId        ,
-    payload
-
-      ,
-  ) => {
-    const { data } = await axiosClient.patch            (
-      `/pickup-slots/${slotId}/`,
-      payload,
-    );
+  updatePickupSlot: async (slotId, payload) => {
+    const { data } = await axiosClient.patch(`/pickup-slots/${slotId}/`, payload);
     return data;
   },
 
-  deletePickupSlot: async (slotId        ) => {
+  deletePickupSlot: async (slotId) => {
     await axiosClient.delete(`/pickup-slots/${slotId}/`);
   },
 
   getProfile: async () => {
-    const { data } = await axiosClient.get               ('/farmer-profiles/me/');
+    const { data } = await axiosClient.get('/farmer-profiles/me/');
     return data;
   },
 
-  updateProfile: async (
-    payload
-
-      ,
-  ) => {
-    const { data } = await axiosClient.patch               (
-      '/farmer-profiles/me/',
-      payload,
-    );
+  updateProfile: async (payload) => {
+    const { data } = await axiosClient.patch('/farmer-profiles/me/', payload);
     return data;
   },
 
-  getReviews: async (
-    params
-
-      = {},
-  ) => {
+  getReviews: async (params = {}) => {
     const { data } = await axiosClient.get('/reviews/', {
       params: {
         ...params,
@@ -219,11 +180,11 @@ export const farmerApi = {
           params.replied === undefined ? undefined : params.replied ? 'true' : 'false',
       },
     });
-    return adaptPaginated                  (data);
+    return adaptPaginated(data);
   },
 
-  replyReview: async (id        , reply        ) => {
-    const { data } = await axiosClient.post                  (`/reviews/${id}/reply/`, {
+  replyReview: async (id, reply) => {
+    const { data } = await axiosClient.post(`/reviews/${id}/reply/`, {
       reply,
     });
     return data;

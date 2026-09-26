@@ -1,7 +1,7 @@
 // A-11 shows security events. The wording is what an administrator would say out loud, not
 // the enum value the database stores, and never the API path behind it.
 
-const ACTIONS                                                = {
+const ACTIONS = {
   LOGIN: { label: 'Signed in', tone: 'neutral' },
   LOGIN_FAILED: { label: 'Failed sign-in', tone: 'warning' },
   LOGOUT: { label: 'Signed out', tone: 'neutral' },
@@ -31,7 +31,7 @@ export const AUDIT_ACTION_OPTIONS = Object.entries(ACTIONS)
   .map(([value, meta]) => ({ value, label: meta.label }))
   .sort((a, b) => a.label.localeCompare(b.label));
 
-export function auditActionLabel(action        )         {
+export function auditActionLabel(action) {
   const known = ACTIONS[action];
   if (known) return known.label;
   // An action the UI has not been taught yet still has to read as words, not SCREAMING_SNAKE.
@@ -39,11 +39,11 @@ export function auditActionLabel(action        )         {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-export function auditActionTone(action        )       {
+export function auditActionTone(action) {
   return ACTIONS[action]?.tone ?? 'neutral';
 }
 
-function text(details                         , key        )                {
+function text(details, key) {
   const value = details[key];
   if (typeof value === 'string' && value.trim()) return value.trim();
   if (typeof value === 'number') return String(value);
@@ -51,9 +51,9 @@ function text(details                         , key        )                {
 }
 
 /** The sentence that answers "what was this done to?", built from the stored details. */
-export function auditSubject(log              )         {
+export function auditSubject(log) {
   const d = log.details ?? {};
-  const parts           = [];
+  const parts = [];
 
   const market = text(d, 'market_id') ?? text(d, 'name');
   const farmer = text(d, 'farmer_id');
@@ -81,9 +81,7 @@ export function auditSubject(log              )         {
 
   const fields = d['changed_fields'];
   if (Array.isArray(fields) && fields.length) {
-    parts.push(
-      `changed ${fields.map((f) => String(f).replaceAll('_', ' ')).join(', ')}`,
-    );
+    parts.push(`changed ${fields.map((f) => String(f).replaceAll('_', ' ')).join(', ')}`);
   }
 
   const affected = text(d, 'affected_orders');
@@ -95,11 +93,11 @@ export function auditSubject(log              )         {
 }
 
 /** Free-text reason the admin typed, when the action asked for one. */
-export function auditReason(log              )                {
+export function auditReason(log) {
   return text(log.details ?? {}, 'reason');
 }
 
-export function auditOutcome(log              )                               {
+export function auditOutcome(log) {
   if (log.status_code === null) return 'unknown';
   return log.status_code < 400 ? 'ok' : 'refused';
 }
