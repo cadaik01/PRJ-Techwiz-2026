@@ -21,6 +21,24 @@ export default defineConfig([
     },
     rules: {
       'react-hooks/incompatible-library': 'off',
+      // A leading underscore is how this codebase marks a binding that exists only to give
+      // TypeScript something to name, such as the parameter of a type predicate.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
+  {
+    // Route modules export route tables, not components, so Fast Refresh has nothing to
+    // preserve here and the rule only reports the lazy() imports these files exist to hold.
+    files: ['src/router/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 ]);
