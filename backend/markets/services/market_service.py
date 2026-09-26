@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from marketlink_core.exceptions import ErrorCode, UnprocessableEntityError
+from marketlink_core.history import save_with_history
 from markets.models import Market, MarketOperatingDay, PickupSlot
 from notifications.models import NotificationType
 from notifications.services import notify
@@ -66,7 +67,15 @@ def update_market(*, market_id: int, validated: dict[str, Any]) -> tuple[Market,
     if not outside:
         return market, 0
 
-    PickupSlot.objects.filter(pk__in=[slot.pk for slot in outside]).update(is_active=False)
+    # Row by row, never QuerySet.update(): the audit trail of pickup_slots has to record every
+    # slot the admin switched off, and update() writes no history row (v1.8, AD-16).
+    for slot in outside:
+        slot.is_active = False
+        save_with_history(
+            slot,
+            update_fields=["is_active", "updated_at"],
+            reason=f"Market #{market_id} schedule changed by Admin (AD-16)",
+        )
 
     slots_per_farmer: dict[int, int] = {}
     for slot in outside:

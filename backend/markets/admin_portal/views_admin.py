@@ -22,6 +22,8 @@ from markets.services.market_service import (
     deactivate_market,
     update_market,
 )
+from system.models import AuditAction
+from system.services import log_request_event
 
 
 def _flag(raw: str | None) -> bool | None:
@@ -68,6 +70,14 @@ class MarketListCreateView(ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         market = create_market(validated=dict(serializer.validated_data))
+        # Every audit call below sits after its service returned, so the row is written only on
+        # success and only once the service's own transaction has committed (v1.8, AD-15 -> AD-17).
+        log_request_event(
+            request,
+            action=AuditAction.MARKET_CREATED,
+            status_code=201,
+            details={"market_id": market.pk, "name": market.name},
+        )
         return api_response(
             message="Market created.",
             request=request,
@@ -99,8 +109,20 @@ class MarketDetailView(RetrieveUpdateAPIView):
         market = self.get_object()
         serializer = self.get_serializer(market, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
+        # Taken before update_market(), which pops operating_days out of the dict it is given.
+        changed_fields = sorted(serializer.validated_data)
         _, deactivated_slot_count = update_market(
             market_id=market.pk, validated=dict(serializer.validated_data)
+        )
+        log_request_event(
+            request,
+            action=AuditAction.MARKET_UPDATED,
+            status_code=200,
+            details={
+                "market_id": market.pk,
+                "changed_fields": changed_fields,
+                "deactivated_slot_count": deactivated_slot_count,
+            },
         )
         # Re-read through the selector so the counts and prefetches are back in place.
         data = MarketAdminReadSerializer(get_market_for_admin(market_id=market.pk)).data
@@ -110,6 +132,11 @@ class MarketDetailView(RetrieveUpdateAPIView):
 
 class _MarketStateView(APIView):
     permission_classes = [IsAdmin]
+
+    def _audit(self, request, *, action: str, market_id: int) -> None:
+        log_request_event(
+            request, action=action, status_code=200, details={"market_id": market_id}
+        )
 
     def _respond(self, request, *, market_id: int, message: str) -> Response:
         return api_response(
@@ -127,6 +154,7 @@ class MarketDeactivateView(_MarketStateView):
     )
     def post(self, request, id: int) -> Response:
         deactivate_market(market_id=_require_market(id))
+        self._audit(request, action=AuditAction.MARKET_DEACTIVATED, market_id=id)
         return self._respond(request, market_id=id, message="Market deactivated.")
 
 
@@ -138,6 +166,7 @@ class MarketActivateView(_MarketStateView):
     )
     def post(self, request, id: int) -> Response:
         activate_market(market_id=_require_market(id))
+        self._audit(request, action=AuditAction.MARKET_ACTIVATED, market_id=id)
         return self._respond(request, market_id=id, message="Market activated.")
 
 

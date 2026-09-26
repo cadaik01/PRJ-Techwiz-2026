@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from markets.models import MarketClosure
 from orders.models import OrderStatus
+from system.models import AuditLog
 
 LIST_URL_NAME = "admin-market-closure-list"
 DELETE_URL_NAME = "admin-market-closure-detail"
@@ -251,3 +252,19 @@ def test_a_closure_beyond_the_booking_horizon_is_not_upcoming(admin_client, mark
 def test_customer_cannot_reach_the_closure_admin(customer_client, market, closure):
     assert customer_client.get(reverse(LIST_URL_NAME, args=[market.id])).status_code == 403
     assert customer_client.delete(reverse(DELETE_URL_NAME, args=[closure.id])).status_code == 403
+
+
+@pytest.mark.django_db
+def test_closure_periods_are_not_written_to_the_audit_log(admin_client, market, closure, today):
+    # v1.8 puts market closures deliberately outside audit_logs, unlike AD-15 -> AD-17.
+    admin_client.post(
+        reverse(LIST_URL_NAME, args=[market.id]),
+        {
+            "start_date": str(today + timedelta(days=20)),
+            "end_date": str(today + timedelta(days=21)),
+        },
+        format="json",
+    )
+    admin_client.delete(reverse(DELETE_URL_NAME, args=[closure.id]))
+
+    assert not AuditLog.objects.exists()

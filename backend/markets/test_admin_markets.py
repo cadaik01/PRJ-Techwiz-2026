@@ -8,6 +8,7 @@ from markets.conftest import MONDAY, SATURDAY, WEDNESDAY
 from markets.models import Market, PickupSlot
 from notifications.models import Notification, NotificationType
 from orders.models import OrderStatus
+from system.models import AuditAction, AuditLog
 
 LIST_URL_NAME = "admin-market-list"
 DETAIL_URL_NAME = "admin-market-detail"
@@ -291,3 +292,87 @@ def test_put_is_not_allowed(admin_client, market):
 def test_customer_cannot_reach_the_market_admin(customer_client, market):
     assert customer_client.get(reverse(LIST_URL_NAME)).status_code == 403
     assert customer_client.post(reverse(DEACTIVATE_URL_NAME, args=[market.id])).status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# audit_logs (v1.8): AD-15 -> MARKET_CREATED, AD-16 -> MARKET_UPDATED,
+# AD-17 -> MARKET_DEACTIVATED / MARKET_ACTIVATED. Closures (AD-32, AD-33) write nothing.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_creating_a_market_is_audited(admin_client, admin_user):
+    response = admin_client.post(reverse(LIST_URL_NAME), _payload(), format="json")
+
+    assert response.status_code == 201
+    entry = AuditLog.objects.get(action=AuditAction.MARKET_CREATED)
+    assert entry.user == admin_user
+    assert entry.status_code == 201
+    assert entry.details["market_id"] == response.data["data"]["id"]
+    assert entry.details["name"] == "Riverside Market"
+
+
+@pytest.mark.django_db
+def test_a_refused_market_writes_no_audit_row(admin_client, market):
+    response = admin_client.post(reverse(LIST_URL_NAME), _payload(name=market.name), format="json")
+
+    assert response.status_code == 400
+    assert not AuditLog.objects.filter(action=AuditAction.MARKET_CREATED).exists()
+
+
+@pytest.mark.django_db
+def test_updating_a_market_audits_the_changed_fields_and_slot_count(
+    admin_client, market, make_slot
+):
+    make_slot(day_of_week=WEDNESDAY, start=time(7, 0), end=time(9, 0))
+
+    response = admin_client.patch(
+        reverse(DETAIL_URL_NAME, args=[market.id]),
+        {"name": "Renamed Market", "operating_days": [MONDAY]},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    entry = AuditLog.objects.get(action=AuditAction.MARKET_UPDATED)
+    assert entry.details["market_id"] == market.id
+    # Sorted, and operating_days survives update_market() popping it off its own copy.
+    assert entry.details["changed_fields"] == ["name", "operating_days"]
+    assert entry.details["deactivated_slot_count"] == 1
+
+
+@pytest.mark.django_db
+def test_deactivating_and_reactivating_are_both_audited(admin_client, market):
+    admin_client.post(reverse(DEACTIVATE_URL_NAME, args=[market.id]))
+    admin_client.post(reverse(ACTIVATE_URL_NAME, args=[market.id]))
+
+    assert [entry.action for entry in AuditLog.objects.order_by("id")] == [
+        AuditAction.MARKET_DEACTIVATED,
+        AuditAction.MARKET_ACTIVATED,
+    ]
+    assert AuditLog.objects.filter(action=AuditAction.MARKET_DEACTIVATED).get().details == {
+        "market_id": market.id
+    }
+
+
+@pytest.mark.django_db
+def test_a_blocked_deactivation_writes_no_audit_row(admin_client, market, make_order):
+    make_order(pickup_date=timezone.localdate() + timedelta(days=1), status=OrderStatus.PLACED)
+
+    response = admin_client.post(reverse(DEACTIVATE_URL_NAME, args=[market.id]))
+
+    assert response.status_code == 422
+    assert not AuditLog.objects.exists()
+
+
+@pytest.mark.django_db
+def test_switching_slots_off_is_kept_in_the_audit_trail(admin_client, market, make_slot):
+    # QuerySet.update() would skip these history rows, which is why AD-16 saves row by row.
+    slot = make_slot(day_of_week=WEDNESDAY, start=time(7, 0), end=time(9, 0))
+
+    admin_client.patch(
+        reverse(DETAIL_URL_NAME, args=[market.id]), {"operating_days": [MONDAY]}, format="json"
+    )
+
+    latest = PickupSlot.history.filter(id=slot.id).order_by("history_date", "history_id").last()
+    assert latest.is_active is False
+    assert latest.history_change_reason == f"Market #{market.id} schedule changed by Admin (AD-16)"
