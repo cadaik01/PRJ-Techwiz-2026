@@ -58,7 +58,7 @@ class FarmerProductsAPITestCase(TestCase):
             address="Valley 1",
             status=FarmerStatus.APPROVED,
             order_cutoff_hours=12,
-            operating_days=[0, 1, 2, 3, 4, 5, 6],
+            operating_days=[1, 2, 3, 4, 5, 6, 7],
         )
 
         # Farmer 2 (Pending approval)
@@ -74,7 +74,7 @@ class FarmerProductsAPITestCase(TestCase):
             address="Valley 2",
             status=FarmerStatus.PENDING,
             order_cutoff_hours=12,
-            operating_days=[0, 1, 2],
+            operating_days=[1, 2, 3],
         )
 
         # Customer

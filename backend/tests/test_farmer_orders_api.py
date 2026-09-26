@@ -47,6 +47,7 @@ class FarmerOrdersAPITestCase(TestCase):
             role=farmer_role,
         )
         self.farmer = FarmerProfile.objects.create(
+            operating_days=[1, 2, 3, 4, 5, 6, 7],
             user=self.farmer_user,
             stall_name="Highland Greenery",
             contact_person="Dang Farmer",
@@ -60,6 +61,7 @@ class FarmerOrdersAPITestCase(TestCase):
             role=farmer_role,
         )
         self.other_farmer = FarmerProfile.objects.create(
+            operating_days=[1, 2, 3, 4, 5, 6, 7],
             user=self.other_farmer_user,
             stall_name="Lowland Fields",
             contact_person="Do Farmer",

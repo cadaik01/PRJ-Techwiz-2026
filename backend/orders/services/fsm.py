@@ -29,6 +29,10 @@ NO_REASON_TEXT = "No reason given."
 
 T = TypeVar("T")
 
+# ORDER_CANCELLED_CUSTOMER_LOCKED: tell the farmer what happened to stock (D-015, D-029).
+LOCKED_STOCK_RETURNED_NOTE = "The items have been returned to your online stock."
+LOCKED_STOCK_UNCHANGED_NOTE = "The order had not been accepted yet, so your stock did not change."
+
 SYSTEM_REASON_TEXT = {
     ChangeReason.FARMER_SUSPENDED_BY_ADMIN: "The farmer's stall has been suspended by an administrator.",
     ChangeReason.CUSTOMER_LOCKED_BY_ADMIN: "The customer's account has been locked by an administrator.",
@@ -351,7 +355,14 @@ def _send_notifications(
             notify(
                 recipient=farmer_user,
                 event_type=NotificationType.ORDER_CANCELLED_CUSTOMER_LOCKED,
-                context=context,
+                context={
+                    **context,
+                    "stock_note": (
+                        LOCKED_STOCK_RETURNED_NOTE
+                        if rule.restores_stock
+                        else LOCKED_STOCK_UNCHANGED_NOTE
+                    ),
+                },
             )
         else:
             notify(

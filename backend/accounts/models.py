@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models import Q
 from simple_history.models import HistoricalRecords
 
+from accounts.operating_days import normalize_operating_days
 from accounts.phone import normalize_phone
 from marketlink_core.models import BaseModel, HistoryRequestMeta, UUIDUploadTo
 from marketlink_core.policies.roles import RoleCode
@@ -190,6 +191,16 @@ class FarmerProfile(BaseModel):
     def __str__(self) -> str:
         return self.stall_name
 
+    def clean(self):
+        super().clean()
+        # Admin forms call clean() first, so bad input shows as a form error instead of a 500.
+        self.operating_days = normalize_operating_days(self.operating_days)
+
     def save(self, *args, **kwargs):
         self.phone = normalize_phone(self.phone)
+        update_fields = kwargs.get("update_fields")
+        # D-031: validate on every write of operating_days (seed, admin, API). A partial save that
+        # does not touch the column (e.g. update_fields=["status"]) is not blocked by old data.
+        if update_fields is None or "operating_days" in update_fields:
+            self.operating_days = normalize_operating_days(self.operating_days)
         super().save(*args, **kwargs)

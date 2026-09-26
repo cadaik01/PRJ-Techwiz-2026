@@ -48,6 +48,7 @@ class OrderExpiryTestCase(TestCase):
             role=farmer_role,
         )
         self.farmer = FarmerProfile.objects.create(
+            operating_days=[1, 2, 3, 4, 5, 6, 7],
             user=self.farmer_user,
             stall_name="Green Orchard",
             contact_person="Tran Farmer",
@@ -61,6 +62,7 @@ class OrderExpiryTestCase(TestCase):
             role=farmer_role,
         )
         self.farmer2 = FarmerProfile.objects.create(
+            operating_days=[1, 2, 3, 4, 5, 6, 7],
             user=self.farmer_user2,
             stall_name="Berry Fields",
             contact_person="Vo Farmer",

@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from django.utils import timezone
 
 from marketlink_core.exceptions import ErrorCode, UnprocessableEntityError
-from markets.models import FarmerClosure, MarketClosure, MarketOperatingDay, PickupSlot
+from markets.models import FarmerClosure, Market, MarketClosure, MarketOperatingDay, PickupSlot
 
 BOOKING_HORIZON_DAYS = 7
 
@@ -24,6 +24,10 @@ def validate_pickup_date(
     pickup_date: date,
     pickup_slot_id: int,
 ) -> ValidatedPickupSchedule:
+    """Check a pickup date against A-019 (PU-08, CU-04, CU-07, FA-34).
+
+    Rules (1)-(5a) -> 422 SLOT_NOT_AVAILABLE; now >= cutoff_at -> 422 CUTOFF_PASSED.
+    """
     now = timezone.now()
     current_tz = timezone.get_current_timezone()
     today = timezone.localtime(now).date()
@@ -35,12 +39,17 @@ def validate_pickup_date(
             code=ErrorCode.SLOT_NOT_AVAILABLE,
         )
 
-    is_market_operating = MarketOperatingDay.objects.filter(
-        market_id=market_id,
-        market__is_active=True,
-        day_of_week=pickup_date.isoweekday(),
-    ).exists()
-    if not is_market_operating:
+    weekday = pickup_date.isoweekday()
+
+    # (4) market is_active is checked on its own so the message tells the real reason.
+    if not Market.objects.filter(id=market_id, is_active=True).exists():
+        raise UnprocessableEntityError(
+            "The market is not active.",
+            code=ErrorCode.SLOT_NOT_AVAILABLE,
+        )
+
+    # (1a) market day
+    if not MarketOperatingDay.objects.filter(market_id=market_id, day_of_week=weekday).exists():
         raise UnprocessableEntityError(
             "The market is not operating on the selected pickup date.",
             code=ErrorCode.SLOT_NOT_AVAILABLE,
@@ -84,15 +93,24 @@ def validate_pickup_date(
             code=ErrorCode.SLOT_NOT_AVAILABLE,
         )
 
-    if pickup_date.isoweekday() != slot.day_of_week:
+    if weekday != slot.day_of_week:
         raise UnprocessableEntityError(
             f"The pickup date is not a {slot.get_day_of_week_display()}.",
             code=ErrorCode.SLOT_NOT_AVAILABLE,
         )
 
+    # (1b) farmer operating day (D-031). Missing or broken data never lets a date through.
+    farmer = slot.farmer_market.farmer
+    operating_days = farmer.operating_days if isinstance(farmer.operating_days, list) else []
+    if weekday not in operating_days:
+        raise UnprocessableEntityError(
+            "The stall does not operate on the selected day.",
+            code=ErrorCode.SLOT_NOT_AVAILABLE,
+        )
+
     start_at = timezone.make_aware(datetime.combine(pickup_date, slot.start_time), current_tz)
     end_at = timezone.make_aware(datetime.combine(pickup_date, slot.end_time), current_tz)
-    cutoff_hours = slot.farmer_market.farmer.order_cutoff_hours
+    cutoff_hours = farmer.order_cutoff_hours
     cutoff_at = start_at - timedelta(hours=cutoff_hours)
 
     if now >= cutoff_at:

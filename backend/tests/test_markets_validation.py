@@ -20,6 +20,7 @@ class MarketsValidationTestCase(TestCase):
             role=farmer_role,
         )
         self.farmer = FarmerProfile.objects.create(
+            operating_days=[1, 2, 3, 4, 5, 6, 7],
             user=self.farmer_user,
             stall_name="Validation Stall",
             contact_person="Tran Van Val",
@@ -47,8 +48,8 @@ class MarketsValidationTestCase(TestCase):
         for day in range(1, 8):
             MarketOperatingDay.objects.create(market=self.market, day_of_week=day)
 
-        now = timezone.now()
-        self.target_date = (now + timedelta(days=2)).date()
+        # Local date (Asia/Ho_Chi_Minh), same as validate_pickup_date; UTC date clashes 0h-7h.
+        self.target_date = timezone.localdate() + timedelta(days=2)
         self.slot = PickupSlot.objects.create(
             farmer_market=self.farmer_market,
             day_of_week=self.target_date.isoweekday(),
@@ -146,3 +147,71 @@ class MarketsValidationTestCase(TestCase):
                 pickup_slot_id=self.slot.pk,
             )
         self.assertEqual(ctx.exception.code, ErrorCode.CUTOFF_PASSED)
+
+    # --- Feature 8: D-031 operating days and separate reasons (A-019) ---
+
+    def _assert_slot_not_available(self, message_part, **overrides):
+        kwargs = {
+            "farmer_id": self.farmer.pk,
+            "market_id": self.market.pk,
+            "pickup_date": self.target_date,
+            "pickup_slot_id": self.slot.pk,
+            **overrides,
+        }
+        with self.assertRaises(UnprocessableEntityError) as ctx:
+            validate_pickup_date(**kwargs)
+        self.assertEqual(ctx.exception.code, ErrorCode.SLOT_NOT_AVAILABLE)
+        self.assertIn(message_part, str(ctx.exception.detail))
+
+    def test_farmer_non_operating_day_fails(self):
+        weekday = self.target_date.isoweekday()
+        self.farmer.operating_days = [day for day in range(1, 8) if day != weekday]
+        self.farmer.save()
+        self._assert_slot_not_available("does not operate")
+
+    def test_invalid_operating_days_in_db_fail_closed(self):
+        # Rows written around save() (e.g. raw update) must never let a date through.
+        FarmerProfile.objects.filter(pk=self.farmer.pk).update(operating_days=[])
+        self._assert_slot_not_available("does not operate")
+
+    def test_inactive_market_fails_with_own_message(self):
+        Market.objects.filter(pk=self.market.pk).update(is_active=False)
+        self._assert_slot_not_available("market is not active")
+
+    def test_market_not_operating_day_fails(self):
+        MarketOperatingDay.objects.filter(
+            market=self.market, day_of_week=self.target_date.isoweekday()
+        ).delete()
+        self._assert_slot_not_available("market is not operating")
+
+    def test_inactive_slot_fails(self):
+        PickupSlot.objects.filter(pk=self.slot.pk).update(is_active=False)
+        self._assert_slot_not_available("slot is not active")
+
+    def test_wrong_weekday_for_slot_fails(self):
+        self._assert_slot_not_available(
+            "The pickup date is not a", pickup_date=self.target_date + timedelta(days=1)
+        )
+
+    def test_slot_of_other_farmer_fails(self):
+        other_user = CustomUser.objects.create(
+            email="farmer_val_other@marketlink.local", role=self.farmer_user.role
+        )
+        other_farmer = FarmerProfile.objects.create(
+            user=other_user,
+            stall_name="Other Stall",
+            contact_person="Le Van Other",
+            phone="0988111333",
+            address="789 Other Road",
+            operating_days=[1, 2, 3, 4, 5, 6, 7],
+        )
+        other_slot = PickupSlot.objects.create(
+            farmer_market=FarmerMarket.objects.create(
+                farmer=other_farmer, market=self.market, stall_label="Stall V2"
+            ),
+            day_of_week=self.target_date.isoweekday(),
+            start_time="14:00:00",
+            end_time="16:00:00",
+            is_active=True,
+        )
+        self._assert_slot_not_available("not available for this stall", pickup_slot_id=other_slot.pk)

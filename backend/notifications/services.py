@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
 from django.template.loader import render_to_string
+from rest_framework import serializers
 
 from notifications.messages import NOTIFICATION_SPECS, render_notification
 from notifications.models import Notification
@@ -19,6 +20,7 @@ logger = logging.getLogger("marketlink")
 _email_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="marketlink-email")
 
 DEFAULT_FRONTEND_URL = "http://localhost:5173"
+_DATETIME_FIELD = serializers.DateTimeField()
 
 
 def notify(*, recipient: Any, event_type: str, context: dict[str, Any]) -> Notification:
@@ -30,7 +32,7 @@ def notify(*, recipient: Any, event_type: str, context: dict[str, Any]) -> Notif
         message=message,
         target_url=target_url,
     )
-    transaction.on_commit(partial(_push_realtime, recipient.pk, _serialize(notification)))
+    transaction.on_commit(partial(_push_realtime, recipient.pk, serialize_notification(notification)))
 
     template = NOTIFICATION_SPECS[event_type].email_template
     if template and recipient.email:
@@ -45,7 +47,8 @@ def notify(*, recipient: Any, event_type: str, context: dict[str, Any]) -> Notif
     return notification
 
 
-def _serialize(notification: Notification) -> dict[str, Any]:
+def serialize_notification(notification: Notification) -> dict[str, Any]:
+    """Notification (Pass 4B §3.x): the same shape for NO-01 / NO-03 and the WebSocket push."""
     return {
         "id": notification.pk,
         "type": notification.type,
@@ -53,7 +56,9 @@ def _serialize(notification: Notification) -> dict[str, Any]:
         "message": notification.message,
         "target_url": notification.target_url,
         "is_read": notification.is_read,
-        "created_at": notification.created_at.isoformat(),
+        # Same datetime format as every other API field (local timezone, ISO 8601).
+        "read_at": _DATETIME_FIELD.to_representation(notification.read_at) if notification.read_at else None,
+        "created_at": _DATETIME_FIELD.to_representation(notification.created_at),
     }
 
 

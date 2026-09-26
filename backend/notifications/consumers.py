@@ -23,12 +23,12 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         ticket = query_params.get("ticket", [None])[0]
 
         if not ticket:
-            # Per A-006 note 2: Accept first then close with 4401 to prevent browser HTTP 403 / 1006 error
             await self.accept()
             await self.close(code=CLOSE_CODE_UNAUTHORIZED)
             return
 
-        payload = await sync_to_async(verify_and_consume_ws_ticket)(ticket=ticket)
+        # No ORM here, so the lookup need not queue on the single thread-sensitive worker.
+        payload = await sync_to_async(verify_and_consume_ws_ticket, thread_sensitive=False)(ticket=ticket)
         if not payload or "user_id" not in payload:
             await self.accept()
             await self.close(code=CLOSE_CODE_UNAUTHORIZED)

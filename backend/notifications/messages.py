@@ -98,12 +98,13 @@ NOTIFICATION_SPECS: dict[str, NotificationSpec] = {
     ),
     NotificationType.ORDER_CANCELLED_CUSTOMER_LOCKED: NotificationSpec(
         title="Order #{order_id} was cancelled",
+        # stock_note depends on the edge: T6 / T13 return stock, T5 (PLACED) never took any (D-029).
         message=(
             "The customer's account was locked by an administrator, so this order was "
-            "cancelled and the items have been returned to your online stock."
+            "cancelled. {stock_note}"
         ),
         target_url="/farmer/orders/{order_id}",
-        required=("order_id",),
+        required=("order_id", "stock_note"),
         email_template="order_cancelled_customer_locked",
     ),
     NotificationType.ACCOUNT_STATUS_CHANGED: NotificationSpec(

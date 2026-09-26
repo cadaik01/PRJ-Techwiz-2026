@@ -74,13 +74,25 @@ backend/
 │   │   └── base.py             # BasePolicy
 │   └── services/
 │       ├── db_retry.py         # run_with_deadlock_retry()
-│       ├── ws_ticket.py        # (not built yet — P4-BE, Farmer) one-time WebSocket ticket
+│       ├── ws_ticket.py        # AU-08 one-time WebSocket ticket (Redis GETDEL; LocMem fallback for dev/test)
 │       └── idempotency.py      # (not built yet — C2, Customer) Idempotency-Key two-phase lock
 ├── system/                     # AuditLog + log_security_event() (system/services.py);
 │                               # management/commands/seed_minimal.py (P6 minimal seed)
-├── accounts/                   # CustomUser, roles, profiles; auth endpoints in accounts/auth/ (not built yet — P2, Customer)
-│                               # geocoding.py (not built yet — F1/F2, Farmer): tra tọa độ từ địa chỉ qua Nominatim (D-032)
-├── markets/  catalog/  orders/  reviews/  favorites/  notifications/  chat_bot/
+├── accounts/                   # CustomUser, roles, profiles; auth endpoints in accounts/auth/:
+│                               #   AU-02 (Farmer, đã làm — v1.8) + build_me() dùng chung; AU-01, AU-03 → AU-07 (not built yet — P2, Customer)
+│                               # services/tokens.py — issue_token_pair(user) -> { access, refresh }; services/registration.py — register_farmer()
+│                               # geocoding.py — geocode_address(address) -> (lat, lng) | None (Nominatim, D-032;
+│                               #   timeout 5s, 1 req/s qua cache, lỗi trả None; settings NOMINATIM_URL, NOMINATIM_USER_AGENT, GEOCODING_ENABLED)
+│                               # operating_days.py — normalize_operating_days() (D-031)
+│                               # selectors.py — build_farmer_public(), build_farmer_own_profile()
+│                               #   (FarmerPublic dùng chung cho FA-02, PU-07, AD-03)
+│                               # services/farmer_profile.py — update_farmer_profile() (FA-03); farmer/ — FA-02, FA-03
+├── markets/                    # selectors.py — build_market_summaries() (MarketSummary), serialize_pickup_slot(), serialize_closure()
+│                               # services/validation.py — validate_pickup_date(); services/farmer_schedule.py — F3 (FA-05 → FA-10, FA-32, FA-33)
+│                               # farmer/ — FA-04 → FA-10, FA-31 → FA-33 (3 nhóm URL: markets/, pickup-slots/, closures/)
+├── notifications/              # services.py — notify(), serialize_notification() (một dạng Notification cho NO-01/NO-03 và payload WebSocket)
+│                               # views.py + urls.py — NO-01 → NO-04 (Customer, Farmer; Admin 403), gắn tại api/notifications/
+├── catalog/  orders/  reviews/  favorites/  chat_bot/
 ```
 
 Mỗi app nghiệp vụ:
@@ -440,7 +452,7 @@ Khai báo `REST_FRAMEWORK["EXCEPTION_HANDLER"] = "marketlink_core.responses.cust
 - Engine InnoDB, charset `utf8mb4`, collation duy nhất `utf8mb4_0900_ai_ci`.
 - Mọi `CharField` có `max_length`. Không `db_index`/`unique` trên `TextField`; index ghép ≤ 3072 byte.
 - Index khai báo tập trung trong `Meta.indexes`, đặt `name` tường minh.
-- `JSONField`: `default=dict`, `encoder=DjangoJSONEncoder`. Ngoại lệ v1.7: `farmer_profiles.operating_days` (`default=list`, danh sách số 1–7) và `orders.pending_change` (`null=True`) — định dạng theo Pass 4A; không thêm bảng cho hai dữ liệu này.
+- `JSONField`: `default=dict`, `encoder=DjangoJSONEncoder`. Ngoại lệ v1.7: `farmer_profiles.operating_days` (`default=list`, danh sách số 1–7, ≥ 1 ngày, không trùng — kiểm ở `FarmerProfile.clean()` / `save()` qua `accounts/operating_days.normalize_operating_days`, serializer dùng lại hàm này; không CHECK ở CSDL) và `orders.pending_change` (`null=True`) — định dạng theo Pass 4A; không thêm bảng cho hai dữ liệu này.
 - Thực thể có OCC (`orders`) có `version = PositiveIntegerField(default=1)`.
 - Model chỉ chứa phương thức kiểm tra trạng thái của chính nó (`is_open`); không gửi mail, không logic liên bảng trong `save()`.
 
@@ -692,7 +704,15 @@ def notify(*, recipient: CustomUser, event_type: str, context: dict[str, Any]) -
 
 ### 10.2 WebSocket one-time ticket
 
-`marketlink_core/services/ws_ticket.py` (not built yet — P4-BE). Vé và channel layer luôn dùng Redis thật qua `REDIS_URL`: khi dev phải đặt `USE_REDIS=True` trong `.env` (LocMem không chia sẻ giữa tiến trình Daphne và không hỗ trợ `GETDEL`).
+`marketlink_core/services/ws_ticket.py` (đã làm — v1.8). Vé và channel layer dùng Redis thật qua `REDIS_URL` khi `USE_REDIS=True` (Redis ≥ 6.2 cho `GETDEL`). Khi `USE_REDIS=False`, vé lưu LocMem và kiểm bằng `get` + `delete` có kiểm kết quả xóa — **chỉ dùng cho dev một tiến trình và test** (LocMem không chia sẻ giữa các tiến trình / worker).
+
+Cách làm thực tế (v1.8):
+
+- Vé phải là UUID hợp lệ (`uuid.UUID`), sai thì trả `None` ngay, không gọi Redis.
+- Redis: client gốc lấy qua `django_redis.get_redis_connection("default")`; tạo vé `SET ws_ticket:<uuid> <json> EX WS_TICKET_TTL`, kiểm vé `GETDEL ws_ticket:<uuid>` (một lệnh nguyên tử). Lỗi Redis khi kiểm vé → ghi log, trả `None` → consumer đóng `4401` (fail closed).
+- Consumer gọi service qua `sync_to_async(..., thread_sensitive=False)` (không dùng ORM) thay cho `redis.asyncio` ở code mẫu dưới; `accept()` rồi `close(4401)` giữ nguyên.
+
+Code mẫu gốc (tham khảo):
 
 ```python
 import json
