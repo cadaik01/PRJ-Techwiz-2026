@@ -1,0 +1,12 @@
+.profile-page {
+  padding: var(--space-6) 0;
+}
+
+.profile-page__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+}
+
+.profile-page__todo {
+  color: var(--color-muted-foreground);
+}

@@ -1,0 +1,12 @@
+.review-order-page {
+  padding: var(--space-6) 0;
+}
+
+.review-order-page__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+}
+
+.review-order-page__todo {
+  color: var(--color-muted-foreground);
+}

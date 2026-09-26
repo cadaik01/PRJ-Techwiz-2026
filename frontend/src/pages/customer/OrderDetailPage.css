@@ -1,0 +1,12 @@
+.order-detail-page {
+  padding: var(--space-6) 0;
+}
+
+.order-detail-page__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+}
+
+.order-detail-page__todo {
+  color: var(--color-muted-foreground);
+}

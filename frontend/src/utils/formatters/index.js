@@ -8,9 +8,6 @@ export function formatMoney(amount) {
         currency: 'USD',
     }).format(moneyToNumber(amount));
 }
-export function formatVnd(amount) {
-    return formatMoney(amount);
-}
 export function formatDateTime(value) {
     const date = typeof value === 'string' ? parseISO(value) : value;
     return format(date, 'dd/MM/yyyy HH:mm', { locale: enUS });

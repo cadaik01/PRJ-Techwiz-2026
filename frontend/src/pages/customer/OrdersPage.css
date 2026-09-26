@@ -1,0 +1,12 @@
+.orders-page {
+  padding: var(--space-6) 0;
+}
+
+.orders-page__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+}
+
+.orders-page__todo {
+  color: var(--color-muted-foreground);
+}
