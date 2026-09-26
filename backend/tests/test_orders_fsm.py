@@ -14,6 +14,7 @@ from marketlink_core.exceptions import (
     UnprocessableEntityError,
 )
 from markets.models import FarmerMarket, Market, PickupSlot
+from notifications.models import Notification, NotificationType
 from orders.models import ActorRole, ChangeReason, Order, OrderItem, OrderStatus, Transition
 from orders.services.expiry import expire_overdue_orders
 from orders.services.fsm import record_order_placed, transition_order
@@ -47,6 +48,7 @@ class OrderFSMTestCase(TestCase):
             role=farmer_role,
         )
         self.farmer = FarmerProfile.objects.create(
+            operating_days=[1, 2, 3, 4, 5, 6, 7],
             user=self.farmer_user,
             stall_name="Green Garden",
             contact_person="Tran Van B",
@@ -248,6 +250,7 @@ class OrderFSMTestCase(TestCase):
             actor_role=ActorRole.FARMER,
             expected_version=order.version,
             reason="Heavy rain damaged harvest.",
+            sold_out_product_ids=[],
         )
         self.assertEqual(order.status, OrderStatus.DECLINED)
         self.assertEqual(Product.objects.get(id=self.product.id).stock_quantity, initial_stock)
@@ -454,3 +457,49 @@ class OrderFSMTestCase(TestCase):
         self.assertEqual(order.status, OrderStatus.DECLINED)
         history = order.status_history.last()
         self.assertEqual(history.change_reason, ChangeReason.FARMER_SUSPENDED_BY_ADMIN)
+
+    # --- 7.4: ORDER_CANCELLED_CUSTOMER_LOCKED must match what happened to stock ---
+
+    def _locked_notification(self, order: Order) -> Notification:
+        return Notification.objects.get(
+            recipient=self.farmer_user,
+            type=NotificationType.ORDER_CANCELLED_CUSTOMER_LOCKED,
+            target_url=f"/farmer/orders/{order.id}",
+        )
+
+    def test_admin_cancel_placed_order_says_stock_unchanged(self):
+        order = self._create_order(start_in_hours=24, cutoff_in_hours=12, qty=2)
+        order = transition_order(
+            order_id=order.id,
+            to_status=OrderStatus.CANCELLED,
+            actor=self.admin_user,
+            actor_role=ActorRole.ADMIN,
+            expected_version=order.version,
+        )
+        self.assertEqual(order.status, OrderStatus.CANCELLED)
+        self.assertEqual(Product.objects.get(id=self.product.id).stock_quantity, 50)
+
+        message = self._locked_notification(order).message
+        self.assertIn("stock did not change", message)
+        self.assertNotIn("returned", message)
+
+    def test_admin_cancel_accepted_order_says_stock_returned(self):
+        order = self._create_order(start_in_hours=24, cutoff_in_hours=12, qty=2)
+        order = transition_order(
+            order_id=order.id,
+            to_status=OrderStatus.ACCEPTED,
+            actor=self.farmer_user,
+            actor_role=ActorRole.FARMER,
+            expected_version=order.version,
+        )
+        self.assertEqual(Product.objects.get(id=self.product.id).stock_quantity, 48)
+
+        order = transition_order(
+            order_id=order.id,
+            to_status=OrderStatus.CANCELLED,
+            actor=self.admin_user,
+            actor_role=ActorRole.ADMIN,
+            expected_version=order.version,
+        )
+        self.assertEqual(Product.objects.get(id=self.product.id).stock_quantity, 50)
+        self.assertIn("returned to your online stock", self._locked_notification(order).message)

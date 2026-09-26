@@ -1,6 +1,6 @@
-from decimal import Decimal
 from typing import Any
 
+from django.db import transaction
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
@@ -16,11 +16,12 @@ from catalog.farmer.serializers_farmer import (
 from catalog.models import Category, Product
 from catalog.services.farmer_product import (
     apply_weekly_template,
+    build_product_metrics,
     notify_restock_for_product,
     preview_weekly_template,
 )
-from catalog.services.stock import get_pending_quantities
 from marketlink_core.exceptions import (
+    BusinessValidationError,
     ErrorCode,
     ForbiddenActionError,
     ResourceNotFoundError,
@@ -29,6 +30,21 @@ from marketlink_core.exceptions import (
 from marketlink_core.pagination import StandardPagination
 from marketlink_core.permissions import IsFarmer
 from marketlink_core.responses import api_response
+from orders.farmer.serializers_farmer import FarmerOrderSummarySerializer
+from orders.services.fsm import run_with_retry_if_top_level
+
+PRODUCT_STATES = ("in_stock", "out_of_stock", "unavailable", "hidden", "archived")
+# Fields FA-14 may change; the save lists exactly the changed ones (never a full-row write).
+UPDATABLE_FIELDS = (
+    "name",
+    "price",
+    "unit",
+    "stock_quantity",
+    "weekly_default_quantity",
+    "description",
+    "image",
+    "is_available",
+)
 
 
 class FarmerBaseProductView(APIView):
@@ -37,10 +53,21 @@ class FarmerBaseProductView(APIView):
     def _get_farmer_profile(self, request: Request) -> FarmerProfile:
         profile = getattr(request.user, "farmer_profile", None)
         if not profile:
-            raise ResourceNotFoundError(
-                "Farmer profile not found.", code=ErrorCode.NOT_FOUND
-            )
+            raise ResourceNotFoundError("Farmer profile not found.", code=ErrorCode.NOT_FOUND)
         return profile
+
+    def _check_can_write(self, profile: FarmerProfile, *, require_approved: bool) -> None:
+        # Pass 4B §5.4: every write endpoint of a suspended farmer returns FARMER_SUSPENDED.
+        if profile.status == FarmerStatus.SUSPENDED:
+            raise ForbiddenActionError(
+                "Your stall is suspended, so products cannot be changed.",
+                code=ErrorCode.FARMER_SUSPENDED,
+            )
+        if require_approved and profile.status != FarmerStatus.APPROVED:
+            raise ForbiddenActionError(
+                "Only approved farmers can perform this action.",
+                code=ErrorCode.FARMER_NOT_APPROVED,
+            )
 
     def _check_farmer_approved(self, profile: FarmerProfile) -> None:
         if profile.status != FarmerStatus.APPROVED:
@@ -49,48 +76,57 @@ class FarmerBaseProductView(APIView):
                 code=ErrorCode.FARMER_NOT_APPROVED,
             )
 
-    def _get_farmer_product(self, profile: FarmerProfile, pk: int) -> Product:
-        product = Product.objects.filter(pk=pk, farmer=profile).first()
+    def _get_farmer_product(self, profile: FarmerProfile, pk: int, *, lock: bool = False) -> Product:
+        qs = Product.objects.filter(pk=pk, farmer=profile)
+        if lock:
+            qs = qs.select_for_update(of=("self",))
+        product = qs.first()
         if not product:
-            raise ResourceNotFoundError(
-                "Product not found.", code=ErrorCode.NOT_FOUND
-            )
+            raise ResourceNotFoundError("Product not found.", code=ErrorCode.NOT_FOUND)
         return product
+
+    def _product_data(self, request: Request, profile: FarmerProfile, product: Product) -> dict[str, Any]:
+        metrics = build_product_metrics(farmer=profile, product_ids=[product.id])
+        return FarmerProductSerializer(
+            product, context={"request": request, "product_metrics": metrics}
+        ).data
 
 
 class FarmerProductListView(FarmerBaseProductView):
     pagination_class = StandardPagination
 
     def get(self, request: Request) -> Response:
-        """FA-11: List farmer products with filtering, search, and pending stock."""
+        """FA-11: list the farmer's products with search, category and state filters."""
         profile = self._get_farmer_profile(request)
-        qs = Product.objects.filter(farmer=profile).select_related("category")
+        params = request.query_params
+        errors: dict[str, list[str]] = {}
 
-        # 1. Search filter
-        q = request.query_params.get("q", "").strip()
+        category_id = None
+        raw_category = params.get("category_id")
+        if raw_category not in (None, ""):
+            if not raw_category.isdigit() or int(raw_category) < 1:
+                errors["category_id"] = ["Must be a positive integer."]
+            else:
+                category_id = int(raw_category)
+        state = params.get("state") or None
+        if state and state not in PRODUCT_STATES:
+            errors["state"] = [f"Use one of: {', '.join(PRODUCT_STATES)}."]
+        if errors:
+            raise BusinessValidationError(
+                "Invalid query parameters.", code=ErrorCode.VALIDATION_ERROR, errors=errors
+            )
+
+        qs = Product.objects.filter(farmer=profile).select_related("category", "farmer")
+        q = params.get("q", "").strip()
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+        if category_id is not None:
+            qs = qs.filter(category_id=category_id)
 
-        # 2. Category filter
-        cat_id = request.query_params.get("category_id")
-        if cat_id:
-            qs = qs.filter(category_id=cat_id)
-
-        # 3. State filter
-        state = request.query_params.get("state")
         if state == "in_stock":
-            qs = qs.filter(
-                is_archived=False,
-                is_hidden_by_admin=False,
-                is_available=True,
-                stock_quantity__gt=0,
-            )
+            qs = qs.filter(is_archived=False, is_hidden_by_admin=False, is_available=True, stock_quantity__gt=0)
         elif state == "out_of_stock":
-            qs = qs.filter(
-                is_archived=False,
-                is_hidden_by_admin=False,
-                stock_quantity=0,
-            )
+            qs = qs.filter(is_archived=False, is_hidden_by_admin=False, stock_quantity=0)
         elif state == "unavailable":
             qs = qs.filter(is_archived=False, is_available=False)
         elif state == "hidden":
@@ -98,46 +134,28 @@ class FarmerProductListView(FarmerBaseProductView):
         elif state == "archived":
             qs = qs.filter(is_archived=True)
         else:
-            # Default excludes archived products
-            qs = qs.filter(is_archived=False)
-
-        qs = qs.order_by("-created_at")
+            qs = qs.filter(is_archived=False)  # default excludes archived products
 
         paginator = self.pagination_class()
-        page = paginator.paginate_queryset(qs, request)
-        if page is not None:
-            pids = [p.id for p in page]
-            pending_dict = get_pending_quantities(product_ids=pids)
-            serializer = FarmerProductSerializer(
-                page,
-                many=True,
-                context={"request": request, "pending_quantities": pending_dict},
-            )
-            return paginator.get_paginated_response(serializer.data)
-
-        pids = [p.id for p in qs]
-        pending_dict = get_pending_quantities(product_ids=pids)
+        page = paginator.paginate_queryset(qs.order_by("-created_at", "-id"), request)
+        metrics = build_product_metrics(farmer=profile, product_ids=[p.id for p in page])
         serializer = FarmerProductSerializer(
-            qs,
-            many=True,
-            context={"request": request, "pending_quantities": pending_dict},
+            page, many=True, context={"request": request, "product_metrics": metrics}
         )
-        return api_response(message="OK", data=serializer.data, request=request)
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request: Request) -> Response:
-        """FA-12: Create new farmer product (Farmer APPROVED required)."""
+        """FA-12: create a product (APPROVED farmer only)."""
         profile = self._get_farmer_profile(request)
-        self._check_farmer_approved(profile)
+        self._check_can_write(profile, require_approved=True)
 
         serializer = FarmerProductCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated = serializer.validated_data
 
-        category = Category.objects.get(id=validated["category_id"])
-
         product = Product.objects.create(
             farmer=profile,
-            category=category,
+            category=Category.objects.get(id=validated["category_id"]),
             name=validated["name"].strip(),
             price=validated["price"],
             unit=validated["unit"],
@@ -147,13 +165,9 @@ class FarmerProductListView(FarmerBaseProductView):
             image=validated.get("image"),
             is_available=validated.get("is_available", True),
         )
-
-        res_serializer = FarmerProductSerializer(
-            product, context={"request": request, "pending_quantities": {product.id: 0}}
-        )
         return api_response(
             message="Product created successfully.",
-            data=res_serializer.data,
+            data=self._product_data(request, profile, product),
             status_code=status.HTTP_201_CREATED,
             request=request,
         )
@@ -161,75 +175,59 @@ class FarmerProductListView(FarmerBaseProductView):
 
 class FarmerProductDetailView(FarmerBaseProductView):
     def get(self, request: Request, pk: int) -> Response:
-        """FA-13: Get product details."""
+        """FA-13."""
         profile = self._get_farmer_profile(request)
         product = self._get_farmer_product(profile, pk)
-        serializer = FarmerProductSerializer(product, context={"request": request})
-        return api_response(message="OK", data=serializer.data, request=request)
+        return api_response(message="OK", data=self._product_data(request, profile, product), request=request)
 
     def patch(self, request: Request, pk: int) -> Response:
-        """FA-14: Update product details and trigger restock notifications if applicable."""
+        """FA-14: partial update under a row lock; restock alert when stock goes 0 -> > 0 (D-025)."""
         profile = self._get_farmer_profile(request)
-        self._check_farmer_approved(profile)
-        product = self._get_farmer_product(profile, pk)
-
-        if product.is_archived or product.is_hidden_by_admin:
-            raise UnprocessableEntityError(
-                "Cannot modify an archived or admin-hidden product.",
-                code=ErrorCode.FAILED_PRECONDITION,
-            )
+        self._check_can_write(profile, require_approved=True)
+        self._get_farmer_product(profile, pk)  # 404 before validating the body
 
         serializer = FarmerProductUpdateSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         validated = serializer.validated_data
+        category = Category.objects.get(id=validated["category_id"]) if "category_id" in validated else None
 
-        old_stock = product.stock_quantity
+        def _execute() -> tuple[Product, int]:
+            with transaction.atomic():
+                # Lock first so a concurrent accept (T2) cannot be overwritten by a stale row.
+                product = self._get_farmer_product(profile, pk, lock=True)
+                if product.is_archived or product.is_hidden_by_admin:
+                    raise UnprocessableEntityError(
+                        "Cannot modify an archived or admin-hidden product.",
+                        code=ErrorCode.FAILED_PRECONDITION,
+                    )
+                old_stock = product.stock_quantity
+                changed: list[str] = []
+                if category is not None:
+                    product.category = category
+                    changed.append("category")
+                for field in UPDATABLE_FIELDS:
+                    if field in validated:
+                        value = validated[field]
+                        setattr(product, field, value.strip() if field == "name" else value)
+                        changed.append(field)
+                if changed:
+                    product.save(update_fields=[*changed, "updated_at"])
 
-        if "category_id" in validated:
-            product.category = Category.objects.get(id=validated["category_id"])
-        if "name" in validated:
-            product.name = validated["name"].strip()
-        if "price" in validated:
-            product.price = validated["price"]
-        if "unit" in validated:
-            product.unit = validated["unit"]
-        if "stock_quantity" in validated:
-            product.stock_quantity = validated["stock_quantity"]
-        if "weekly_default_quantity" in validated:
-            product.weekly_default_quantity = validated["weekly_default_quantity"]
-        if "description" in validated:
-            product.description = validated["description"]
-        if "image" in validated:
-            product.image = validated["image"]
-        if "is_available" in validated:
-            product.is_available = validated["is_available"]
+                restock_notified = 0
+                if old_stock == 0 and product.stock_quantity > 0 and product.is_available:
+                    restock_notified = notify_restock_for_product(product=product)
+            return product, restock_notified
 
-        product.save()
-
-        # D-025 trigger: restock from 0 to > 0
-        restock_notified = 0
-        if (
-            old_stock == 0
-            and product.stock_quantity > 0
-            and product.is_available
-            and not product.is_hidden_by_admin
-            and not product.is_archived
-        ):
-            restock_notified = notify_restock_for_product(product=product)
-
-        data = FarmerProductSerializer(product, context={"request": request}).data
+        product, restock_notified = run_with_retry_if_top_level(_execute)
+        data = self._product_data(request, profile, product)
         data["restock_notified"] = restock_notified
-        return api_response(
-            message="Product updated successfully.",
-            data=data,
-            request=request,
-        )
+        return api_response(message="Product updated successfully.", data=data, request=request)
 
     def delete(self, request: Request, pk: int) -> Response:
-        """FA-15: Soft delete product (set is_archived = True)."""
+        """FA-15: soft delete (is_archived = True, D-017)."""
         profile = self._get_farmer_profile(request)
+        self._check_can_write(profile, require_approved=False)
         product = self._get_farmer_product(profile, pk)
-
         product.is_archived = True
         product.save(update_fields=["is_archived", "updated_at"])
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -237,32 +235,44 @@ class FarmerProductDetailView(FarmerBaseProductView):
 
 class FarmerProductMarkSoldOutView(FarmerBaseProductView):
     def post(self, request: Request, pk: int) -> Response:
-        """FA-16: Quick mark product as sold out (stock_quantity = 0)."""
+        """FA-16: quick mark as sold out (stock_quantity = 0) under a row lock."""
         profile = self._get_farmer_profile(request)
-        product = self._get_farmer_product(profile, pk)
+        self._check_can_write(profile, require_approved=False)
 
-        product.stock_quantity = 0
-        product.save(update_fields=["stock_quantity", "updated_at"])
+        def _execute() -> Product:
+            with transaction.atomic():
+                product = self._get_farmer_product(profile, pk, lock=True)
+                if product.stock_quantity != 0:
+                    product.stock_quantity = 0
+                    product.save(update_fields=["stock_quantity", "updated_at"])
+            return product
 
-        serializer = FarmerProductSerializer(product, context={"request": request})
-        return api_response(message="OK", data=serializer.data, request=request)
+        product = run_with_retry_if_top_level(_execute)
+        return api_response(message="OK", data=self._product_data(request, profile, product), request=request)
 
 
 class FarmerWeeklyTemplatePreviewView(FarmerBaseProductView):
     def get(self, request: Request) -> Response:
-        """FA-17: Preview weekly stock template calculation (Farmer APPROVED required)."""
+        """FA-17: preview weekly stock template calculation (Farmer APPROVED required)."""
         profile = self._get_farmer_profile(request)
         self._check_farmer_approved(profile)
 
-        preview_data = preview_weekly_template(farmer=profile)
-        return api_response(message="OK", data=preview_data, request=request)
+        preview = preview_weekly_template(farmer=profile)
+        data = {
+            "rows": preview["rows"],
+            # OrderSummary gives the dialog the version needed for If-Match on Complete / No-show.
+            "overdue_orders": FarmerOrderSummarySerializer(
+                preview["overdue_orders"], many=True, context={"request": request}
+            ).data,
+        }
+        return api_response(message="OK", data=data, request=request)
 
 
 class FarmerWeeklyTemplateApplyView(FarmerBaseProductView):
     def post(self, request: Request) -> Response:
-        """FA-18: Apply weekly stock template with row-locking (Farmer APPROVED required)."""
+        """FA-18: apply weekly stock template with row-locking (Farmer APPROVED required)."""
         profile = self._get_farmer_profile(request)
-        self._check_farmer_approved(profile)
+        self._check_can_write(profile, require_approved=True)
 
         apply_data = apply_weekly_template(farmer=profile)
         return api_response(message="OK", data=apply_data, request=request)

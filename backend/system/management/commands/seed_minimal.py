@@ -189,6 +189,8 @@ class Command(BaseCommand):
 
     def _seed_farmer(self, spec, password, markets, categories) -> None:
         user, _ = self._create_user(spec["email"], password, RoleCode.FARMER)
+        # D-031: operating days = the weekdays that have a pickup slot in the spec (>= 1 day).
+        operating_days = sorted({int(day) for stall in spec["stalls"] for day, _, _ in stall["slots"]})
         farmer, _ = FarmerProfile.objects.get_or_create(
             user=user,
             defaults={
@@ -197,6 +199,7 @@ class Command(BaseCommand):
                 "phone": spec["phone"],
                 "address": spec["address"],
                 "status": FarmerStatus.APPROVED,
+                "operating_days": operating_days,
             },
         )
         for stall in spec["stalls"]:

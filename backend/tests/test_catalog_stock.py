@@ -36,6 +36,7 @@ class CatalogStockTestCase(TestCase):
             role=farmer_role,
         )
         self.farmer = FarmerProfile.objects.create(
+            operating_days=[1, 2, 3, 4, 5, 6, 7],
             user=self.farmer_user,
             stall_name="Stock Farm",
             contact_person="Tran Van Stock",

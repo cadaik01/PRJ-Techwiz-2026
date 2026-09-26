@@ -44,7 +44,7 @@ NOTIFICATION_SPECS: dict[str, NotificationSpec] = {
         title="Order #{order_id} expired",
         message=(
             "{farmer_name} did not confirm your order before the pickup time, so it has "
-            "expired and the reserved items were released."
+            "expired. Please place a new order if you still need these items."
         ),
         target_url="/customer/orders/{order_id}",
         required=("order_id", "farmer_name"),
@@ -61,6 +61,15 @@ NOTIFICATION_SPECS: dict[str, NotificationSpec] = {
         message="{farmer_name} rejected your change request for order #{order_id}. Reason: {reason}",
         target_url="/customer/orders/{order_id}",
         required=("order_id", "farmer_name", "reason"),
+    ),
+    NotificationType.ORDER_ITEM_SOLD_OUT: NotificationSpec(
+        title="An item in order #{order_id} is sold out",
+        message=(
+            "{farmer_name} has run out of {product_name}, so it was removed from your order "
+            "#{order_id}. The farmer will contact you about the rest of the order."
+        ),
+        target_url="/customer/orders/{order_id}",
+        required=("order_id", "farmer_name", "product_name"),
     ),
     NotificationType.RESTOCK: NotificationSpec(
         title="{product_name} is back in stock",
@@ -89,12 +98,13 @@ NOTIFICATION_SPECS: dict[str, NotificationSpec] = {
     ),
     NotificationType.ORDER_CANCELLED_CUSTOMER_LOCKED: NotificationSpec(
         title="Order #{order_id} was cancelled",
+        # stock_note depends on the edge: T6 / T13 return stock, T5 (PLACED) never took any (D-029).
         message=(
             "The customer's account was locked by an administrator, so this order was "
-            "cancelled and the items have been returned to your online stock."
+            "cancelled. {stock_note}"
         ),
         target_url="/farmer/orders/{order_id}",
-        required=("order_id",),
+        required=("order_id", "stock_note"),
         email_template="order_cancelled_customer_locked",
     ),
     NotificationType.ACCOUNT_STATUS_CHANGED: NotificationSpec(

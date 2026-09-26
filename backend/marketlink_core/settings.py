@@ -242,6 +242,12 @@ else:
 
 WS_TICKET_TTL = int(os.environ.get("WS_TICKET_TTL", "30"))
 
+# D-032: farmer coordinates from the address via OpenStreetMap Nominatim (usage policy:
+# max 1 request/second and a User-Agent that identifies the app with a contact email).
+NOMINATIM_URL = os.environ.get("NOMINATIM_URL") or "https://nominatim.openstreetmap.org/search"
+NOMINATIM_USER_AGENT = os.environ.get("NOMINATIM_USER_AGENT") or "MarketLink/1.0 (TechWiz 7 student project)"
+GEOCODING_ENABLED = os.environ.get("GEOCODING_ENABLED", "True").lower() in ("true", "1", "t")
+
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 

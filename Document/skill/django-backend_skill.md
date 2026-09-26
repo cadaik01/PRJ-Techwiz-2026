@@ -74,13 +74,25 @@ backend/
 │   │   └── base.py             # BasePolicy
 │   └── services/
 │       ├── db_retry.py         # run_with_deadlock_retry()
-│       ├── ws_ticket.py        # (not built yet — P4-BE, Farmer) one-time WebSocket ticket
+│       ├── ws_ticket.py        # AU-08 one-time WebSocket ticket (Redis GETDEL; LocMem fallback for dev/test)
 │       └── idempotency.py      # (not built yet — C2, Customer) Idempotency-Key two-phase lock
 ├── system/                     # AuditLog + log_security_event() (system/services.py);
 │                               # management/commands/seed_minimal.py (P6 minimal seed)
-├── accounts/                   # CustomUser, roles, profiles; auth endpoints in accounts/auth/ (not built yet — P2, Customer)
-│                               # geocoding.py (not built yet — F1/F2, Farmer): tra tọa độ từ địa chỉ qua Nominatim (D-032)
-├── markets/  catalog/  orders/  reviews/  favorites/  notifications/  chat_bot/
+├── accounts/                   # CustomUser, roles, profiles; auth endpoints in accounts/auth/:
+│                               #   AU-02 (Farmer, đã làm — v1.8) + build_me() dùng chung; AU-01, AU-03 → AU-07 (not built yet — P2, Customer)
+│                               # services/tokens.py — issue_token_pair(user) -> { access, refresh }; services/registration.py — register_farmer()
+│                               # geocoding.py — geocode_address(address) -> (lat, lng) | None (Nominatim, D-032;
+│                               #   timeout 5s, 1 req/s qua cache, lỗi trả None; settings NOMINATIM_URL, NOMINATIM_USER_AGENT, GEOCODING_ENABLED)
+│                               # operating_days.py — normalize_operating_days() (D-031)
+│                               # selectors.py — build_farmer_public(), build_farmer_own_profile()
+│                               #   (FarmerPublic dùng chung cho FA-02, PU-07, AD-03)
+│                               # services/farmer_profile.py — update_farmer_profile() (FA-03); farmer/ — FA-02, FA-03
+├── markets/                    # selectors.py — build_market_summaries() (MarketSummary), serialize_pickup_slot(), serialize_closure()
+│                               # services/validation.py — validate_pickup_date(); services/farmer_schedule.py — F3 (FA-05 → FA-10, FA-32, FA-33)
+│                               # farmer/ — FA-04 → FA-10, FA-31 → FA-33 (3 nhóm URL: markets/, pickup-slots/, closures/)
+├── notifications/              # services.py — notify(), serialize_notification() (một dạng Notification cho NO-01/NO-03 và payload WebSocket)
+│                               # views.py + urls.py — NO-01 → NO-04 (Customer, Farmer; Admin 403), gắn tại api/notifications/
+├── catalog/  orders/  reviews/  favorites/  chat_bot/
 ```
 
 Mỗi app nghiệp vụ:
@@ -440,7 +452,7 @@ Khai báo `REST_FRAMEWORK["EXCEPTION_HANDLER"] = "marketlink_core.responses.cust
 - Engine InnoDB, charset `utf8mb4`, collation duy nhất `utf8mb4_0900_ai_ci`.
 - Mọi `CharField` có `max_length`. Không `db_index`/`unique` trên `TextField`; index ghép ≤ 3072 byte.
 - Index khai báo tập trung trong `Meta.indexes`, đặt `name` tường minh.
-- `JSONField`: `default=dict`, `encoder=DjangoJSONEncoder`. Ngoại lệ v1.7: `farmer_profiles.operating_days` (`default=list`, danh sách số 1–7) và `orders.pending_change` (`null=True`) — định dạng theo Pass 4A; không thêm bảng cho hai dữ liệu này.
+- `JSONField`: `default=dict`, `encoder=DjangoJSONEncoder`. Ngoại lệ v1.7: `farmer_profiles.operating_days` (`default=list`, danh sách số 1–7, ≥ 1 ngày, không trùng — kiểm ở `FarmerProfile.clean()` / `save()` qua `accounts/operating_days.normalize_operating_days`, serializer dùng lại hàm này; không CHECK ở CSDL) và `orders.pending_change` (`null=True`) — định dạng theo Pass 4A; không thêm bảng cho hai dữ liệu này.
 - Thực thể có OCC (`orders`) có `version = PositiveIntegerField(default=1)`.
 - Model chỉ chứa phương thức kiểm tra trạng thái của chính nó (`is_open`); không gửi mail, không logic liên bảng trong `save()`.
 
@@ -480,7 +492,7 @@ with transaction.atomic():
 ```
 
 - `order_by("id")` + `of=("self",)` + `list(...)` bên trong khối atomic.
-- **Khi nào khóa `products` (D-029)**: chỉ khi trừ / cộng kho — Farmer duyệt đơn (T2), Farmer chấp nhận yêu cầu thay đổi, và các cạnh cộng trả kho (T4, T6, T11, T12, T13, T14). Tạo đơn (T1), sửa đơn `PLACED` và gửi yêu cầu thay đổi **chỉ đọc** tồn kho để kiểm tra, không khóa, không trừ.
+- **Khi nào khóa `products` (D-029)**: chỉ khi trừ / cộng kho — Farmer duyệt đơn (T2), Farmer chấp nhận yêu cầu thay đổi, các cạnh cộng trả kho (T4, T6, T11, T12, T13, T14), và khi Farmer đánh dấu món hết hàng (FA-24 kèm khai báo, FA-36 — D-036). Tạo đơn (T1), sửa đơn `PLACED` và gửi yêu cầu thay đổi **chỉ đọc** tồn kho để kiểm tra, không khóa, không trừ.
 - Quét lười (`expire_overdue_orders`) chạy trong transaction riêng và commit **trước** transaction checkout / mẫu tuần, để không giữ khóa sản phẩm lẫn lộn.
 - **Thứ tự khóa giữa các bảng (bắt buộc)**: `users` / `customer_profiles` / `farmer_profiles` → `orders` (theo id) → `products` (theo id). Không service nào khóa `products` trước `orders`.
 - Cập nhật tồn kho: đọc dưới khóa rồi gán và `save(update_fields=[...])`, hoặc `F()` có điều kiện (`filter(id=..., stock_quantity__gte=n).update(...)`) — `products` không có history nên `F()` được phép.
@@ -566,13 +578,16 @@ Lý do Admin tự nhập khi đình chỉ / khóa **không** ghi vào `change_re
 | T4, T6, T11, T12, T13, T14 (đơn đã bị trừ kho) | + trả lại |
 | T1, T3, T5, T8, T9, T10, sửa đơn `PLACED`, gửi / từ chối / tự hủy yêu cầu thay đổi | không đổi |
 
-- `EXPIRED` (T8): không đổi kho, không tính lỗi khách. `NO_SHOW` (T11, T14): cộng trả kho, tính vào cờ At risk (chỉ đếm `NO_SHOW` — D-028).
+- `EXPIRED` (T8): không đổi kho, không tính lỗi khách. `NO_SHOW` (T11, T14): cộng trả kho; cờ At risk / `no_show_count` **chỉ đếm `NO_SHOW` qua T11** — T14 không tính lỗi khách (D-028, D-036).
+- Từ chối đơn `ACCEPTED` (T4) do Farmer: bắt buộc khai báo món hết hàng (`mark_sold_out` hoặc `mark_sold_out_product_ids`, `false` / `[]` = trả tất cả về kho); món khai báo hết có tồn kho cuối = 0. Việc cộng trả và đặt 0 chạy trong cùng transaction của `transition_order` (D-036).
+- FA-36 (đơn `PLACED`): bỏ 1 món hết hàng khỏi đơn, tồn kho món = 0, tính lại `total_amount`, ghi lịch sử `transition = NULL`, báo khách `ORDER_ITEM_SOLD_OUT`; đơn phải còn ≥ 1 món (D-036).
 - Restock alert chỉ gửi khi Farmer chủ động nạp hàng (FA-14, FA-18), không gửi khi kho tăng do các cạnh trên (D-025).
 
 ### 7.6 Yêu cầu thay đổi đơn (D-030)
 
 - Đơn `PLACED`: khách sửa trực tiếp (không đổi trạng thái, không trừ kho).
 - Đơn `ACCEPTED`: khách gửi yêu cầu → lưu `orders.pending_change`, đơn giữ nguyên nội dung và số hàng đã trừ; yêu cầu mới ghi đè yêu cầu cũ.
+- Định dạng `pending_change` (v1.8): `{ items: [{product_id, quantity, unit_price}] | null, pickup_date, pickup_slot_id, note, requested_at }`. `unit_price` là giá khách thấy lúc gửi (món giữ nguyên = giá trong đơn, món mới = giá sản phẩm lúc gửi); FA-34 dùng đúng giá này. Đọc / kiểm tra / hiển thị qua `orders/services/pending_change.py` (`parse_pending_change`, `present_pending_change`); sai định dạng → 422 `FAILED_PRECONDITION`, không 500.
 - Farmer: chấp nhận (FA-34, khóa sản phẩm cũ ∪ mới theo `id`, trừ / trả chênh lệch, áp dụng nội dung mới), từ chối (FA-35, giữ đơn cũ), hoặc hủy cả đơn (T4).
 - Quy tắc thời gian: gửi trước `cutoff_at`; ngày nhận mới từ hôm nay đến `BOOKING_HORIZON_DAYS`; Farmer xử lý trước `pickup_start_at`, quá hạn thì quét lười tự hủy và báo khách `ORDER_CHANGE_REJECTED`.
 - Còn yêu cầu đang chờ thì T9 bị chặn (`FAILED_PRECONDITION`).
@@ -681,7 +696,7 @@ def notify(*, recipient: CustomUser, event_type: str, context: dict[str, Any]) -
 3. `transaction.on_commit(...)` → nếu sự kiện có email: render template rồi đẩy vào `ThreadPoolExecutor(max_workers=2)` khai báo cấp module.
 
 - Không nơi nào khác được tự tạo `Notification`, tự gửi WebSocket hay tự gửi mail.
-- `NotificationType`: `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`, `RESTOCK`, `ORDER_PLACED`, `ORDER_MODIFIED`, `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`, `ACCOUNT_STATUS_CHANGED`, `MARKET_SCHEDULE_CHANGED`, và từ v1.7 `ORDER_CHANGE_APPROVED`, `ORDER_CHANGE_REJECTED` (gửi khách, chỉ in-app — D-030).
+- `NotificationType`: `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`, `RESTOCK`, `ORDER_PLACED`, `ORDER_MODIFIED`, `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`, `ACCOUNT_STATUS_CHANGED`, `MARKET_SCHEDULE_CHANGED`, và từ v1.7 `ORDER_CHANGE_APPROVED`, `ORDER_CHANGE_REJECTED` (gửi khách, chỉ in-app — D-030), từ v1.8 `ORDER_ITEM_SOLD_OUT` (gửi khách, chỉ in-app — D-036).
 - `ORDER_CANCELLED_CUSTOMER_LOCKED` báo Farmer rằng hàng của đơn đã duyệt / sẵn sàng đã được trả về kho online (không còn câu "bán tại sạp" — D-033).
 - Sự kiện có email (6): Customer `ORDER_ACCEPTED`, `ORDER_READY`, `ORDER_DECLINED`, `ORDER_EXPIRED`; Farmer `ORDER_CANCELLED`, `ORDER_CANCELLED_CUSTOMER_LOCKED`. `RESTOCK` chỉ in-app và chỉ khi Farmer chủ động nạp hàng làm tồn kho từ 0 lên > 0 (D-025).
 - Template email tiếng Anh, mỗi sự kiện một cặp HTML + TXT: `order_accepted`, `order_ready`, `order_declined`, `order_expired`, `order_cancelled_by_customer`, `order_cancelled_customer_locked`.
@@ -689,7 +704,15 @@ def notify(*, recipient: CustomUser, event_type: str, context: dict[str, Any]) -
 
 ### 10.2 WebSocket one-time ticket
 
-`marketlink_core/services/ws_ticket.py` (not built yet — P4-BE). Vé và channel layer luôn dùng Redis thật qua `REDIS_URL`: khi dev phải đặt `USE_REDIS=True` trong `.env` (LocMem không chia sẻ giữa tiến trình Daphne và không hỗ trợ `GETDEL`).
+`marketlink_core/services/ws_ticket.py` (đã làm — v1.8). Vé và channel layer dùng Redis thật qua `REDIS_URL` khi `USE_REDIS=True` (Redis ≥ 6.2 cho `GETDEL`). Khi `USE_REDIS=False`, vé lưu LocMem và kiểm bằng `get` + `delete` có kiểm kết quả xóa — **chỉ dùng cho dev một tiến trình và test** (LocMem không chia sẻ giữa các tiến trình / worker).
+
+Cách làm thực tế (v1.8):
+
+- Vé phải là UUID hợp lệ (`uuid.UUID`), sai thì trả `None` ngay, không gọi Redis.
+- Redis: client gốc lấy qua `django_redis.get_redis_connection("default")`; tạo vé `SET ws_ticket:<uuid> <json> EX WS_TICKET_TTL`, kiểm vé `GETDEL ws_ticket:<uuid>` (một lệnh nguyên tử). Lỗi Redis khi kiểm vé → ghi log, trả `None` → consumer đóng `4401` (fail closed).
+- Consumer gọi service qua `sync_to_async(..., thread_sensitive=False)` (không dùng ORM) thay cho `redis.asyncio` ở code mẫu dưới; `accept()` rồi `close(4401)` giữ nguyên.
+
+Code mẫu gốc (tham khảo):
 
 ```python
 import json
@@ -842,7 +865,7 @@ EMAIL_ASYNC = True          # False in pytest so emails are sent synchronously
 
 MAX_PLACED_ORDERS_PER_CUSTOMER = 10   # D-005: unconfirmed (PLACED) orders per customer, no per-farmer limit
 BOOKING_HORIZON_DAYS = 7              # U-01 / D-030: latest pickup date a customer can choose or move to
-AT_RISK_THRESHOLD = 3                 # D-028: NO_SHOW/EXPIRED orders that flag a customer "At risk"
+AT_RISK_THRESHOLD = 3                 # D-028/D-036: NO_SHOW orders via T11 that flag a customer "At risk"
 AT_RISK_WINDOW_DAYS = 30
 
 LOGGING = {...}             # logger "marketlink" -> console; use logging.getLogger("marketlink")

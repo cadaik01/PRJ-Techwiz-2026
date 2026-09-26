@@ -1,5 +1,6 @@
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypeVar
 
 from django.db import transaction
 from django.utils import timezone
@@ -13,8 +14,10 @@ from marketlink_core.exceptions import (
     ErrorCode,
     ForbiddenActionError,
     PreconditionRequiredError,
+    ResourceNotFoundError,
     UnprocessableEntityError,
 )
+from marketlink_core.services.db_retry import run_with_deadlock_retry
 from notifications.models import NotificationType
 from notifications.services import notify
 from orders.models import ActorRole, ChangeReason, Order, OrderStatus, OrderStatusHistory, Transition
@@ -23,6 +26,12 @@ from orders.services.notification_context import build_order_context
 REASON_MIN_LENGTH = 5
 REASON_MAX_LENGTH = 500
 NO_REASON_TEXT = "No reason given."
+
+T = TypeVar("T")
+
+# ORDER_CANCELLED_CUSTOMER_LOCKED: tell the farmer what happened to stock (D-015, D-029).
+LOCKED_STOCK_RETURNED_NOTE = "The items have been returned to your online stock."
+LOCKED_STOCK_UNCHANGED_NOTE = "The order had not been accepted yet, so your stock did not change."
 
 SYSTEM_REASON_TEXT = {
     ChangeReason.FARMER_SUSPENDED_BY_ADMIN: "The farmer's stall has been suspended by an administrator.",
@@ -60,6 +69,18 @@ TRANSITIONS: dict[tuple[str | None, str], TransitionRule] = {
 }
 
 
+def run_with_retry_if_top_level(fn: Callable[[], T]) -> T:
+    """Retry deadlocks only when fn owns the whole transaction.
+
+    InnoDB rolls back the entire transaction on a deadlock, so retrying inside an outer
+    atomic block would reuse a broken transaction. Callers that already hold a transaction
+    (e.g. admin cascades) must retry at their own top level.
+    """
+    if transaction.get_connection().in_atomic_block:
+        return fn()
+    return run_with_deadlock_retry(fn)
+
+
 def transition_order(
     *,
     order_id: int,
@@ -68,46 +89,74 @@ def transition_order(
     actor_role: str,
     expected_version: int | None = None,
     reason: str | None = None,
+    sold_out_product_ids: Iterable[int] | None = None,
+    mark_all_sold_out: bool = False,
 ) -> Order:
+    """Apply one FSM edge under row locks (orders -> products).
+
+    sold_out_product_ids / mark_all_sold_out only apply to farmer declines (T3, T4).
+    ``None`` means the farmer did not declare sold-out items; an empty list means
+    "no item is sold out". T4 by a farmer requires a declaration.
+    """
     reason = (reason or "").strip() or None
-    with transaction.atomic():
-        order = (
-            Order.objects.select_for_update(of=("self",))
-            .select_related("farmer__user", "market", "customer__customer_profile")
-            .get(id=order_id)
-        )
-        _check_version(order, actor_role, expected_version)
-        rule = TRANSITIONS.get((order.status, to_status))
-        if rule is None:
-            raise BusinessValidationError(
-                f"This order cannot change from {order.status} to {to_status}.",
-                code=ErrorCode.INVALID_STATUS_TRANSITION,
+    sold_out_ids = None if sold_out_product_ids is None else set(sold_out_product_ids)
+
+    def _execute() -> Order:
+        with transaction.atomic():
+            order = (
+                Order.objects.select_for_update(of=("self",))
+                .select_related("farmer__user", "market", "customer__customer_profile")
+                .filter(id=order_id)
+                .first()
             )
-        _check_actor(order, rule, actor, actor_role)
-        change_reason = _check_preconditions(order, rule, actor_role, reason)
+            if order is None:
+                raise ResourceNotFoundError("Order not found.", code=ErrorCode.NOT_FOUND)
+            # Ownership first so an order outside the actor's scope never reveals its state.
+            _check_ownership(order, actor, actor_role)
+            rule = TRANSITIONS.get((order.status, to_status))
+            if rule is None:
+                raise BusinessValidationError(
+                    f"This order cannot change from {order.status} to {to_status}.",
+                    code=ErrorCode.INVALID_STATUS_TRANSITION,
+                )
+            _check_role(rule, actor_role)
+            _check_version(order, actor_role, expected_version)
+            change_reason = _check_preconditions(order, rule, actor_role, reason)
+            sold_out_targets = _resolve_sold_out_targets(
+                order, rule, actor_role, sold_out_ids, mark_all_sold_out
+            )
 
-        # Locking order: orders (already locked above) -> products (sorted by id)
-        if rule.code == Transition.T2:
-            _deduct_stock(order)
-        elif rule.restores_stock:
-            _restore_stock(order)
+            # Locking order: orders (already locked above) -> products (sorted by id)
+            if rule.code == Transition.T2:
+                _deduct_stock(order)
+            elif rule.restores_stock:
+                _restore_stock(order)
+            if sold_out_targets:
+                _mark_products_sold_out(sold_out_targets)
 
-        from_status = order.status
-        order.status = to_status
-        order.version += 1
-        order.save(update_fields=["status", "version", "updated_at"])
-        OrderStatusHistory.objects.create(
-            order=order,
-            from_status=from_status,
-            to_status=to_status,
-            transition=rule.code,
-            actor=None if actor_role == _R.SYSTEM else actor,
-            actor_role=actor_role,
-            change_reason=change_reason,
-            request_id=get_request_id(),
-        )
-        _send_notifications(order, rule, actor_role, change_reason)
-    return order
+            from_status = order.status
+            order.status = to_status
+            order.version += 1
+            update_fields = ["status", "version", "updated_at"]
+            if to_status in (_S.DECLINED, _S.CANCELLED, _S.NO_SHOW, _S.COMPLETED, _S.EXPIRED):
+                if order.pending_change is not None:
+                    order.pending_change = None
+                    update_fields.append("pending_change")
+            order.save(update_fields=update_fields)
+            OrderStatusHistory.objects.create(
+                order=order,
+                from_status=from_status,
+                to_status=to_status,
+                transition=rule.code,
+                actor=None if actor_role == _R.SYSTEM else actor,
+                actor_role=actor_role,
+                change_reason=change_reason,
+                request_id=get_request_id(),
+            )
+            _send_notifications(order, rule, actor_role, change_reason)
+        return order
+
+    return run_with_retry_if_top_level(_execute)
 
 
 def record_order_placed(*, order: Order, actor: Any) -> None:
@@ -139,19 +188,68 @@ def _check_version(order: Order, actor_role: str, expected_version: int | None) 
         )
 
 
-def _check_actor(order: Order, rule: TransitionRule, actor: Any | None, actor_role: str) -> None:
-    if actor_role not in rule.actors:
-        raise ForbiddenActionError(code=ErrorCode.ACTION_NOT_PERMITTED_FOR_ROLE)
+def _check_ownership(order: Order, actor: Any | None, actor_role: str) -> None:
     if actor_role == _R.FARMER:
         if order.farmer_id != getattr(actor, "pk", None):
-            raise ForbiddenActionError(code=ErrorCode.ACTION_NOT_PERMITTED_FOR_ROLE)
+            raise ResourceNotFoundError("Order not found.", code=ErrorCode.NOT_FOUND)
         if order.farmer.status == FarmerStatus.SUSPENDED:
             raise ForbiddenActionError(
                 "Your stall is suspended, so orders cannot be updated.",
                 code=ErrorCode.FARMER_SUSPENDED,
             )
-    elif actor_role == _R.CUSTOMER and order.customer_id != getattr(actor, "pk", None):
+    elif actor_role == _R.CUSTOMER:
+        if order.customer_id != getattr(actor, "pk", None):
+            raise ResourceNotFoundError("Order not found.", code=ErrorCode.NOT_FOUND)
+
+
+def _check_role(rule: TransitionRule, actor_role: str) -> None:
+    if actor_role not in rule.actors:
         raise ForbiddenActionError(code=ErrorCode.ACTION_NOT_PERMITTED_FOR_ROLE)
+
+
+def _resolve_sold_out_targets(
+    order: Order,
+    rule: TransitionRule,
+    actor_role: str,
+    sold_out_ids: set[int] | None,
+    mark_all_sold_out: bool,
+) -> set[int]:
+    declared = mark_all_sold_out or sold_out_ids is not None
+    is_farmer_decline = actor_role == _R.FARMER and rule.code in (Transition.T3, Transition.T4)
+    if not is_farmer_decline:
+        if declared and (mark_all_sold_out or sold_out_ids):
+            raise BusinessValidationError(
+                "Items can be marked sold out only when the farmer declines an order.",
+                errors={"mark_sold_out_product_ids": ["Not allowed for this action."]},
+            )
+        return set()
+
+    # T4 returns stock, so the farmer must say explicitly which items are gone (W1.2).
+    if rule.code == Transition.T4 and not declared:
+        raise BusinessValidationError(
+            "Please state which items are sold out before declining an accepted order.",
+            errors={
+                "mark_sold_out_product_ids": [
+                    "Required for accepted orders. Send an empty list to return every item to stock."
+                ]
+            },
+        )
+
+    order_product_ids = {item.product_id for item in order.items.all()}
+    if mark_all_sold_out:
+        return order_product_ids
+    targets = sold_out_ids or set()
+    unknown = targets - order_product_ids
+    if unknown:
+        raise BusinessValidationError(
+            "Sold-out items must be items of this order.",
+            errors={
+                "mark_sold_out_product_ids": [
+                    f"Product IDs {sorted(unknown)} are not part of this order."
+                ]
+            },
+        )
+    return targets
 
 
 def _check_preconditions(
@@ -228,6 +326,14 @@ def _restore_stock(order: Order) -> None:
         apply_stock_delta(products=lock_products(product_ids=deltas.keys()), deltas=deltas)
 
 
+def _mark_products_sold_out(product_ids: set[int]) -> None:
+    # Runs after any T4 restock so the final stock of these products is exactly 0.
+    for product in lock_products(product_ids=product_ids).values():
+        if product.stock_quantity != 0:
+            product.stock_quantity = 0
+            product.save(update_fields=["stock_quantity", "updated_at"])
+
+
 def _send_notifications(
     order: Order, rule: TransitionRule, actor_role: str, change_reason: str | None
 ) -> None:
@@ -249,7 +355,14 @@ def _send_notifications(
             notify(
                 recipient=farmer_user,
                 event_type=NotificationType.ORDER_CANCELLED_CUSTOMER_LOCKED,
-                context=context,
+                context={
+                    **context,
+                    "stock_note": (
+                        LOCKED_STOCK_RETURNED_NOTE
+                        if rule.restores_stock
+                        else LOCKED_STOCK_UNCHANGED_NOTE
+                    ),
+                },
             )
         else:
             notify(

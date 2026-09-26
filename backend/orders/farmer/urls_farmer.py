@@ -7,16 +7,19 @@ from orders.farmer.views_farmer import (
     FarmerOrderDeclineView,
     FarmerOrderDetailView,
     FarmerOrderGroupedByCustomerView,
+    FarmerOrderItemMarkSoldOutView,
     FarmerOrderListView,
     FarmerOrderNoShowView,
-    FarmerOrderPrepListView,
+    FarmerOrderPickingListView,
     FarmerOrderReadyView,
     FarmerOrderRejectChangeView,
+    FarmerOrderTabCountsView,
 )
 
 urlpatterns = [
     path("", FarmerOrderListView.as_view(), name="farmer-orders-list"),
-    path("prep-list/", FarmerOrderPrepListView.as_view(), name="farmer-orders-prep-list"),
+    path("tab-counts/", FarmerOrderTabCountsView.as_view(), name="farmer-orders-tab-counts"),
+    path("picking-list/", FarmerOrderPickingListView.as_view(), name="farmer-orders-picking-list"),
     path(
         "grouped-by-customer/",
         FarmerOrderGroupedByCustomerView.as_view(),
@@ -39,6 +42,11 @@ urlpatterns = [
         "<int:order_id>/no-show/",
         FarmerOrderNoShowView.as_view(),
         name="farmer-orders-no-show",
+    ),
+    path(
+        "<int:order_id>/items/<int:product_id>/mark-sold-out/",
+        FarmerOrderItemMarkSoldOutView.as_view(),
+        name="farmer-orders-item-mark-sold-out",
     ),
     path(
         "<int:order_id>/change-request/approve/",

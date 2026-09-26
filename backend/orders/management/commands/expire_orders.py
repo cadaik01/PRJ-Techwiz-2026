@@ -4,7 +4,10 @@ from orders.services.expiry import expire_overdue_orders
 
 
 class Command(BaseCommand):
-    help = "Expire PLACED orders whose pickup time has started and return their stock (A-005)."
+    help = (
+        "Expire PLACED orders whose pickup time has started and cancel overdue change "
+        "requests (A-005). Stock is not changed (D-029)."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument("--farmer-id", type=int, default=None, help="Only this farmer's orders.")

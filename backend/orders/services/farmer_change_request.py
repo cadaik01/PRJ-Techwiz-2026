@@ -1,5 +1,3 @@
-from datetime import date
-from decimal import Decimal
 from typing import Any
 
 from django.db import transaction
@@ -14,15 +12,52 @@ from marketlink_core.exceptions import (
     ErrorCode,
     ForbiddenActionError,
     PreconditionRequiredError,
+    ResourceNotFoundError,
     UnprocessableEntityError,
 )
 from markets.services.validation import validate_pickup_date
 from notifications.models import NotificationType
 from notifications.services import notify
 from orders.models import ActorRole, Order, OrderItem, OrderStatus, OrderStatusHistory
+from orders.services.fsm import run_with_retry_if_top_level
 from orders.services.notification_context import build_order_context
+from orders.services.pending_change import parse_pending_change
 
 REASON_MAX_LENGTH = 500
+
+
+def _lock_farmer_order(*, order_id: int, farmer_id: int, expected_version: int, verb: str) -> Order:
+    """Lock the order row only (of=self) and run the shared FA-34 / FA-35 gates."""
+    order = (
+        Order.objects.select_for_update(of=("self",))
+        .select_related("farmer__user", "market", "customer__customer_profile")
+        .filter(id=order_id)
+        .first()
+    )
+    # Ownership before anything else: an order outside the farmer's scope is simply not found.
+    if order is None or order.farmer_id != farmer_id:
+        raise ResourceNotFoundError("Order not found.", code=ErrorCode.NOT_FOUND)
+    if order.farmer.status == FarmerStatus.SUSPENDED:
+        raise ForbiddenActionError(
+            f"Your stall is suspended, so change requests cannot be {verb}.",
+            code=ErrorCode.FARMER_SUSPENDED,
+        )
+    if order.version != expected_version:
+        raise ConflictError(
+            "This order was just updated by someone else. Please reload.",
+            code=ErrorCode.RESOURCE_MODIFIED,
+        )
+    if order.status != OrderStatus.ACCEPTED or not order.pending_change:
+        raise UnprocessableEntityError(
+            "Order is not in ACCEPTED state with a pending change request.",
+            code=ErrorCode.FAILED_PRECONDITION,
+        )
+    if timezone.now() >= order.pickup_start_at:
+        raise UnprocessableEntityError(
+            "Pickup has already started for this order.",
+            code=ErrorCode.PICKUP_ALREADY_STARTED,
+        )
+    return order
 
 
 def approve_change_request(
@@ -32,177 +67,122 @@ def approve_change_request(
     expected_version: int | None,
     actor: Any | None = None,
 ) -> Order:
+    """FA-34: apply the customer's change request (D-030).
+
+    Lock order: orders -> order_items -> products (old ∪ new, sorted by id).
+    """
     if expected_version is None:
         raise PreconditionRequiredError("The If-Match header is required.")
 
-    now = timezone.now()
-
-    with transaction.atomic():
-        order = (
-            Order.objects.select_for_update()
-            .select_related("farmer", "customer", "market")
-            .filter(id=order_id)
-            .first()
-        )
-        if not order:
-            raise UnprocessableEntityError("Order not found.", code=ErrorCode.NOT_FOUND)
-
-        if order.farmer_id != farmer_id:
-            raise ForbiddenActionError(code=ErrorCode.ACTION_NOT_PERMITTED_FOR_ROLE)
-        if order.farmer.status == FarmerStatus.SUSPENDED:
-            raise ForbiddenActionError(
-                "Your stall is suspended, so change requests cannot be approved.",
-                code=ErrorCode.FARMER_SUSPENDED,
+    def _execute() -> Order:
+        with transaction.atomic():
+            order = _lock_farmer_order(
+                order_id=order_id, farmer_id=farmer_id, expected_version=expected_version, verb="approved"
             )
+            change = parse_pending_change(order.pending_change)
 
-        if order.version != expected_version:
-            raise ConflictError(
-                "This order was just updated by someone else. Please reload.",
-                code=ErrorCode.RESOURCE_MODIFIED,
-            )
+            schedule = None
+            if change.pickup_date is not None:
+                schedule = validate_pickup_date(
+                    farmer_id=order.farmer_id,
+                    market_id=order.market_id,
+                    pickup_date=change.pickup_date,
+                    pickup_slot_id=change.pickup_slot_id,
+                )
 
-        if order.status != OrderStatus.ACCEPTED or not order.pending_change:
-            raise UnprocessableEntityError(
-                "Order is not in ACCEPTED state with a pending change request.",
-                code=ErrorCode.FAILED_PRECONDITION,
-            )
+            update_fields = ["pending_change", "version", "updated_at"]
+            if change.items is not None:
+                old_items = {item.product_id: item for item in order.items.select_for_update().order_by("id")}
+                new_quantities = {item.product_id: item.quantity for item in change.items}
+                all_product_ids = sorted(set(old_items) | set(new_quantities))
+                locked_products = lock_products(product_ids=all_product_ids)
 
-        if now >= order.pickup_start_at:
-            raise UnprocessableEntityError(
-                "Pickup has already started for this order.",
-                code=ErrorCode.PICKUP_ALREADY_STARTED,
-            )
+                for product_id, new_qty in new_quantities.items():
+                    product = locked_products.get(product_id)
+                    if product is None or product.farmer_id != order.farmer_id:
+                        raise UnprocessableEntityError(
+                            f"Product {product_id} does not belong to this farmer.",
+                            code=ErrorCode.PRODUCT_NOT_AVAILABLE,
+                        )
+                    old_qty = old_items[product_id].quantity if product_id in old_items else 0
+                    if new_qty > old_qty and (
+                        not product.is_available or product.is_archived or product.is_hidden_by_admin
+                    ):
+                        raise UnprocessableEntityError(
+                            f"Product {product.name} is not available.",
+                            code=ErrorCode.PRODUCT_NOT_AVAILABLE,
+                        )
 
-        pending = order.pending_change
-        pending_items = pending.get("items")
-        new_pickup_date_str = pending.get("pickup_date")
-        new_slot_id = pending.get("pickup_slot_id")
-        new_note = pending.get("note")
+                # Positive delta returns stock, negative delta takes it (D-030).
+                deltas = {}
+                for product_id in all_product_ids:
+                    old_qty = old_items[product_id].quantity if product_id in old_items else 0
+                    delta = old_qty - new_quantities.get(product_id, 0)
+                    if delta:
+                        deltas[product_id] = delta
+                if deltas:
+                    apply_stock_delta(products=locked_products, deltas=deltas)
 
-        validated_slot = None
-        parsed_pickup_date = None
-        if new_pickup_date_str and new_slot_id:
-            try:
-                parsed_pickup_date = date.fromisoformat(new_pickup_date_str)
-            except ValueError as exc:
-                raise BusinessValidationError(
-                    errors={"pickup_date": ["Invalid ISO date format."]}
-                ) from exc
-
-            validated_slot = validate_pickup_date(
-                farmer_id=order.farmer_id,
-                market_id=order.market_id,
-                pickup_date=parsed_pickup_date,
-                pickup_slot_id=new_slot_id,
-            )
-
-        old_items = {item.product_id: item for item in order.items.select_for_update()}
-
-        if pending_items is not None:
-            new_items_dict: dict[int, int] = {
-                entry["product_id"]: entry["quantity"] for entry in pending_items
-            }
-
-            all_product_ids = sorted(set(old_items.keys()) | set(new_items_dict.keys()))
-            locked_products = lock_products(product_ids=all_product_ids)
-
-            for pid, new_qty in new_items_dict.items():
-                prod = locked_products.get(pid)
-                if not prod or prod.farmer_id != order.farmer_id:
-                    raise UnprocessableEntityError(
-                        f"Product {pid} does not belong to this farmer.",
-                        code=ErrorCode.PRODUCT_NOT_AVAILABLE,
-                    )
-                old_qty = old_items[pid].quantity if pid in old_items else 0
-                if new_qty > old_qty and (not prod.is_available or prod.is_archived or prod.is_hidden_by_admin):
-                    raise UnprocessableEntityError(
-                        f"Product {prod.name} is not available.",
-                        code=ErrorCode.PRODUCT_NOT_AVAILABLE,
-                    )
-
-            deltas: dict[int, int] = {}
-            for pid in all_product_ids:
-                old_qty = old_items[pid].quantity if pid in old_items else 0
-                new_qty = new_items_dict.get(pid, 0)
-                delta = old_qty - new_qty
-                if delta != 0:
-                    deltas[pid] = delta
-
-            if deltas:
-                apply_stock_delta(products=locked_products, deltas=deltas)
-
-            order.items.all().delete()
-            new_order_items = []
-            for entry in pending_items:
-                pid = entry["product_id"]
-                qty = entry["quantity"]
-                unit_price = Decimal(str(entry["unit_price"]))
-                prod = locked_products[pid]
-                new_order_items.append(
+                # Prices come from the request: the price the customer saw (decision A, v1.8).
+                order.items.all().delete()
+                new_order_items = [
                     OrderItem(
                         order=order,
-                        product=prod,
-                        product_name=prod.name,
-                        unit=prod.unit,
-                        unit_price=unit_price,
-                        quantity=qty,
-                        line_total=unit_price * qty,
+                        product=locked_products[item.product_id],
+                        product_name=locked_products[item.product_id].name,
+                        unit=locked_products[item.product_id].unit,
+                        unit_price=item.unit_price,
+                        quantity=item.quantity,
+                        line_total=item.unit_price * item.quantity,
                     )
-                )
-            OrderItem.objects.bulk_create(new_order_items)
-            order.total_amount = sum(item.line_total for item in new_order_items)
+                    for item in change.items
+                ]
+                OrderItem.objects.bulk_create(new_order_items)
+                order.total_amount = sum(item.line_total for item in new_order_items)
+                update_fields.append("total_amount")
 
-        if validated_slot is not None and parsed_pickup_date is not None:
-            order.pickup_date = parsed_pickup_date
-            order.pickup_slot = validated_slot
-            start_dt = timezone.make_aware(
-                timezone.datetime.combine(parsed_pickup_date, validated_slot.start_time)
+            if schedule is not None:
+                order.pickup_date = change.pickup_date
+                order.pickup_slot = schedule.slot
+                order.pickup_start_at = schedule.start_at
+                order.pickup_end_at = schedule.end_at
+                order.cutoff_at = schedule.cutoff_at
+                order.stall_label = schedule.slot.farmer_market.stall_label
+                update_fields += [
+                    "pickup_date",
+                    "pickup_slot",
+                    "pickup_start_at",
+                    "pickup_end_at",
+                    "cutoff_at",
+                    "stall_label",
+                ]
+
+            if change.note is not None:
+                order.note = change.note
+                update_fields.append("note")
+
+            order.pending_change = None
+            order.version += 1
+            order.save(update_fields=update_fields)
+
+            OrderStatusHistory.objects.create(
+                order=order,
+                from_status=OrderStatus.ACCEPTED,
+                to_status=OrderStatus.ACCEPTED,
+                transition=None,
+                actor=actor,
+                actor_role=ActorRole.FARMER,
+                change_reason="Farmer approved change request",
+                request_id=get_request_id(),
             )
-            end_dt = timezone.make_aware(
-                timezone.datetime.combine(parsed_pickup_date, validated_slot.end_time)
+            notify(
+                recipient=order.customer,
+                event_type=NotificationType.ORDER_CHANGE_APPROVED,
+                context=build_order_context(order),
             )
-            cutoff_dt = start_dt - timezone.timedelta(hours=order.farmer.order_cutoff_hours)
-            order.pickup_start_at = start_dt
-            order.pickup_end_at = end_dt
-            order.cutoff_at = cutoff_dt
-
-        if new_note is not None:
-            order.note = new_note
-
-        order.pending_change = None
-        order.version += 1
-        update_fields = [
-            "pending_change",
-            "version",
-            "updated_at",
-            "total_amount",
-            "note",
-            "pickup_date",
-            "pickup_slot",
-            "pickup_start_at",
-            "pickup_end_at",
-            "cutoff_at",
-        ]
-        order.save(update_fields=update_fields)
-
-        OrderStatusHistory.objects.create(
-            order=order,
-            from_status=OrderStatus.ACCEPTED,
-            to_status=OrderStatus.ACCEPTED,
-            transition=None,
-            actor=actor,
-            actor_role=ActorRole.FARMER,
-            change_reason="Farmer approved change request",
-            request_id=get_request_id(),
-        )
-
-        notify(
-            recipient=order.customer,
-            event_type=NotificationType.ORDER_CHANGE_APPROVED,
-            context=build_order_context(order),
-        )
-
         return order
+
+    return run_with_retry_if_top_level(_execute)
 
 
 def reject_change_request(
@@ -213,79 +193,46 @@ def reject_change_request(
     actor: Any | None = None,
     reason: str | None = None,
 ) -> Order:
+    """FA-35: keep the original order and drop the change request (D-030)."""
     if expected_version is None:
         raise PreconditionRequiredError("The If-Match header is required.")
-
     if reason and len(reason) > REASON_MAX_LENGTH:
         raise BusinessValidationError(
             errors={"reason": [f"Reason must be at most {REASON_MAX_LENGTH} characters."]}
         )
+    clean_reason = reason.strip() if reason else None
 
-    now = timezone.now()
-
-    with transaction.atomic():
-        order = (
-            Order.objects.select_for_update()
-            .select_related("farmer", "customer", "market")
-            .filter(id=order_id)
-            .first()
-        )
-        if not order:
-            raise UnprocessableEntityError("Order not found.", code=ErrorCode.NOT_FOUND)
-
-        if order.farmer_id != farmer_id:
-            raise ForbiddenActionError(code=ErrorCode.ACTION_NOT_PERMITTED_FOR_ROLE)
-        if order.farmer.status == FarmerStatus.SUSPENDED:
-            raise ForbiddenActionError(
-                "Your stall is suspended, so change requests cannot be rejected.",
-                code=ErrorCode.FARMER_SUSPENDED,
+    def _execute() -> Order:
+        with transaction.atomic():
+            order = _lock_farmer_order(
+                order_id=order_id, farmer_id=farmer_id, expected_version=expected_version, verb="rejected"
             )
+            order.pending_change = None
+            order.version += 1
+            order.save(update_fields=["pending_change", "version", "updated_at"])
 
-        if order.version != expected_version:
-            raise ConflictError(
-                "This order was just updated by someone else. Please reload.",
-                code=ErrorCode.RESOURCE_MODIFIED,
+            OrderStatusHistory.objects.create(
+                order=order,
+                from_status=OrderStatus.ACCEPTED,
+                to_status=OrderStatus.ACCEPTED,
+                transition=None,
+                actor=actor,
+                actor_role=ActorRole.FARMER,
+                change_reason=(
+                    f"Farmer rejected change request: {clean_reason}"
+                    if clean_reason
+                    else "Farmer rejected change request"
+                ),
+                request_id=get_request_id(),
             )
-
-        if order.status != OrderStatus.ACCEPTED or not order.pending_change:
-            raise UnprocessableEntityError(
-                "Order is not in ACCEPTED state with a pending change request.",
-                code=ErrorCode.FAILED_PRECONDITION,
+            notify(
+                recipient=order.customer,
+                event_type=NotificationType.ORDER_CHANGE_REJECTED,
+                context={
+                    **build_order_context(order),
+                    "reason": clean_reason or "The farmer could not accommodate the requested changes.",
+                },
             )
-
-        if now >= order.pickup_start_at:
-            raise UnprocessableEntityError(
-                "Pickup has already started for this order.",
-                code=ErrorCode.PICKUP_ALREADY_STARTED,
-            )
-
-        order.pending_change = None
-        order.version += 1
-        order.save(update_fields=["pending_change", "version", "updated_at"])
-
-        clean_reason = reason.strip() if reason else None
-        history_reason = (
-            f"Farmer rejected change request: {clean_reason}"
-            if clean_reason
-            else "Farmer rejected change request"
-        )
-
-        OrderStatusHistory.objects.create(
-            order=order,
-            from_status=OrderStatus.ACCEPTED,
-            to_status=OrderStatus.ACCEPTED,
-            transition=None,
-            actor=actor,
-            actor_role=ActorRole.FARMER,
-            change_reason=history_reason,
-            request_id=get_request_id(),
-        )
-
-        customer_reason = clean_reason or "The farmer could not accommodate the requested changes."
-        notify(
-            recipient=order.customer,
-            event_type=NotificationType.ORDER_CHANGE_REJECTED,
-            context={**build_order_context(order), "reason": customer_reason},
-        )
-
         return order
+
+    return run_with_retry_if_top_level(_execute)
