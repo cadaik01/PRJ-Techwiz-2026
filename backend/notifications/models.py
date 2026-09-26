@@ -11,6 +11,8 @@ class NotificationType(models.TextChoices):
     ORDER_READY = "ORDER_READY", "Order Ready for Pickup"
     ORDER_DECLINED = "ORDER_DECLINED", "Order Declined"
     ORDER_EXPIRED = "ORDER_EXPIRED", "Order Expired"
+    ORDER_CHANGE_APPROVED = "ORDER_CHANGE_APPROVED", "Order Change Request Approved"
+    ORDER_CHANGE_REJECTED = "ORDER_CHANGE_REJECTED", "Order Change Request Rejected"
     RESTOCK = "RESTOCK", "Favorite Product Restocked"
     # Farmer notifications
     ORDER_PLACED = "ORDER_PLACED", "New Order Placed"
@@ -22,6 +24,7 @@ class NotificationType(models.TextChoices):
     )
     ACCOUNT_STATUS_CHANGED = "ACCOUNT_STATUS_CHANGED", "Account Status Changed"
     MARKET_SCHEDULE_CHANGED = "MARKET_SCHEDULE_CHANGED", "Market Schedule Changed"
+
 
 
 class AnnouncementAudience(models.TextChoices):

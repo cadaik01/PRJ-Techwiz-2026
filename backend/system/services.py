@@ -37,11 +37,6 @@ def log_security_event(
     request_id: str | None,
     details: dict | None = None,
 ) -> AuditLog:
-    """Append one row to audit_logs; strips password, token and credential keys from details.
-
-    Call it outside the business transaction (after the atomic block ends, or via
-    transaction.on_commit) so a rollback never erases the security trail.
-    """
     return AuditLog.objects.create(
         user=user if user is not None and getattr(user, "is_authenticated", False) else None,
         action=action,
@@ -63,7 +58,6 @@ def log_request_event(
     user: Any | None = None,
     details: dict | None = None,
 ) -> AuditLog:
-    """Convenience wrapper that pulls endpoint, method, IP, user agent and request_id from a request."""
     return log_security_event(
         action=action,
         user=user if user is not None else getattr(request, "user", None),

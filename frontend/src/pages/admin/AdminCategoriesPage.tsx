@@ -1,0 +1,196 @@
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  DndContext,
+  closestCenter,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
+
+import {
+  useAdminCategories,
+  useCreateCategory,
+  useDeleteCategory,
+  useReorderCategories,
+} from '@/features/admin/hooks/useAdminCategories';
+import {
+  categorySchema,
+  type CategoryFormValues,
+} from '@/features/admin/schemas/category.schema';
+import { EmptyState } from '@/components/feedback/EmptyState';
+import { PageHeader } from '@/components/common/PageHeader';
+import { PageSkeleton } from '@/components/feedback/PageSkeleton';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { ApiError } from '@/lib/ApiError';
+import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
+import type { AdminCategory } from '@/types';
+
+import './AdminCategoriesPage.css';
+
+function SortableRow({
+  cat,
+  onDelete,
+}: {
+  cat: AdminCategory;
+  onDelete: (id: number) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: cat.id,
+  });
+
+  const bindSortableNode = (node: HTMLDivElement | null) => {
+    setNodeRef(node);
+    if (!node) return;
+    node.style.transform = CSS.Transform.toString(transform) ?? '';
+    node.style.transition = transition ?? '';
+  };
+
+  return (
+    <div ref={bindSortableNode} className="page-primitive__sort-row">
+      <button
+        type="button"
+        className="page-primitive__grip-btn"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="page-primitive__icon-md" />
+      </button>
+      <span className="page-primitive__icon-lg-text">{cat.icon}</span>
+      <div className="page-primitive__flex-1">
+        <p className="page-primitive__font-medium">{cat.name}</p>
+        <p className="page-primitive__muted-xs">{cat.product_count} products</p>
+      </div>
+      <Button
+        size="sm"
+        variant="destructive"
+        disabled={cat.product_count > 0}
+        onClick={() => onDelete(cat.id)}
+      >
+        Delete
+      </Button>
+    </div>
+  );
+}
+
+export default function AdminCategoriesPage() {
+  const query = useAdminCategories();
+  const [items, setItems] = useState<AdminCategory[]>([]);
+  const [syncedData, setSyncedData] = useState(query.data);
+  const form = useForm<CategoryFormValues>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: { name: '', icon: 'leaf' },
+  });
+
+  if (query.data !== syncedData) {
+    setSyncedData(query.data);
+    if (query.data) setItems(query.data);
+  }
+
+  const sensors = useSensors(useSensor(PointerSensor));
+  const reorder = useReorderCategories();
+  const create = useCreateCategory();
+  const remove = useDeleteCategory();
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex((i) => i.id === active.id);
+    const newIndex = items.findIndex((i) => i.id === over.id);
+    const next = arrayMove(items, oldIndex, newIndex);
+    setItems(next);
+    reorder.mutate(
+      next.map((i) => i.id),
+      {
+        onSuccess: (data) => setItems(data),
+      },
+    );
+  };
+
+  if (query.isLoading) return <PageSkeleton />;
+  if (query.isError) {
+    return (
+      <EmptyState
+        title="Categories couldn't be loaded"
+        actionLabel="Try again"
+        onAction={() => query.refetch()}
+      />
+    );
+  }
+
+  return (
+    <div className="admin-categories-page">
+      <PageHeader
+        title="Produce categories"
+        description="Drag to reorder how categories appear to shoppers."
+      />
+
+      <form
+        className="admin-categories-page__create"
+        onSubmit={form.handleSubmit((values) => {
+          create.mutate(values, {
+            onSuccess: () => form.reset({ name: '', icon: 'leaf' }),
+            onError: (error) => {
+              mapServerErrorsToForm(
+                ApiError.fromUnknown(error).fieldErrors,
+                form.setError,
+              );
+            },
+          });
+        })}
+      >
+        <div className="page-primitive__field-tight">
+          <Input
+            label="Name"
+            className="page-primitive__input-name-wide"
+            {...form.register('name')}
+          />
+          {form.formState.errors.name ? (
+            <p className="page-primitive__error">{form.formState.errors.name.message}</p>
+          ) : null}
+        </div>
+        <div className="page-primitive__field-tight">
+          <Input
+            label="Icon"
+            className="page-primitive__input-icon-wide"
+            {...form.register('icon')}
+          />
+          {form.formState.errors.icon ? (
+            <p className="page-primitive__error">{form.formState.errors.icon.message}</p>
+          ) : null}
+        </div>
+        <Button type="submit" loading={create.isPending}>
+          Add
+        </Button>
+      </form>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={onDragEnd}
+      >
+        <SortableContext
+          items={items.map((i) => i.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="admin-categories-page__list">
+            {items.map((cat) => (
+              <SortableRow key={cat.id} cat={cat} onDelete={(id) => remove.mutate(id)} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+}

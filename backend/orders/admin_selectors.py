@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.conf import settings
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.utils import timezone
 
 from orders.models import OPEN_STATUSES, Order, OrderStatus
@@ -44,10 +44,3 @@ def recent_order_ids(*, customer_id: int, limit: int) -> list[int]:
         .values_list("id", flat=True)[:limit]
     )
 
-
-def at_risk_annotation() -> Count:
-    return Count(
-        "orders",
-        filter=Q(orders__status__in=AT_RISK_STATUSES, orders__created_at__gte=at_risk_window_start()),
-        distinct=True,
-    )
