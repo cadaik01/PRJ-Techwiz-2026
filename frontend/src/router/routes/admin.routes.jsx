@@ -133,7 +133,7 @@ export const adminRoutes                = [
             ),
           },
           {
-            path: '/admin/settings',
+            path: '/admin/password',
             element: (
               <Suspend>
                 <ChangePasswordPage />

@@ -43,7 +43,7 @@ function linksForRole(role      ) {
   }
   return [
     { to: DASHBOARD_PATH.ADMIN, label: 'Admin overview', icon: LayoutDashboard },
-    { to: '/admin/settings', label: 'Change password', icon: KeyRound },
+    { to: '/admin/password', label: 'Change password', icon: KeyRound },
   ]         ;
 }
 

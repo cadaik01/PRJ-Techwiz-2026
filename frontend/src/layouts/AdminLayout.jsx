@@ -11,7 +11,7 @@ import {
   FileBarChart,
   Megaphone,
   ScrollText,
-  Settings,
+  KeyRound,
 } from 'lucide-react';
 
 import { ThemeToggle } from '@/components/common/layout/ThemeToggle';
@@ -39,7 +39,7 @@ const navItems = [
   { to: '/admin/reports', label: 'Reports', icon: FileBarChart, end: false },
   { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, end: false },
   { to: '/admin/audit-logs', label: 'System log', icon: ScrollText, end: false },
-  { to: '/admin/settings', label: 'Settings', icon: Settings, end: false },
+  { to: '/admin/password', label: 'My password', icon: KeyRound, end: false },
 ];
 
 function SideNav({ collapsed }                        ) {
