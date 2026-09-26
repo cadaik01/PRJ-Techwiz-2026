@@ -33,6 +33,7 @@ def make_farmer(db):
             phone=f"09{user.pk:08d}",
             address="1 Farm Road",
             status=status,
+            operating_days=[1, 2, 3, 4, 5, 6, 7],  # D-031: at least one day is mandatory.
         )
 
     return _make

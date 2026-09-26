@@ -65,6 +65,9 @@ def farmer_user(db):
         contact_person="Test Farmer",
         phone="0907654321",
         address="34 Market Street",
+        # D-031 requires at least one operating day; open all week so a fixture never makes a
+        # test depend on which weekday it runs on.
+        operating_days=[1, 2, 3, 4, 5, 6, 7],
     )
     return user
 
