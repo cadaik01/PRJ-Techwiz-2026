@@ -23,6 +23,11 @@ class AuditAction(models.TextChoices):
     PRODUCT_RESTORED = "PRODUCT_RESTORED", "Restore Product"
     REVIEW_HIDDEN = "REVIEW_HIDDEN", "Hide Review"
     REVIEW_RESTORED = "REVIEW_RESTORED", "Restore Review"
+    # v1.8: market management by Admin (AD-15, AD-16, AD-17)
+    MARKET_CREATED = "MARKET_CREATED", "Create Market"
+    MARKET_UPDATED = "MARKET_UPDATED", "Update Market"
+    MARKET_DEACTIVATED = "MARKET_DEACTIVATED", "Deactivate Market"
+    MARKET_ACTIVATED = "MARKET_ACTIVATED", "Activate Market"
 
 
 class AuditLog(CreatedAtModel):
