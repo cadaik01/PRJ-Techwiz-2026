@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.cache import caches
 from rest_framework.test import APIClient
 
-from accounts.models import CustomerProfile, FarmerProfile, Role
+from accounts.models import CustomerProfile, FarmerProfile, FarmerStatus, Role
 from marketlink_core.policies.roles import RoleCode
 
 User = get_user_model()
@@ -70,6 +70,25 @@ def farmer_user(db):
         operating_days=[1, 2, 3, 4, 5, 6, 7],
     )
     return user
+
+
+@pytest.fixture
+def make_farmer(db):
+    def _make(*, email: str, stall_name: str, status: str = FarmerStatus.PENDING) -> FarmerProfile:
+        user = User.objects.create_user(
+            email=email, password="Str0ngPass123", role=Role.objects.get(code=RoleCode.FARMER)
+        )
+        return FarmerProfile.objects.create(
+            user=user,
+            stall_name=stall_name,
+            contact_person="Contact Person",
+            phone=f"09{user.pk:08d}",
+            address="1 Farm Road",
+            status=status,
+            operating_days=[1, 2, 3, 4, 5, 6, 7],  # D-031: at least one day is mandatory.
+        )
+
+    return _make
 
 
 @pytest.fixture

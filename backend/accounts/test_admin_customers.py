@@ -380,3 +380,80 @@ def test_locking_clears_any_pending_change_request(admin_client, customer_user, 
     order.refresh_from_db()
     assert order.pending_change is None
     assert order.status == OrderStatus.CANCELLED
+
+
+@pytest.mark.django_db
+def test_customers_sort_by_name_and_reject_unknown_columns(admin_client, customer_user):
+    names = lambda ordering: [  # noqa: E731
+        row["full_name"]
+        for row in admin_client.get(reverse(LIST_URL), {"ordering": ordering})
+        .data["data"]["results"]
+    ]
+
+    assert names("full_name") == sorted(names("full_name"))
+    assert names("-full_name") == sorted(names("full_name"), reverse=True)
+
+    refused = admin_client.get(reverse(LIST_URL), {"ordering": "user__password"})
+    assert refused.status_code == 400
+    assert "ordering" in refused.data["errors"]
+
+
+@pytest.mark.django_db
+def test_the_default_still_floats_at_risk_customers_to_the_top(admin_client, customer_user):
+    # D-028 wanted this before sorting existed, so it stays the default rather than becoming
+    # just another sort key.
+    response = admin_client.get(reverse(LIST_URL))
+
+    assert response.status_code == 200
+    rows = response.data["data"]["results"]
+    assert [row["at_risk"] for row in rows] == sorted(
+        (row["at_risk"] for row in rows), reverse=True
+    )
+
+
+@pytest.mark.django_db
+def test_admin_corrects_a_shoppers_details(admin_client, customer_user, admin_user):
+    profile = customer_user.customer_profile
+
+    response = admin_client.patch(
+        reverse(DETAIL_URL, args=[profile.user_id]),
+        {"full_name": "Linh Pham", "address": "99 New Street"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    profile.refresh_from_db()
+    assert profile.full_name == "Linh Pham"
+    assert profile.address == "99 New Street"
+
+    entry = AuditLog.objects.get(action=AuditAction.CUSTOMER_UPDATED)
+    assert entry.user == admin_user
+    assert sorted(entry.details["changed_fields"]) == ["address", "full_name"]
+
+
+@pytest.mark.django_db
+def test_a_shoppers_phone_cannot_collide_with_a_stall(admin_client, customer_user, farmer_user):
+    response = admin_client.patch(
+        reverse(DETAIL_URL, args=[customer_user.customer_profile.user_id]),
+        {"phone": farmer_user.farmer_profile.phone},
+        format="json",
+    )
+
+    # D-028 is one number per account across both tables, not per table.
+    assert response.status_code == 400
+    assert "phone" in response.data["errors"]
+
+
+@pytest.mark.django_db
+def test_the_edit_cannot_reach_the_lock_reason(admin_client, customer_user):
+    profile = customer_user.customer_profile
+
+    admin_client.patch(
+        reverse(DETAIL_URL, args=[profile.user_id]),
+        {"deactivation_reason": "made up"},
+        format="json",
+    )
+
+    profile.refresh_from_db()
+    # The lock reason is written by AD-12 and cleared by AD-13; an edit form must not forge it.
+    assert profile.deactivation_reason is None

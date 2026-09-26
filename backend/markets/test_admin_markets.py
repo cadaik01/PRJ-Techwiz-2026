@@ -376,3 +376,20 @@ def test_switching_slots_off_is_kept_in_the_audit_trail(admin_client, market, ma
     latest = PickupSlot.history.filter(id=slot.id).order_by("history_date", "history_id").last()
     assert latest.is_active is False
     assert latest.history_change_reason == f"Market #{market.id} schedule changed by Admin (AD-16)"
+
+
+@pytest.mark.django_db
+def test_markets_sort_by_name_in_both_directions(admin_client, market):
+    Market.objects.create(
+        name="Alpha Market", address="1 Alpha Road", latitude="10.1", longitude="106.1",
+        open_time=time(6, 0), close_time=time(11, 0),
+    )
+    names = lambda ordering: [  # noqa: E731
+        row["name"]
+        for row in admin_client.get(reverse(LIST_URL_NAME), {"ordering": ordering})
+        .data["data"]["results"]
+    ]
+
+    assert names("name") == sorted(names("name"))
+    assert names("-name") == sorted(names("name"), reverse=True)
+    assert admin_client.get(reverse(LIST_URL_NAME), {"ordering": "secret"}).status_code == 400

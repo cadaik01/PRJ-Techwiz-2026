@@ -222,3 +222,20 @@ def test_an_empty_list_is_still_a_valid_page(admin_client):
     assert data["count"] == 0
     assert data["results"] == []
     assert ProductReview.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_reviews_sort_by_rating_across_both_tables(admin_client, farmer_review, product_review):
+    # AD-22 pages over a UNION, so rating had to join the projection for this to be sortable.
+    def ratings(ordering):
+        response = admin_client.get(reverse(LIST_URL_NAME), {"ordering": ordering})
+        return [row["rating"] for row in response.data["data"]["results"]]
+
+    assert ratings("rating") == sorted(ratings("rating"))
+    assert ratings("-rating") == sorted(ratings("rating"), reverse=True)
+
+
+@pytest.mark.django_db
+def test_reviews_reject_a_column_the_union_does_not_select(admin_client):
+    # comment is on both tables but not in the UNION projection, so it cannot be sorted on.
+    assert admin_client.get(reverse(LIST_URL_NAME), {"ordering": "comment"}).status_code == 400

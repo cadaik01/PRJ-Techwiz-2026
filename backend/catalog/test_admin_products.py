@@ -240,3 +240,26 @@ def test_customer_cannot_reach_the_product_moderation(customer_client, product):
         ).status_code
         == 403
     )
+
+
+@pytest.mark.django_db
+def test_products_sort_by_name_and_price(admin_client, product, category, approved_farmer):
+    for name, price in (("Aubergine", "2.00"), ("Zucchini", "9.00")):
+        Product.objects.create(
+            farmer=approved_farmer, category=category, name=name,
+            price=price, unit=Unit.KG, stock_quantity=5,
+        )
+
+    def column(ordering, key):
+        response = admin_client.get(reverse(LIST_URL_NAME), {"ordering": ordering})
+        return [row[key] for row in response.data["data"]["results"]]
+
+    assert column("name", "name") == sorted(column("name", "name"))
+    assert column("-name", "name") == sorted(column("name", "name"), reverse=True)
+    prices = [float(value) for value in column("price", "price")]
+    assert prices == sorted(prices)
+
+
+@pytest.mark.django_db
+def test_products_reject_an_unknown_sort_column(admin_client):
+    assert admin_client.get(reverse(LIST_URL_NAME), {"ordering": "farmer__user__password"}).status_code == 400

@@ -19,7 +19,7 @@ from system.dashboard import dashboard_snapshot
 from system.excel import XLSX_CONTENT_TYPE, build_report_workbook, report_filename
 from system.models import AuditAction
 from system.reports import parse_report_range, report_summary
-from system.selectors import list_audit_logs
+from system.selectors import AUDIT_LOG_ORDERING, list_audit_logs
 from system.serializers import (
     AuditLogReadSerializer,
     DashboardSerializer,
@@ -32,6 +32,23 @@ class AuditLogListView(ListAPIView):
     serializer_class = AuditLogReadSerializer
     permission_classes = [IsAdmin]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("action", str, enum=list(AuditAction.values)),
+            OpenApiParameter("user_id", int, description="Filter to one actor."),
+            OpenApiParameter("from", OpenApiTypes.DATE, description="Inclusive."),
+            OpenApiParameter("to", OpenApiTypes.DATE, description="Inclusive."),
+            OpenApiParameter(
+                "ordering",
+                str,
+                enum=sorted(AUDIT_LOG_ORDERING),
+                description="Sort column; prefix with - for descending.",
+            ),
+        ]
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self):
         params = self.request.query_params
         return list_audit_logs(
@@ -39,6 +56,7 @@ class AuditLogListView(ListAPIView):
             user_id=params.get("user_id"),
             date_from=params.get("from"),
             date_to=params.get("to"),
+            ordering=params.get("ordering"),
         )
 
 

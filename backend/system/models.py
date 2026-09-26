@@ -28,6 +28,9 @@ class AuditAction(models.TextChoices):
     MARKET_UPDATED = "MARKET_UPDATED", "Update Market"
     MARKET_DEACTIVATED = "MARKET_DEACTIVATED", "Deactivate Market"
     MARKET_ACTIVATED = "MARKET_ACTIVATED", "Activate Market"
+    # Admin edits a stall's or a shopper's contact details (AD-03, AD-10 PATCH).
+    FARMER_UPDATED = "FARMER_UPDATED", "Update Farmer Profile"
+    CUSTOMER_UPDATED = "CUSTOMER_UPDATED", "Update Customer Profile"
 
 
 class AuditLog(CreatedAtModel):
