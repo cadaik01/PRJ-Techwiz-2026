@@ -26,3 +26,6 @@ frontend/.env
 
 # AI assistant tooling (local only)
 .claude/
+
+# Editor settings are per-developer
+.vscode/
