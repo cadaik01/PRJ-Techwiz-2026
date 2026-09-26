@@ -2,28 +2,29 @@ import js from '@eslint/js';
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
-import tseslint from 'typescript-eslint';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
   globalIgnores(['dist', 'public/mockServiceWorker.js']),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['**/*.{js,jsx}'],
     extends: [
       js.configs.recommended,
-      ...tseslint.configs.recommended,
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
     languageOptions: {
       ecmaVersion: 2022,
+      sourceType: 'module',
       globals: globals.browser,
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
     },
     rules: {
       'react-hooks/incompatible-library': 'off',
-      // A leading underscore is how this codebase marks a binding that exists only to give
-      // TypeScript something to name, such as the parameter of a type predicate.
-      '@typescript-eslint/no-unused-vars': [
+      // A leading underscore marks a binding that exists only to be named, never read.
+      'no-unused-vars': [
         'error',
         {
           argsIgnorePattern: '^_',
@@ -36,7 +37,7 @@ export default defineConfig([
   {
     // Route modules export route tables, not components, so Fast Refresh has nothing to
     // preserve here and the rule only reports the lazy() imports these files exist to hold.
-    files: ['src/router/**/*.{ts,tsx}'],
+    files: ['src/router/**/*.{js,jsx}'],
     rules: {
       'react-refresh/only-export-components': 'off',
     },
