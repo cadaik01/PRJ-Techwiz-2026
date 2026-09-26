@@ -17,7 +17,14 @@ from orders.customer.serializers_customer import (
     CustomerOrderModifySerializer,
     OrderSummaryReadSerializer,
 )
-from orders.selectors import customer_order_detail, customer_orders_queryset, order_summary_queryset
+from catalog.public_portal.serializers_public import ProductCardSerializer
+from catalog.public_portal.views_public import product_context
+from orders.selectors import (
+    customer_order_detail,
+    customer_orders_queryset,
+    order_summary_queryset,
+    reorder_items,
+)
 from orders.services.checkout_service import expire_overdue_before_checkout, place_orders
 from orders.services.customer_order_service import cancel_customer_order, modify_customer_order
 from orders.services.idempotency_service import run_idempotent
@@ -108,3 +115,19 @@ class CustomerOrderCancelView(APIView):
             reason=serializer.validated_data.get("reason"),
         )
         return api_response(message="Order cancelled", data=_own_order_detail(request, order_id), request=request)
+
+
+class CustomerOrderReorderPreviewView(APIView):
+    """CU-09: what of this order can go back in the cart, at today's prices (C-04, C-05)."""
+
+    permission_classes = [IsCustomer]
+
+    def get(self, request, order_id: int):
+        order = customer_order_detail(request.user, order_id)
+        if order is None:
+            raise ResourceNotFoundError()
+        kept, skipped = reorder_items(order)
+        products = [product for product, _ in kept]
+        cards = ProductCardSerializer(products, many=True, context=product_context(request, products)).data
+        items = [{"product": card, "quantity": quantity} for card, (_, quantity) in zip(cards, kept)]
+        return api_response(message="Reorder preview", data={"items": items, "skipped": skipped}, request=request)
