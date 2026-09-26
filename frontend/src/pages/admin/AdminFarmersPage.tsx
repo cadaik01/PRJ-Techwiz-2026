@@ -21,7 +21,7 @@ import { Input } from '@/components/common/forms/Input';
 import { Textarea } from '@/components/common/forms/Textarea';
 import { SortableTh } from '@/components/common/table/SortableTh';
 import type { FarmerStatus } from '@/types';
-import { farmerStatusLabel } from '@/utils/labels';
+import { farmerStatusLabel, farmerStatusVariant } from '@/utils/labels';
 
 import './AdminFarmersPage.css';
 
@@ -174,7 +174,9 @@ export default function AdminFarmersPage() {
                       <p className="page-primitive__muted-xs">{f.phone}</p>
                     </td>
                     <td className="page-primitive__table-td">
-                      <Badge>{farmerStatusLabel(f.status)}</Badge>
+                      <Badge variant={farmerStatusVariant(f.status)}>
+          {farmerStatusLabel(f.status)}
+        </Badge>
                     </td>
                     <td className="page-primitive__table-td">{f.open_order_count}</td>
                     <td className="page-primitive__table-td">

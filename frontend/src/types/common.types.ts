@@ -724,6 +724,26 @@ export interface AuditLogItem {
   created_at: string;
 }
 
+/** The records the backend keeps a history for (system.selectors.TRACKED_MODELS). */
+export type TrackedModel =
+  | 'farmer_profile'
+  | 'product'
+  | 'order'
+  | 'order_item'
+  | 'farmer_market'
+  | 'pickup_slot'
+  | 'farmer_closure';
+
+export interface ChangeLogEntry {
+  history_id: number;
+  change_type: 'CREATED' | 'UPDATED' | 'DELETED';
+  date: string;
+  user: { id: number; email: string } | null;
+  reason: string | null;
+  request_id: string | null;
+  changes: Array<{ field: string; old: unknown; new: unknown }>;
+}
+
 /** Parse API decimal money string (or number) for display/math. */
 export function moneyToNumber(amount: string | number): number {
   const value = typeof amount === 'string' ? Number(amount) : amount;

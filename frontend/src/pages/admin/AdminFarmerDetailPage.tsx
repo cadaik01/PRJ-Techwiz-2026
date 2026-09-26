@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 
 import { useAdminFarmer, useUpdateFarmer } from '@/hooks/queries/admin/useAdminFarmers';
 import { ProfileEditDialog } from '@/components/admin/ProfileEditDialog';
+import { ChangeLogPanel } from '@/components/admin/ChangeLogPanel';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -11,7 +12,7 @@ import { Badge } from '@/components/common/badges/Badge';
 import { Button } from '@/components/common/forms/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/cards/Card';
 import { formatDateTime } from '@/utils/formatters';
-import { farmerStatusLabel } from '@/utils/labels';
+import { farmerStatusLabel, farmerStatusVariant } from '@/utils/labels';
 
 import './AdminFarmerDetailPage.css';
 
@@ -60,15 +61,17 @@ export default function AdminFarmerDetailPage() {
         pending={update.isPending}
         onSave={(values) => update.mutateAsync(values)}
         fields={[
-          { name: 'stall_name', label: 'Stall name', value: f.stall_name },
-          { name: 'contact_person', label: 'Contact person', value: f.contact_person ?? '' },
-          { name: 'phone', label: 'Phone', value: f.phone ?? '', type: 'tel' },
+          { required: true, name: 'stall_name', label: 'Stall name', value: f.stall_name },
+          { required: true, name: 'contact_person', label: 'Contact person', value: f.contact_person ?? '' },
+          { required: true, name: 'phone', label: 'Phone', value: f.phone ?? '', type: 'tel' },
           { name: 'description', label: 'Description', value: f.description ?? '', multiline: true },
         ]}
       />
 
       <div className="page-primitive__actions-row">
-        <Badge>{farmerStatusLabel(f.status)}</Badge>
+        <Badge variant={farmerStatusVariant(f.status)}>
+          {farmerStatusLabel(f.status)}
+        </Badge>
         {f.status_reason ? (
           <span className="page-primitive__danger-sm">{f.status_reason}</span>
         ) : null}
@@ -138,6 +141,8 @@ export default function AdminFarmerDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ChangeLogPanel model="farmer_profile" id={farmerId} />
 
       <Card>
         <CardHeader>

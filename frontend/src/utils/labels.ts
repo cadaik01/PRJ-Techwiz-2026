@@ -1,3 +1,4 @@
+import type { BadgeVariant } from '@/components/common/badges/Badge';
 import type { AnnouncementAudience, FarmerStatus, OrderStatus } from '@/types';
 
 // One place for every enum the API sends and a person has to read. Screens import from here
@@ -40,6 +41,19 @@ export function orderStatusLabel(status: OrderStatus | string): string {
 
 export function farmerStatusLabel(status: FarmerStatus | string): string {
   return FARMER_STATUS[status as FarmerStatus] ?? humanise(status);
+}
+
+// A stall that is suspended or rejected must not wear the same green as an approved one -
+// the colour is what an admin reads first when scanning the list.
+const FARMER_STATUS_VARIANT: Record<FarmerStatus, BadgeVariant> = {
+  PENDING: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'danger',
+  SUSPENDED: 'danger',
+};
+
+export function farmerStatusVariant(status: FarmerStatus | string): BadgeVariant {
+  return FARMER_STATUS_VARIANT[status as FarmerStatus] ?? 'secondary';
 }
 
 export function audienceLabel(audience: AnnouncementAudience | string): string {

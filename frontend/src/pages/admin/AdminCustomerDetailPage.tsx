@@ -62,9 +62,9 @@ export default function AdminCustomerDetailPage() {
         pending={update.isPending}
         onSave={(values) => update.mutateAsync(values)}
         fields={[
-          { name: 'full_name', label: 'Full name', value: c.full_name },
-          { name: 'phone', label: 'Phone', value: c.phone ?? '', type: 'tel' },
-          { name: 'address', label: 'Address', value: c.address ?? '' },
+          { required: true, name: 'full_name', label: 'Full name', value: c.full_name },
+          { required: true, name: 'phone', label: 'Phone', value: c.phone ?? '', type: 'tel' },
+          { required: true, name: 'address', label: 'Address', value: c.address ?? '' },
         ]}
       />
 

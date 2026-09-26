@@ -7,10 +7,13 @@ import './Input.css';
 
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
+  /** Marks the field with a red asterisk. Separate from the native `required` attribute so a
+   *  form can show the marker while still letting the server do the validating. */
+  requiredMark?: boolean;
 };
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, id, label, placeholder, disabled, ...props }, ref) => {
+  ({ className, type, id, label, placeholder, disabled, requiredMark, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
     const floatingLabel = label ?? placeholder;
@@ -82,6 +85,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         />
         <label htmlFor={inputId} className="input-field__label">
           {floatingLabel}
+          {requiredMark ? (
+            <span className="input-field__required" aria-hidden>
+              {' '}*
+            </span>
+          ) : null}
         </label>
         {toggleButton}
       </div>

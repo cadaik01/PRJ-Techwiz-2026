@@ -36,7 +36,7 @@ import { Input } from '@/components/common/forms/Input';
 import { ApiError } from '@/lib/ApiError';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 import { CategoryIcon } from '@/components/common/badges/CategoryIcon';
-import { CATEGORY_ICON_NAMES } from '@/utils/categoryIcon';
+import { IconPicker } from '@/components/admin/IconPicker';
 import type { AdminCategory } from '@/types';
 
 import './AdminCategoriesPage.css';
@@ -78,6 +78,11 @@ function SortableRow({
           {cat.product_count === 1 ? '1 product' : `${cat.product_count} products`}
         </p>
       </div>
+      {inUse ? (
+        // A greyed-out button with a tooltip explains nothing on a touch screen, and only
+        // after a hover delay on a mouse. Say it in the row instead.
+        <span className="admin-categories-page__locked">In use</span>
+      ) : null}
       <Button
         size="sm"
         variant="destructive"
@@ -163,33 +168,26 @@ export default function AdminCategoriesPage() {
           });
         })}
       >
-        <div className="page-primitive__field-tight">
-          <Input
-            label="Name"
-            className="page-primitive__input-name-wide"
-            {...form.register('name')}
-          />
-          {form.formState.errors.name ? (
-            <p className="page-primitive__error">{form.formState.errors.name.message}</p>
-          ) : null}
+        <div className="admin-categories-page__create-row">
+          <div className="page-primitive__field-tight">
+            <Input
+              label="Name"
+              requiredMark
+              className="page-primitive__input-name-wide"
+              {...form.register('name')}
+            />
+            {form.formState.errors.name ? (
+              <p className="page-primitive__error">{form.formState.errors.name.message}</p>
+            ) : null}
+          </div>
+          <Button type="submit" loading={create.isPending}>
+            Add
+          </Button>
         </div>
-        <div className="page-primitive__field-tight">
-          <Input
-            label="Icon"
-            className="page-primitive__input-icon-wide"
-            {...form.register('icon')}
-          />
-          {form.formState.errors.icon ? (
-            <p className="page-primitive__error">{form.formState.errors.icon.message}</p>
-          ) : (
-            <p className="page-primitive__muted-xs">
-              e.g. {CATEGORY_ICON_NAMES.slice(0, 4).join(', ')}
-            </p>
-          )}
-        </div>
-        <Button type="submit" loading={create.isPending}>
-          Add
-        </Button>
+        <IconPicker
+          value={form.watch('icon') ?? 'leaf'}
+          onChange={(icon) => form.setValue('icon', icon, { shouldDirty: true })}
+        />
       </form>
 
       <DndContext

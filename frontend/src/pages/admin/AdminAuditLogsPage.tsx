@@ -59,6 +59,8 @@ const SUMMARISED_KEYS = new Set([
   'email',
   'reason',
   'affected_orders',
+  // Already spelled out in words by auditSubject; leaving it here too printed ["full_name"].
+  'changed_fields',
   'from',
   'to',
 ]);
@@ -68,7 +70,11 @@ function extraDetails(log: AuditLogItem): Array<[string, string]> {
     .filter(([key]) => !SUMMARISED_KEYS.has(key))
     .map(([key, value]): [string, string] => [
       key.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase()),
-      typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value),
+      Array.isArray(value)
+        ? value.map((item) => String(item).replaceAll('_', ' ')).join(', ')
+        : typeof value === 'object' && value !== null
+          ? JSON.stringify(value)
+          : String(value),
     ]);
 }
 

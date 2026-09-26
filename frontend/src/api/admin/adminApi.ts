@@ -12,6 +12,8 @@ import type {
   AdminMarketPayload,
   AdminReport,
   AuditLogItem,
+  ChangeLogEntry,
+  TrackedModel,
   CustomerImpact,
   FarmerImpact,
   FarmerStatus,
@@ -359,6 +361,15 @@ export const adminApi = {
 
   deleteAnnouncement: async (id: number) => {
     await axiosClient.delete(`/admin/announcements/${id}/`);
+  },
+
+  // The audit trail: how one record changed over time. Distinct from the audit log above,
+  // which is the security record of who did what.
+  getChangeLog: async (model: TrackedModel, id: number) => {
+    const { data } = await axiosClient.get<ChangeLogEntry[]>(
+      `/admin/audit-trail/${model}/${id}/`,
+    );
+    return data;
   },
 
   getAuditLogs: async (

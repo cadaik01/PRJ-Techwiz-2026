@@ -20,6 +20,8 @@ export type EditField = {
   value: string;
   multiline?: boolean;
   type?: 'text' | 'tel' | 'number';
+  /** The API rejects this one when blank, so it carries the red asterisk. */
+  required?: boolean;
 };
 
 /** The admin's version of a profile form: contact details only. Whatever it cannot edit is
@@ -106,6 +108,7 @@ export function ProfileEditDialog({
                   id={`edit-${field.name}`}
                   type={field.type ?? 'text'}
                   label={field.label}
+                  requiredMark={field.required}
                   value={values[field.name] ?? ''}
                   onChange={(event) =>
                     setValues((current) => ({ ...current, [field.name]: event.target.value }))

@@ -1,3 +1,17 @@
+/* The launcher is fixed to the bottom-right, so every scrollable page has to end above it.
+   One token keeps that clearance in step with the button: its height, its offset from the
+   bottom, and a gap on top. */
+:root {
+  --chat-fab-size: 3.5rem;
+  --chat-fab-clearance: calc(var(--chat-fab-size) + var(--space-6) + var(--space-4));
+}
+
+@media (min-width: 768px) {
+  :root {
+    --chat-fab-clearance: calc(var(--chat-fab-size) + var(--space-8) + var(--space-6));
+  }
+}
+
 .ai-chat__panel {
   pointer-events: auto;
   position: fixed;
@@ -151,8 +165,8 @@
   right: var(--space-4);
   z-index: 50;
   display: flex;
-  width: 3.5rem;
-  height: 3.5rem;
+  width: var(--chat-fab-size);
+  height: var(--chat-fab-size);
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-full);

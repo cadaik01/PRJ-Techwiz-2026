@@ -10,12 +10,12 @@
   max-width: var(--container-xl);
   flex: 1;
   padding: var(--space-4);
-  padding-bottom: 6rem;
+  padding-bottom: var(--chat-fab-clearance);
 }
 
 @media (min-width: 768px) {
   .customer-layout__content {
-    padding-bottom: var(--space-6);
+    padding-bottom: var(--chat-fab-clearance);
   }
 }
 

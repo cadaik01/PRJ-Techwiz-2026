@@ -50,6 +50,7 @@ export const QUERY_KEYS = {
   ADMIN_MODERATION_REVIEWS: (params?: unknown) => ['admin-mod-reviews', params] as const,
   ADMIN_REPORTS: (params?: unknown) => ['admin-reports', params] as const,
   ADMIN_ANNOUNCEMENTS: ['admin-announcements'] as const,
+  ADMIN_CHANGE_LOG: (model: string, id: number) => ['admin-change-log', model, id] as const,
   ADMIN_AUDIT_LOGS: (params?: unknown) => ['admin-audit-logs', params] as const,
   ANNOUNCEMENTS: ['announcements'] as const,
   FAVORITE_IDS: ['favorite-ids'] as const,

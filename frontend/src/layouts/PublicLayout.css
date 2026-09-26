@@ -177,6 +177,7 @@
 
 .public-layout__main {
   flex: 1;
+  padding-bottom: var(--chat-fab-clearance);
 }
 
 .public-layout__footer {

@@ -84,7 +84,8 @@ export default function AdminAnnouncementsPage() {
         onSubmit={form.handleSubmit(onSubmit)}
       >
         <div className="page-primitive__form-field">
-          <Input id="title" label="Title" {...form.register('title')} />
+          <Input id="title" label="Title"
+            requiredMark {...form.register('title')} />
           {form.formState.errors.title ? (
             <p className="page-primitive__error">{form.formState.errors.title.message}</p>
           ) : null}
@@ -107,6 +108,7 @@ export default function AdminAnnouncementsPage() {
           <Input
             type="datetime-local"
             label="Starts at"
+            requiredMark
             className="page-primitive__input-auto"
             {...form.register('starts_at')}
           />

@@ -165,13 +165,15 @@ export default function AdminMarketFormPage() {
         <div className="admin-market-form-page__fields">
           <div className="page-primitive__form-grid-2">
             <div className="page-primitive__form-field page-primitive__form-span-2">
-              <Input id="name" label="Market name" {...form.register('name')} />
+              <Input id="name" label="Market name"
+            requiredMark {...form.register('name')} />
               {form.formState.errors.name ? (
                 <p className="page-primitive__error">{form.formState.errors.name.message}</p>
               ) : null}
             </div>
             <div className="page-primitive__form-field page-primitive__form-span-2">
-              <Input id="address" label="Address" {...form.register('address')} />
+              <Input id="address" label="Address"
+            requiredMark {...form.register('address')} />
               {form.formState.errors.address ? (
                 <p className="page-primitive__error">
                   {form.formState.errors.address.message}
@@ -183,6 +185,7 @@ export default function AdminMarketFormPage() {
                 id="open_time"
                 type="time"
                 label="Open time"
+            requiredMark
                 {...form.register('open_time')}
               />
               {form.formState.errors.open_time ? (
@@ -196,6 +199,7 @@ export default function AdminMarketFormPage() {
                 id="close_time"
                 type="time"
                 label="Close time"
+            requiredMark
                 {...form.register('close_time')}
               />
               {form.formState.errors.close_time ? (
