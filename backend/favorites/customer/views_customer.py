@@ -7,7 +7,7 @@ from favorites.customer.serializers_customer import (
     FavoriteMarketWriteSerializer,
     FavoriteProductWriteSerializer,
 )
-from favorites.selectors import favorite_ids
+from favorites.selectors import customer_favorite_ids
 from favorites.services.favorite_service import add_favorite, remove_favorite
 from marketlink_core.permissions import IsCustomer
 from marketlink_core.responses import api_response
@@ -19,7 +19,7 @@ class FavoriteIdsView(APIView):
     permission_classes = [IsCustomer]
 
     def get(self, request):
-        return api_response(message="Favorites retrieved", data=favorite_ids(request.user), request=request)
+        return api_response(message="Favorites retrieved", data=customer_favorite_ids(request.user), request=request)
 
 
 class _FavoriteAddView(APIView):

@@ -1,0 +1,7 @@
+@import '../styles/page-primitives.css';
+
+.farmer-products-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

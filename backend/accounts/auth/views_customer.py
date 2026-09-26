@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.permissions import AllowAny
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
@@ -14,6 +15,11 @@ class CustomerRegisterView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "register"
 
+    @extend_schema(
+        request=CustomerRegisterWriteSerializer,
+        responses={201: OpenApiResponse(description="Envelope with data: {access, refresh, user: Me}."), 400: None, 429: None},
+        summary="Register a customer account",
+    )
     def post(self, request):
         serializer = CustomerRegisterWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

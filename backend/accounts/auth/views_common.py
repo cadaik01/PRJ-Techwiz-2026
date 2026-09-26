@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -36,6 +37,11 @@ class LoginView(APIView):
     portal_roles = MARKET_PORTAL_ROLES
     audit_details: dict = {}
 
+    @extend_schema(
+        request=LoginWriteSerializer,
+        responses={200: OpenApiResponse(description="Envelope with data: {access, refresh, user: Me}."), 401: None, 403: None, 429: None},
+        summary="Sign in to the customer and farmer portal",
+    )
     def post(self, request):
         serializer = LoginWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -58,11 +64,24 @@ class AdminLoginView(LoginView):
     portal_roles = ADMIN_PORTAL_ROLES
     audit_details = {"portal": "ADMIN"}
 
+    @extend_schema(
+        request=LoginWriteSerializer,
+        responses={200: OpenApiResponse(description="Envelope with data: {access, refresh, user: Me}."), 401: None, 429: None},
+        summary="Sign in to the admin portal",
+    )
+    def post(self, request):
+        return super().post(request)
+
 
 class RefreshView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
+    @extend_schema(
+        request=RefreshTokenWriteSerializer,
+        responses={200: OpenApiResponse(description="Envelope with data: {access, refresh}."), 401: None},
+        summary="Rotate the refresh token",
+    )
     def post(self, request):
         serializer = RefreshTokenWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -72,6 +91,11 @@ class RefreshView(APIView):
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=RefreshTokenWriteSerializer,
+        responses={204: None, 401: None},
+        summary="End this device session",
+    )
     def post(self, request):
         serializer = RefreshTokenWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -83,6 +107,7 @@ class LogoutView(APIView):
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: MeReadSerializer, 401: None}, summary="The signed-in account")
     def get(self, request):
         return api_response(message="OK", data=MeReadSerializer(request.user).data, request=request)
 
@@ -93,6 +118,11 @@ class ChangePasswordView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
 
+    @extend_schema(
+        request=ChangePasswordWriteSerializer,
+        responses={200: OpenApiResponse(description="Envelope with an empty data object."), 400: None, 401: None},
+        summary="Change the current password",
+    )
     def post(self, request):
         serializer = ChangePasswordWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

@@ -1,9 +1,31 @@
 from accounts.models import CustomUser
 from favorites.models import FavoriteFarmer, FavoriteMarket, FavoriteProduct
+from marketlink_core.policies.roles import RoleCode
+
+MODELS = {
+    "market": (FavoriteMarket, "market_id"),
+    "farmer": (FavoriteFarmer, "farmer_id"),
+    "product": (FavoriteProduct, "product_id"),
+}
 
 
-def favorite_ids(customer) -> dict[str, list[int]]:
-    """CU-12: ids the frontend uses to fill every heart icon."""
+def favorite_ids(*, user, kind: str, object_ids) -> set[int] | None:
+    """Which of `object_ids` this viewer has hearted, for the is_favorite flag on public lists."""
+    # None, not an empty set: is_favorite is null unless a customer is signed in.
+    if user is None or not getattr(user, "is_authenticated", False):
+        return None
+    if getattr(getattr(user, "role", None), "code", None) != RoleCode.CUSTOMER:
+        return None
+    model, column = MODELS[kind]
+    return set(
+        model.objects.filter(customer=user, **{f"{column}__in": set(object_ids)}).values_list(
+            column, flat=True
+        )
+    )
+
+
+def customer_favorite_ids(customer) -> dict[str, list[int]]:
+    """CU-12: every id the customer has hearted, so the frontend can fill each heart icon."""
     return {
         "farmer_ids": list(FavoriteFarmer.objects.filter(customer=customer).values_list("farmer_id", flat=True)),
         "product_ids": list(FavoriteProduct.objects.filter(customer=customer).values_list("product_id", flat=True)),
