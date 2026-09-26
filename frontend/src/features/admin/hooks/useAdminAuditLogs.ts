@@ -6,7 +6,7 @@ import type { PageSize } from '@/types';
 
 type AuditLogParams = {
   action?: string;
-  user?: string;
+  user_id?: number;
   from?: string;
   to?: string;
   page?: number;

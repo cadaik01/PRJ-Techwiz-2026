@@ -328,7 +328,7 @@ export let auditLogs: AuditLogItem[] = [
   {
     id: 1,
     user: { id: 3, email: 'admin@demo.vn' },
-    action: 'FARMER_APPROVE',
+    action: 'FARMER_APPROVED',
     endpoint: '/api/admin/farmers/2/approve/',
     method: 'POST',
     ip_address: '127.0.0.1',
@@ -341,7 +341,7 @@ export let auditLogs: AuditLogItem[] = [
   {
     id: 2,
     user: { id: 3, email: 'admin@demo.vn' },
-    action: 'CUSTOMER_DEACTIVATE',
+    action: 'CUSTOMER_DEACTIVATED',
     endpoint: '/api/admin/customers/21/deactivate/',
     method: 'POST',
     ip_address: '127.0.0.1',
@@ -354,7 +354,7 @@ export let auditLogs: AuditLogItem[] = [
   {
     id: 3,
     user: { id: 3, email: 'admin@demo.vn' },
-    action: 'MARKET_DEACTIVATE',
+    action: 'MARKET_DEACTIVATED',
     endpoint: '/api/admin/markets/5/',
     method: 'PATCH',
     ip_address: '127.0.0.1',

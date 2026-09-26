@@ -163,7 +163,7 @@ export const adminHandlers = [
     copy[idx] = next;
     setAdminFarmers(copy);
     pushAudit({
-      action: 'FARMER_APPROVE',
+      action: 'FARMER_APPROVED',
       user: { id: 3, email: 'admin@demo.vn' },
       endpoint: null,
       method: 'POST',
@@ -201,7 +201,7 @@ export const adminHandlers = [
     copy[idx] = next;
     setAdminFarmers(copy);
     pushAudit({
-      action: 'FARMER_REJECT',
+      action: 'FARMER_REJECTED',
       user: { id: 3, email: 'admin@demo.vn' },
       endpoint: null,
       method: 'POST',
@@ -239,7 +239,7 @@ export const adminHandlers = [
     copy[idx] = next;
     setAdminFarmers(copy);
     pushAudit({
-      action: 'FARMER_SUSPEND',
+      action: 'FARMER_SUSPENDED',
       user: { id: 3, email: 'admin@demo.vn' },
       endpoint: null,
       method: 'POST',
@@ -269,7 +269,7 @@ export const adminHandlers = [
     copy[idx] = next;
     setAdminFarmers(copy);
     pushAudit({
-      action: 'FARMER_REINSTATE',
+      action: 'FARMER_REINSTATED',
       user: { id: 3, email: 'admin@demo.vn' },
       endpoint: null,
       method: 'POST',
@@ -445,7 +445,7 @@ export const adminHandlers = [
     };
     setAdminMarkets([market, ...adminMarkets]);
     pushAudit({
-      action: 'MARKET_CREATE',
+      action: 'MARKET_CREATED',
       user: { id: 3, email: 'admin@demo.vn' },
       endpoint: null,
       method: 'POST',
@@ -514,7 +514,7 @@ export const adminHandlers = [
     copy[idx] = next;
     setAdminMarkets(copy);
     pushAudit({
-      action: 'MARKET_DEACTIVATE',
+      action: 'MARKET_DEACTIVATED',
       user: { id: 3, email: 'admin@demo.vn' },
       endpoint: null,
       method: 'POST',
@@ -980,12 +980,12 @@ export const adminHandlers = [
     }
     const url = new URL(request.url);
     const action = url.searchParams.get('action');
-    const user = url.searchParams.get('user');
+    const userId = url.searchParams.get('user_id');
     const from = url.searchParams.get('from');
     const to = url.searchParams.get('to');
     let list = [...auditLogs];
     if (action) list = list.filter((l) => l.action === action);
-    if (user) list = list.filter((l) => (l.user?.email ?? '').includes(user));
+    if (userId) list = list.filter((l) => String(l.user?.id ?? '') === userId);
     if (from) list = list.filter((l) => l.created_at.slice(0, 10) >= from);
     if (to) list = list.filter((l) => l.created_at.slice(0, 10) <= to);
     return HttpResponse.json(envelope({ items: list }));

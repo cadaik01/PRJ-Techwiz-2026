@@ -332,7 +332,7 @@ export const adminApi = {
   getAuditLogs: async (
     params: {
       action?: string;
-      user?: string;
+      user_id?: number;
       from?: string;
       to?: string;
       page?: number;
