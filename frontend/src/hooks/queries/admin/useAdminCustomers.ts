@@ -9,6 +9,7 @@ import type { PageSize } from '@/types';
 type CustomersParams = {
   q?: string;
   is_active?: boolean;
+  ordering?: string;
   page?: number;
   page_size?: PageSize;
 };
@@ -64,5 +65,19 @@ export function useAdminCustomer(id: number | null) {
     queryKey: QUERY_KEYS.ADMIN_CUSTOMER(id ?? 0),
     queryFn: () => adminApi.getCustomer(id as number),
     enabled: id !== null,
+  });
+}
+
+export function useUpdateCustomer(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: Parameters<typeof adminApi.updateCustomer>[1]) =>
+      adminApi.updateCustomer(id, payload),
+    onSuccess: () => {
+      toast.success('Customer updated');
+      void invalidateCustomers(queryClient);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_CUSTOMER(id) });
+    },
+    onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
   });
 }

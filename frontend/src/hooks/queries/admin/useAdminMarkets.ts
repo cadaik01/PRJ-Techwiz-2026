@@ -7,6 +7,7 @@ import { QUERY_KEYS } from '@/config/constants';
 import type { AdminMarketPayload, MarketClosurePayload, PageSize } from '@/types';
 
 type MarketsParams = {
+  ordering?: string;
   page?: number;
   page_size?: PageSize;
 };

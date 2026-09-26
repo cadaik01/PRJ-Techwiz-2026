@@ -1,6 +1,11 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { useAdminCustomer } from '@/hooks/queries/admin/useAdminCustomers';
+import {
+  useAdminCustomer,
+  useUpdateCustomer,
+} from '@/hooks/queries/admin/useAdminCustomers';
+import { ProfileEditDialog } from '@/components/admin/ProfileEditDialog';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -14,7 +19,10 @@ import './AdminCustomerDetailPage.css';
 
 export default function AdminCustomerDetailPage() {
   const { id = '' } = useParams();
-  const query = useAdminCustomer(Number(id));
+  const customerId = Number(id);
+  const query = useAdminCustomer(customerId);
+  const update = useUpdateCustomer(customerId);
+  const [editing, setEditing] = useState(false);
 
   if (query.isLoading) return <PageSkeleton />;
   if (query.isError || !query.data) {
@@ -35,10 +43,29 @@ export default function AdminCustomerDetailPage() {
         title={c.full_name}
         description={c.email}
         actions={
-          <Button asChild variant="outline">
-            <Link to="/admin/customers">← Back to list</Link>
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              Edit details
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/admin/customers">← Back to list</Link>
+            </Button>
+          </>
         }
+      />
+
+      <ProfileEditDialog
+        open={editing}
+        onOpenChange={setEditing}
+        title="Edit customer details"
+        note="Locking an account is a separate action, from the customer list."
+        pending={update.isPending}
+        onSave={(values) => update.mutateAsync(values)}
+        fields={[
+          { name: 'full_name', label: 'Full name', value: c.full_name },
+          { name: 'phone', label: 'Phone', value: c.phone ?? '', type: 'tel' },
+          { name: 'address', label: 'Address', value: c.address ?? '' },
+        ]}
       />
 
       <div className="page-primitive__actions-row">

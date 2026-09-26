@@ -9,6 +9,7 @@ import type { FarmerStatus, PageSize } from '@/types';
 type FarmersParams = {
   q?: string;
   status?: FarmerStatus;
+  ordering?: string;
   page?: number;
   page_size?: PageSize;
 };
@@ -97,4 +98,18 @@ export function useReinstateFarmer() {
 
 export function fetchFarmerImpact(id: number) {
   return adminApi.getFarmerImpact(id);
+}
+
+export function useUpdateFarmer(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: Parameters<typeof adminApi.updateFarmer>[1]) =>
+      adminApi.updateFarmer(id, payload),
+    onSuccess: () => {
+      toast.success('Stall updated');
+      void invalidateFarmers(queryClient);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_FARMER(id) });
+    },
+    onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
+  });
 }

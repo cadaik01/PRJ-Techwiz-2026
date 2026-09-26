@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { useAdminFarmer } from '@/hooks/queries/admin/useAdminFarmers';
+import { useAdminFarmer, useUpdateFarmer } from '@/hooks/queries/admin/useAdminFarmers';
+import { ProfileEditDialog } from '@/components/admin/ProfileEditDialog';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -17,6 +19,8 @@ export default function AdminFarmerDetailPage() {
   const { id = '' } = useParams();
   const farmerId = Number(id);
   const query = useAdminFarmer(farmerId);
+  const update = useUpdateFarmer(farmerId);
+  const [editing, setEditing] = useState(false);
 
   if (query.isLoading) return <PageSkeleton />;
   if (query.isError || !query.data) {
@@ -37,10 +41,30 @@ export default function AdminFarmerDetailPage() {
         title={f.stall_name}
         description={f.email}
         actions={
-          <Button asChild variant="outline">
-            <Link to="/admin/farmers">← Back to list</Link>
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              Edit details
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/admin/farmers">← Back to list</Link>
+            </Button>
+          </>
         }
+      />
+
+      <ProfileEditDialog
+        open={editing}
+        onOpenChange={setEditing}
+        title="Edit stall details"
+        note="Trading days, address and location are managed by the stall on its own profile."
+        pending={update.isPending}
+        onSave={(values) => update.mutateAsync(values)}
+        fields={[
+          { name: 'stall_name', label: 'Stall name', value: f.stall_name },
+          { name: 'contact_person', label: 'Contact person', value: f.contact_person ?? '' },
+          { name: 'phone', label: 'Phone', value: f.phone ?? '', type: 'tel' },
+          { name: 'description', label: 'Description', value: f.description ?? '', multiline: true },
+        ]}
       />
 
       <div className="page-primitive__actions-row">

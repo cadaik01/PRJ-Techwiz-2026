@@ -19,6 +19,7 @@ import { Badge } from '@/components/common/badges/Badge';
 import { Button } from '@/components/common/forms/Button';
 import { Input } from '@/components/common/forms/Input';
 import { Textarea } from '@/components/common/forms/Textarea';
+import { SortableTh } from '@/components/common/table/SortableTh';
 import type { FarmerStatus } from '@/types';
 import { farmerStatusLabel } from '@/utils/labels';
 
@@ -42,9 +43,20 @@ export default function AdminFarmersPage() {
   const [reason, setReason] = useState('');
   const [impactText, setImpactText] = useState('');
 
+  // Sorting lives in the URL alongside the filters, so a sorted view survives a refresh and
+  // can be shared as a link.
+  const ordering = params.get('ordering') || undefined;
+  const sortBy = (next: string) => {
+    const updated = new URLSearchParams(params);
+    updated.set('ordering', next);
+    setParams(updated);
+    setPage(1);
+  };
+
   const query = useAdminFarmers({
     q: params.get('q') || undefined,
     status,
+    ordering,
     page,
     page_size: 10,
   });
@@ -130,10 +142,18 @@ export default function AdminFarmersPage() {
             <table className="page-primitive__table page-primitive__table-min-800">
               <thead className="page-primitive__table-head">
                 <tr>
-                  <th className="page-primitive__table-th">Stall</th>
-                  <th className="page-primitive__table-th">Contact</th>
-                  <th className="page-primitive__table-th">Status</th>
-                  <th className="page-primitive__table-th">Open orders</th>
+                  <SortableTh column="stall_name" current={ordering} onSort={sortBy}>
+                    Stall
+                  </SortableTh>
+                  <SortableTh column="email" current={ordering} onSort={sortBy}>
+                    Contact
+                  </SortableTh>
+                  <SortableTh column="status" current={ordering} onSort={sortBy}>
+                    Status
+                  </SortableTh>
+                  <SortableTh column="open_order_count" current={ordering} onSort={sortBy}>
+                    Open orders
+                  </SortableTh>
                   <th className="page-primitive__table-th">Actions</th>
                 </tr>
               </thead>

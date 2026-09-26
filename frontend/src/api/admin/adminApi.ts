@@ -40,6 +40,7 @@ export const adminApi = {
     params: {
       q?: string;
       status?: FarmerStatus;
+      ordering?: string;
       page?: number;
       page_size?: PageSize;
     } = {},
@@ -92,12 +93,41 @@ export const adminApi = {
     params: {
       q?: string;
       is_active?: boolean;
+      ordering?: string;
       page?: number;
       page_size?: PageSize;
     } = {},
   ) => {
     const { data } = await axiosClient.get('/admin/customers/', { params });
     return adaptPaginated<AdminCustomer>(data);
+  },
+
+  // AD-03 PATCH. Contact details only: operating days and coordinates carry rules that live
+  // on the stall's own profile screen (D-031, D-032).
+  updateFarmer: async (
+    id: number,
+    payload: Partial<{
+      stall_name: string;
+      contact_person: string;
+      phone: string;
+      description: string | null;
+      order_cutoff_hours: number;
+    }>,
+  ) => {
+    const { data } = await axiosClient.patch<AdminFarmerSummary>(
+      `/admin/farmers/${id}/`,
+      payload,
+    );
+    return data;
+  },
+
+  // AD-10 PATCH.
+  updateCustomer: async (
+    id: number,
+    payload: Partial<{ full_name: string; phone: string; address: string }>,
+  ) => {
+    const { data } = await axiosClient.patch<AdminCustomer>(`/admin/customers/${id}/`, payload);
+    return data;
   },
 
   getCustomer: async (id: number) => {
@@ -127,7 +157,9 @@ export const adminApi = {
     return data;
   },
 
-  getMarkets: async (params: { page?: number; page_size?: PageSize } = {}) => {
+  getMarkets: async (
+    params: { ordering?: string; page?: number; page_size?: PageSize } = {},
+  ) => {
     const { data } = await axiosClient.get('/admin/markets/', { params });
     return adaptPaginated<AdminMarket>(data);
   },
@@ -232,8 +264,8 @@ export const adminApi = {
     await axiosClient.delete(`/admin/categories/${id}/`);
   },
 
-  getModerationProducts: async () => {
-    const { data } = await axiosClient.get('/admin/products/');
+  getModerationProducts: async (params: { ordering?: string } = {}) => {
+    const { data } = await axiosClient.get('/admin/products/', { params });
     return adaptPaginated<ModerationProduct>(data);
   },
 
@@ -252,8 +284,8 @@ export const adminApi = {
     return data;
   },
 
-  getModerationReviews: async () => {
-    const { data } = await axiosClient.get('/admin/reviews/');
+  getModerationReviews: async (params: { ordering?: string } = {}) => {
+    const { data } = await axiosClient.get('/admin/reviews/', { params });
     return adaptPaginated<ModerationReview>(data);
   },
 
@@ -335,6 +367,7 @@ export const adminApi = {
       user_id?: number;
       from?: string;
       to?: string;
+      ordering?: string;
       page?: number;
       page_size?: PageSize;
     } = {},

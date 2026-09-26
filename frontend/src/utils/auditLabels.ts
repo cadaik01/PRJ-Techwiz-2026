@@ -26,6 +26,8 @@ const ACTIONS: Record<string, { label: string; tone: Tone }> = {
   MARKET_UPDATED: { label: 'Edited a market', tone: 'neutral' },
   MARKET_DEACTIVATED: { label: 'Closed a market', tone: 'warning' },
   MARKET_ACTIVATED: { label: 'Reopened a market', tone: 'good' },
+  FARMER_UPDATED: { label: 'Edited stall details', tone: 'neutral' },
+  CUSTOMER_UPDATED: { label: 'Edited customer details', tone: 'neutral' },
 };
 
 export const AUDIT_ACTION_OPTIONS = Object.entries(ACTIONS)
@@ -78,6 +80,13 @@ export function auditSubject(log: AuditLogItem): string {
     const from = text(d, 'from');
     const to = text(d, 'to');
     parts.push(from && to ? `Report ${from} → ${to}` : 'Report');
+  }
+
+  const fields = d['changed_fields'];
+  if (Array.isArray(fields) && fields.length) {
+    parts.push(
+      `changed ${fields.map((f) => String(f).replaceAll('_', ' ')).join(', ')}`,
+    );
   }
 
   const affected = text(d, 'affected_orders');

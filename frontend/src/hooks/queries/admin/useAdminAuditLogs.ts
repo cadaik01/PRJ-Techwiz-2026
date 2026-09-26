@@ -9,6 +9,7 @@ type AuditLogParams = {
   user_id?: number;
   from?: string;
   to?: string;
+  ordering?: string;
   page?: number;
   page_size?: PageSize;
 };

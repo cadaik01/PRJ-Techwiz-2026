@@ -11,6 +11,7 @@ import {
   useDeactivateCustomer,
 } from '@/hooks/queries/admin/useAdminCustomers';
 import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
+import { SortableTh } from '@/components/common/table/SortableTh';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -31,7 +32,9 @@ export default function AdminCustomersPage() {
   const [reason, setReason] = useState('');
   const [impactText, setImpactText] = useState('');
 
-  const query = useAdminCustomers({ q: submittedQ || undefined });
+  const [ordering, setOrdering] = useState<string | undefined>(undefined);
+
+  const query = useAdminCustomers({ q: submittedQ || undefined, ordering });
   const deactivate = useDeactivateCustomer();
   const activate = useActivateCustomer();
 
@@ -81,10 +84,18 @@ export default function AdminCustomersPage() {
           <table className="page-primitive__table page-primitive__table-min-720">
             <thead className="page-primitive__table-head">
               <tr>
-                <th className="page-primitive__table-th">Customer</th>
-                <th className="page-primitive__table-th">Orders</th>
-                <th className="page-primitive__table-th">No-show</th>
-                <th className="page-primitive__table-th">Status</th>
+                <SortableTh column="full_name" current={ordering} onSort={setOrdering}>
+                  Customer
+                </SortableTh>
+                <SortableTh column="total_orders" current={ordering} onSort={setOrdering}>
+                  Orders
+                </SortableTh>
+                <SortableTh column="no_show_count" current={ordering} onSort={setOrdering}>
+                  No-show
+                </SortableTh>
+                <SortableTh column="is_active" current={ordering} onSort={setOrdering}>
+                  Status
+                </SortableTh>
                 <th className="page-primitive__table-th">Lock reason</th>
                 <th className="page-primitive__table-th">Actions</th>
               </tr>

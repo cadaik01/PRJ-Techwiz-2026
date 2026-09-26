@@ -14,25 +14,26 @@ export type ModerationTarget =
 function invalidateModeration(queryClient: {
   invalidateQueries: (opts: { queryKey: readonly unknown[] }) => unknown;
 }) {
+  // Only the first key segment, so every sort order of the list is refreshed.
   void queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.ADMIN_MODERATION_PRODUCTS,
+    queryKey: [QUERY_KEYS.ADMIN_MODERATION_PRODUCTS()[0]],
   });
   void queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.ADMIN_MODERATION_REVIEWS,
+    queryKey: [QUERY_KEYS.ADMIN_MODERATION_REVIEWS()[0]],
   });
 }
 
-export function useModerationProducts() {
+export function useModerationProducts(params: { ordering?: string } = {}) {
   return useQuery({
-    queryKey: QUERY_KEYS.ADMIN_MODERATION_PRODUCTS,
-    queryFn: adminApi.getModerationProducts,
+    queryKey: QUERY_KEYS.ADMIN_MODERATION_PRODUCTS(params),
+    queryFn: () => adminApi.getModerationProducts(params),
   });
 }
 
-export function useModerationReviews() {
+export function useModerationReviews(params: { ordering?: string } = {}) {
   return useQuery({
-    queryKey: QUERY_KEYS.ADMIN_MODERATION_REVIEWS,
-    queryFn: adminApi.getModerationReviews,
+    queryKey: QUERY_KEYS.ADMIN_MODERATION_REVIEWS(params),
+    queryFn: () => adminApi.getModerationReviews(params),
   });
 }
 
@@ -61,7 +62,7 @@ export function useRestoreModerationProduct() {
     onSuccess: () => {
       toast.success('Content restored');
       void queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.ADMIN_MODERATION_PRODUCTS,
+        queryKey: [QUERY_KEYS.ADMIN_MODERATION_PRODUCTS()[0]],
       });
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
@@ -76,7 +77,7 @@ export function useRestoreModerationReview() {
     onSuccess: () => {
       toast.success('Content restored');
       void queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.ADMIN_MODERATION_REVIEWS,
+        queryKey: [QUERY_KEYS.ADMIN_MODERATION_REVIEWS()[0]],
       });
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
