@@ -36,17 +36,33 @@ class TestDeadlockRetry:
             run_with_deadlock_retry(work)
         assert caught.value.code == "CONFLICT_RETRY"
 
-    def test_lock_wait_timeout_becomes_conflict_retry(self):
+    def test_lock_wait_timeout_is_not_retried(self):
+        # It already waited innodb_lock_wait_timeout; the exception handler turns it into 409.
         calls = []
 
         def work():
             calls.append(1)
             raise OperationalError(1205, "Lock wait timeout exceeded")
 
-        with pytest.raises(ConflictError) as caught:
+        with pytest.raises(OperationalError):
             run_with_deadlock_retry(work)
-        assert caught.value.code == "CONFLICT_RETRY"
         assert len(calls) == 1
+
+    def test_lock_wait_timeout_reaches_the_client_as_conflict_retry(self):
+        class _BusyView(APIView):
+            authentication_classes = []
+            permission_classes = []
+
+            def post(self, request):
+                return run_with_deadlock_retry(self._locked)
+
+            @staticmethod
+            def _locked():
+                raise OperationalError(1205, "Lock wait timeout exceeded")
+
+        response = _BusyView.as_view()(APIRequestFactory().post("/busy/"))
+
+        assert (response.status_code, response.data["code"]) == (409, "CONFLICT_RETRY")
 
     def test_other_database_errors_propagate(self):
         def work():
