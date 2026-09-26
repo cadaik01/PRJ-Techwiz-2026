@@ -5,9 +5,9 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from accounts.auth.serializers_auth import FarmerRegisterAuthSerializer, build_me
+from accounts.auth.serializers_auth import FarmerRegisterAuthSerializer
+from accounts.auth.serializers_common import build_auth_payload
 from accounts.services.registration import register_farmer
-from accounts.services.tokens import issue_token_pair
 from marketlink_core.responses import api_response
 
 
@@ -24,7 +24,8 @@ class FarmerRegisterView(APIView):
         user, _ = register_farmer(**serializer.validated_data)
         return api_response(
             message="Registration successful. Your account is awaiting administrator approval.",
-            data={**issue_token_pair(user), "user": build_me(user)},
+            # P2 session tokens (sid + pwv claims), so SessionJWTAuthentication accepts them like AU-01.
+            data=build_auth_payload(user),
             status_code=status.HTTP_201_CREATED,
             request=request,
         )
