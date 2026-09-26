@@ -1,0 +1,35 @@
+@import '../styles/page-primitives.css';
+
+.admin-categories-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.admin-categories-page__create {
+<<<<<<< HEAD
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(8rem, 12rem) auto;
+  gap: var(--space-3);
+  align-items: end;
+=======
+>>>>>>> 3effed8 (chuyển tsx -> jsx)
+  border-radius: var(--radius-2xl);
+  border: 1px dashed var(--color-border);
+  padding: var(--space-4);
+}
+
+<<<<<<< HEAD
+@media (max-width: 639px) {
+  .admin-categories-page__create {
+    grid-template-columns: 1fr;
+  }
+}
+
+=======
+>>>>>>> 3effed8 (chuyển tsx -> jsx)
+.admin-categories-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

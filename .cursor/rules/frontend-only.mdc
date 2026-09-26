@@ -1,0 +1,34 @@
+---
+description: Chỉ làm việc trong frontend/src — được thêm package khi cần; không sửa/xóa phần sẵn có
+globs: frontend/src/**/*
+alwaysApply: false
+---
+
+# Frontend Source Only (Techwiz)
+
+## Được phép
+
+- **Tạo / sửa / bổ sung** code mới trong `frontend/src/` (pages, features, components, hooks, …).
+- **Thêm dependency** vào `frontend/package.json` (+ lockfile) khi feature thật sự cần — chỉ `npm install <pkg>`, không gỡ/đổi version package sẵn có trừ khi user yêu cầu.
+
+## Cấm
+
+- Sửa hoặc xóa file **ngoài** `frontend/src/` (ví dụ: `vite.config.*`, `tsconfig*`, `eslint.config.*`, `index.html`, `.env*`, cấu hình root) — trừ khi user yêu cầu rõ.
+- **Xóa / rewrite / refactor** file hoặc đoạn code đã có sẵn chỉ để “clean”, “đồng bộ”, “tối ưu”.
+- Đụng `backend/`, Django, migration, hay API server.
+- Gỡ dependency đang có trong `package.json`.
+
+## Khi cần nối vào code sẵn có
+
+- Chỉ **ghép thêm** (import, route, export, gọi hook) — giữ nguyên hành vi và cấu trúc hiện tại.
+- Không đổi tên file/folder/export đã có trừ khi user yêu cầu.
+
+## Chuẩn code (khi viết mới trong src)
+
+- Feature-Driven: `features/<domain>/{api,components,hooks,schemas,types}`; pages chỉ ráp layout + feature.
+- TypeScript: cấm `any`, `@ts-ignore`, non-null `!`, cast `as` thừa.
+- API: `snake_case` khớp DRF; URL **trailing slash** (`/api/.../`).
+- GET → `useQuery`; ghi → `useMutation` + `invalidateQueries`; keys ở `config/constants/queryKeys.ts`.
+- Form: RHF + Zod. Style: Vanilla CSS (co-located `.css`, BEM) + `cn()` (clsx) — cấm inline style.
+- Code/comments/commit: English-only. Không Co-Authored-By AI / "Generated with...".
+- Chi tiết: `.cursor/skills/techwiz-frontend-react/SKILL.md`.

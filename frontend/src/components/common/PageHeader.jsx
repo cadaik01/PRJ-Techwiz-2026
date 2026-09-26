@@ -1,0 +1,26 @@
+import PropTypes from 'prop-types';
+import { cn } from '@/lib/cn';
+import './PageHeader.css';
+
+export function PageHeader({ eyebrow, title, description, actions, className }) {
+  return (
+    <section className={cn('page-header', className)}>
+      <div className="page-header__inner">
+        <div className="page-header__copy">
+          {eyebrow ? <p className="page-header__eyebrow">{eyebrow}</p> : null}
+          <h1 className="page-header__title">{title}</h1>
+          {description ? <p className="page-header__description">{description}</p> : null}
+        </div>
+        {actions ? <div className="page-header__actions">{actions}</div> : null}
+      </div>
+    </section>
+  );
+}
+
+PageHeader.propTypes = {
+  eyebrow: PropTypes.string,
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string,
+  actions: PropTypes.node,
+  className: PropTypes.string,
+};

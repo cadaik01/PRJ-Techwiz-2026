@@ -1,0 +1,11 @@
+@import '../styles/page-primitives.css';
+
+.admin-customers-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.admin-customers-page__dialog-field {
+  margin-top: var(--space-2);
+}

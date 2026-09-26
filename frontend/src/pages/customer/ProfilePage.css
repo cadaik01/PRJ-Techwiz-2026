@@ -1,0 +1,79 @@
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+}
+
+.profile-page__card {
+  width: 100%;
+}
+
+.profile-page__header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.profile-page__avatar {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.profile-page__identity {
+  min-width: 0;
+}
+
+.profile-page__email {
+  margin-top: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+  color: var(--color-muted-foreground);
+}
+
+.profile-page__form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .profile-page__form {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.profile-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.profile-page__field--full {
+  grid-column: 1 / -1;
+}
+
+.profile-page__actions {
+  grid-column: 1 / -1;
+  display: flex;
+<<<<<<< HEAD
+  justify-content: flex-end;
+=======
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+>>>>>>> 3effed8 (chuyển tsx -> jsx)
+}
+
+.profile-page__error {
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.profile-page__title-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

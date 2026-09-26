@@ -1,0 +1,53 @@
+.tabs-list {
+  display: inline-flex;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-2xl);
+  background-color: var(--color-muted);
+  padding: var(--space-1);
+  color: var(--color-muted-foreground);
+}
+
+<<<<<<< HEAD
+=======
+.tabs-list.page-primitive__tabs-list-wrap {
+  height: auto;
+  min-height: 2.75rem;
+  gap: var(--space-1);
+}
+
+>>>>>>> 3effed8 (chuyển tsx -> jsx)
+.tabs-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  border-radius: var(--radius-xl);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+<<<<<<< HEAD
+=======
+  cursor: pointer;
+>>>>>>> 3effed8 (chuyển tsx -> jsx)
+  transition:
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
+}
+
+.tabs-trigger[data-state='active'] {
+  background-color: var(--color-card);
+  color: var(--color-foreground);
+<<<<<<< HEAD
+  box-shadow: var(--shadow-soft);
+=======
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+>>>>>>> 3effed8 (chuyển tsx -> jsx)
+}
+
+.tabs-content {
+  margin-top: var(--space-4);
+  outline: none;
+}

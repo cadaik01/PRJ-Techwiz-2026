@@ -1,0 +1,7 @@
+@import '../styles/page-primitives.css';
+
+.admin-audit-logs-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
