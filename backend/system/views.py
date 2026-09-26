@@ -26,8 +26,12 @@ from system.selectors import (
     build_change_log,
     list_audit_logs,
 )
+from system.flags import list_flags, raise_flag, resolve_flag
 from system.serializers import (
     AuditLogReadSerializer,
+    FlagResolutionSerializer,
+    ModerationFlagReadSerializer,
+    ModerationFlagWriteSerializer,
     ChangeLogEntrySerializer,
     DashboardSerializer,
     ReportSummarySerializer,
@@ -213,4 +217,108 @@ class AdminChangeLogView(APIView):
         entries = list(reversed(entries))
         return api_response(
             message="OK", request=request, data=ChangeLogEntrySerializer(entries, many=True).data
+        )
+
+
+class AdminFlagListView(ListAPIView):
+    """The follow-up queue, oldest first."""
+
+    permission_classes = [IsAdmin]
+    serializer_class = ModerationFlagReadSerializer
+
+    def get_queryset(self):
+        raw = self.request.query_params.get("resolved")
+        resolved = {"true": True, "false": False}.get((raw or "").lower(), False)
+        return list_flags(resolved=resolved)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "resolved", bool, description="Default false: the open queue."
+            )
+        ],
+        summary="Content waiting for a decision",
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        request=ModerationFlagWriteSerializer,
+        responses={201: ModerationFlagReadSerializer, 400: None},
+        summary="Add something to the queue",
+    )
+    def post(self, request) -> Response:
+        serializer = ModerationFlagWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        flag = raise_flag(**serializer.validated_data, actor=request.user)
+        log_request_event(
+            request,
+            action=AuditAction.CONTENT_FLAGGED,
+            status_code=201,
+            details={
+                "target_type": flag.target_type,
+                "target_id": flag.target_id,
+                "note": flag.note,
+            },
+        )
+        return api_response(
+            message="Added to the queue.",
+            request=request,
+            data=ModerationFlagReadSerializer(flag).data,
+            status_code=201,
+        )
+
+
+class AdminFlagResolveView(APIView):
+    permission_classes = [IsAdmin]
+
+    @extend_schema(
+        request=FlagResolutionSerializer,
+        responses={200: ModerationFlagReadSerializer, 400: None, 404: None},
+        summary="Mark a queue item as dealt with",
+    )
+    def post(self, request, id: int) -> Response:
+        serializer = FlagResolutionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        flag = resolve_flag(
+            flag_id=id, resolution=serializer.validated_data["resolution"], actor=request.user
+        )
+        log_request_event(
+            request,
+            action=AuditAction.CONTENT_FLAG_RESOLVED,
+            status_code=200,
+            details={
+                "target_type": flag.target_type,
+                "target_id": flag.target_id,
+                "resolution": flag.resolution,
+            },
+        )
+        return api_response(
+            message="Marked as dealt with.",
+            request=request,
+            data=ModerationFlagReadSerializer(flag).data,
+        )
+
+
+class AdminSettingsView(APIView):
+    """What limits are in force right now.
+
+    Read only on purpose: these come from the environment, so changing one is a deploy, not a
+    form submission. The screen exists because an admin otherwise has no way to find out what
+    the platform is enforcing.
+    """
+
+    permission_classes = [IsAdmin]
+
+    @extend_schema(responses={200: AdminSettingsSerializer}, summary="Limits in force")
+    def get(self, request) -> Response:
+        data = {
+            "booking_horizon_days": BOOKING_HORIZON_DAYS,
+            "max_placed_orders_per_customer": MAX_PLACED_ORDERS_PER_CUSTOMER,
+            "max_upload_mb": MAX_UPLOAD_MB,
+            "at_risk_threshold": at_risk_threshold(),
+            "at_risk_window_days": at_risk_window_days(),
+        }
+        return api_response(
+            message="OK", request=request, data=AdminSettingsSerializer(data).data
         )

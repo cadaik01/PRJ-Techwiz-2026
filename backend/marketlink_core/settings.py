@@ -266,6 +266,12 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SECURITY": [{"bearerAuth": []}],
+    # Several serializers expose a field called "status" with different choice sets. Naming
+    # them keeps the generated schema at zero warnings, which CI enforces.
+    "ENUM_NAME_OVERRIDES": {
+        "OrderStatusEnum": "orders.models.OrderStatus.choices",
+        "FarmerStatusEnum": "accounts.models.FarmerStatus.choices",
+    },
     "COMPONENTS": {
         "securitySchemes": {
             "bearerAuth": {

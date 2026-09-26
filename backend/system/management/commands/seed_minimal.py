@@ -136,7 +136,8 @@ class Command(BaseCommand):
             markets = self._seed_markets()
             for farmer in FARMERS:
                 self._seed_farmer(farmer, demo_password, markets, categories)
-            self._seed_customer(demo_password)
+            customer = self._seed_customer(demo_password)
+            self._seed_reviews(customer)
 
         self.stdout.write(self.style.SUCCESS("Minimal seed data is ready."))
         self.stdout.write(f"  Admin    : {admin_email}  (sign in at /admin/login)")
@@ -225,7 +226,7 @@ class Command(BaseCommand):
                 },
             )
 
-    def _seed_customer(self, password: str) -> None:
+    def _seed_customer(self, password: str) -> CustomUser:
         user, _ = self._create_user(CUSTOMER["email"], password, RoleCode.CUSTOMER)
         CustomerProfile.objects.get_or_create(
             user=user,
@@ -235,3 +236,87 @@ class Command(BaseCommand):
                 "address": CUSTOMER["address"],
             },
         )
+        return user
+
+    # Reviews only exist on completed orders, so the order has to be seeded first. One of them
+    # is left hidden on purpose, to give the moderation screen something to restore.
+    REVIEWS = [
+        {"rating": 5, "product": "Very fresh, picked the same morning.",
+         "farmer": "Easy to find and packed everything neatly."},
+        {"rating": 4, "product": "Good quality, a couple of bruised ones.",
+         "farmer": "Friendly stall, slight wait at collection."},
+        {"rating": 2, "product": "Smaller than the photo suggested.",
+         "farmer": "Had to call twice before anyone answered."},
+        {"rating": 1, "product": "BUY CHEAP PHONES AT 0900xxxxxx",
+         "farmer": "Unrelated advertising, kept for the moderation demo."},
+    ]
+
+    def _seed_reviews(self, customer: CustomUser) -> None:
+        from datetime import datetime, timedelta
+
+        from django.utils import timezone
+
+        from orders.models import Order, OrderItem, OrderStatus
+        from reviews.models import FarmerReview, ProductReview
+
+        if FarmerReview.objects.exists() or ProductReview.objects.exists():
+            self.stdout.write("  Reviews already present; left untouched.")
+            return
+
+        products = list(
+            Product.objects.select_related("farmer").order_by("id")[: len(self.REVIEWS)]
+        )
+        if not products:
+            return
+
+        created = 0
+        for offset, (product, text) in enumerate(zip(products, self.REVIEWS), start=1):
+            market = (
+                FarmerMarket.objects.filter(farmer=product.farmer)
+                .select_related("market")
+                .first()
+            )
+            if market is None:
+                continue
+
+            pickup_date = timezone.localdate() - timedelta(days=offset + 1)
+            start = timezone.make_aware(datetime.combine(pickup_date, time(8, 0)))
+            order = Order.objects.create(
+                customer=customer,
+                farmer=product.farmer,
+                market=market.market,
+                stall_label=market.stall_label,
+                pickup_date=pickup_date,
+                pickup_start_at=start,
+                pickup_end_at=start + timedelta(hours=3),
+                cutoff_at=start - timedelta(hours=12),
+                status=OrderStatus.COMPLETED,
+                total_amount=product.price * 2,
+            )
+            item = OrderItem.objects.create(
+                order=order,
+                product=product,
+                product_name=product.name,
+                unit_price=product.price,
+                unit=product.unit,
+                quantity=2,
+                line_total=product.price * 2,
+            )
+            # The last one arrives already hidden, so Restore has something to act on.
+            hidden = text["rating"] == 1
+            ProductReview.objects.create(
+                order_item=item,
+                rating=text["rating"],
+                comment=text["product"],
+                is_hidden_by_admin=hidden,
+                hidden_reason="Advertising unrelated to the product." if hidden else None,
+                hidden_at=timezone.now() if hidden else None,
+            )
+            FarmerReview.objects.create(
+                order=order,
+                rating=text["rating"],
+                comment=text["farmer"],
+            )
+            created += 1
+
+        self.stdout.write(f"  Reviews  : {created} completed orders, each with 2 reviews")

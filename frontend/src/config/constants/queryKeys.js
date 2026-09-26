@@ -48,6 +48,8 @@ export const QUERY_KEYS = {
   ADMIN_REPORTS: (params) => ['admin-reports', params],
   ADMIN_ANNOUNCEMENTS: ['admin-announcements'],
   ADMIN_CHANGE_LOG: (model, id) => ['admin-change-log', model, id],
+  ADMIN_ORDERS: (params) => ['admin-orders', params],
+  ADMIN_ORDER: (id) => ['admin-order', id],
   ADMIN_AUDIT_LOGS: (params) => ['admin-audit-logs', params],
   ANNOUNCEMENTS: ['announcements'],
   FAVORITE_IDS: ['favorite-ids'],

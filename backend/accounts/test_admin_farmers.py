@@ -632,3 +632,33 @@ def test_descending_reverses_the_whole_sort(admin_client, farmer, make_farmer):
 
     # Not just the first column flipped: the two orders must be exact mirrors.
     assert ids("-stall_name") == list(reversed(ids("stall_name")))
+
+
+@pytest.mark.django_db
+def test_the_stall_list_downloads_as_csv(admin_client, farmer, admin_user):
+    response = admin_client.get(reverse("admin-farmer-export"))
+
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/csv")
+    assert "attachment" in response["Content-Disposition"]
+
+    body = b"".join(response.streaming_content).decode("utf-8")
+    # The byte-order mark keeps Excel from opening Vietnamese names as mojibake.
+    assert body.startswith("﻿")
+    assert "stall_name" in body
+    assert farmer.stall_name in body
+
+    entry = AuditLog.objects.get(action=AuditAction.EXPORT_DATA)
+    assert entry.details["export"] == "farmers"
+
+
+@pytest.mark.django_db
+def test_the_export_obeys_the_same_filters_as_the_list(admin_client, farmer, make_farmer):
+    make_farmer(email="other@marketlink.test", stall_name="Other Stall")
+
+    response = admin_client.get(reverse("admin-farmer-export"), {"q": "Other"})
+    body = b"".join(response.streaming_content).decode("utf-8")
+
+    # What downloads has to be what is on screen, or the file quietly says something else.
+    assert "Other Stall" in body
+    assert farmer.stall_name not in body

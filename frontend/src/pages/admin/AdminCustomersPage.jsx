@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useCsvDownload } from '@/hooks/useCsvDownload';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -29,6 +30,7 @@ const REASON_MIN_LENGTH = 5;
 
 export default function AdminCustomersPage() {
   const [q, setQ] = useState('');
+  const csv = useCsvDownload('customers');
   // Searching as the admin types, but one request per pause rather than one per keystroke.
   const searchTerm = useDebouncedValue(q);
   const [deactivateId, setDeactivateId] = useState(null);
@@ -58,6 +60,16 @@ export default function AdminCustomersPage() {
     <div className="admin-customers-page">
       <PageHeader
         title="Customers"
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            loading={csv.pending}
+            onClick={() => csv.download({ q: searchTerm || undefined, ordering })}
+          >
+            Export CSV
+          </Button>
+        }
         description="Lock or unlock accounts and monitor no-show history."
       />
       <div className="page-primitive__actions-row">

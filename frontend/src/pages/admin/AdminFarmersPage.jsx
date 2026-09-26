@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useCsvDownload } from '@/hooks/useCsvDownload';
 import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -38,6 +39,7 @@ export default function AdminFarmersPage() {
   const statusParam = params.get('status');
   const status = isStatus(statusParam) ? statusParam : undefined;
   const [q, setQ] = useState(params.get('q') ?? '');
+  const csv = useCsvDownload('farmers');
   // One request per pause in typing, not one per keystroke.
   const searchTerm = useDebouncedValue(q);
   const [page, setPage] = useState(1);
@@ -96,6 +98,18 @@ export default function AdminFarmersPage() {
     <div className="admin-farmers-page">
       <PageHeader
         title="Farmer stalls"
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            loading={csv.pending}
+            onClick={() =>
+              csv.download({ q: params.get('q') || undefined, status, ordering })
+            }
+          >
+            Export CSV
+          </Button>
+        }
         description="Approve new growers, suspend accounts, and restore access."
       />
 

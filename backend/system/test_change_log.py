@@ -198,3 +198,24 @@ def test_values_that_json_cannot_render_are_coerced(admin_client, farmer_user):
     # Decimal reaches the renderer as a string rather than blowing up or losing precision.
     assert changed['latitude']['new'] == '10.762622'
     assert changed['latitude']['old'] is None
+
+
+@pytest.mark.django_db
+def test_a_shoppers_profile_now_has_a_trail_too(admin_client, customer_user, admin_user):
+    from django.urls import reverse as rev
+
+    profile = customer_user.customer_profile
+    admin_client.patch(
+        rev("admin-customer-detail", args=[profile.user_id]),
+        {"full_name": "Linh Pham"},
+        format="json",
+    )
+
+    response = admin_client.get(_url("customer_profile", profile.user_id))
+
+    # The admin can edit these details, so the before/after has to be readable here as well.
+    assert response.status_code == 200
+    assert response.data["data"][0]["changes"] == [
+        {"field": "full_name", "old": "Test Customer", "new": "Linh Pham"}
+    ]
+    assert response.data["data"][0]["user"]["email"] == admin_user.email

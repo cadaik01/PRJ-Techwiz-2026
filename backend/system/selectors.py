@@ -13,7 +13,7 @@ from django.utils.dateparse import parse_date
 
 from rest_framework import serializers
 
-from accounts.models import FarmerProfile
+from accounts.models import CustomerProfile, FarmerProfile
 from catalog.models import Product
 from marketlink_core.ordering import both_directions, resolve_ordering
 from markets.models import FarmerClosure, FarmerMarket, PickupSlot
@@ -73,6 +73,7 @@ def list_audit_logs(
 # Key used by the Admin API / UI -> tracked model.
 TRACKED_MODELS: dict[str, type[Model]] = {
     "farmer_profile": FarmerProfile,
+    "customer_profile": CustomerProfile,
     "product": Product,
     "order": Order,
     "order_item": OrderItem,

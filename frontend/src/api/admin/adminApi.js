@@ -251,6 +251,27 @@ export const adminApi = {
     return data;
   },
 
+  // Read-only order lookup: D-033 keeps the admin out of individual orders, but support
+  // still has to be able to answer a question about one.
+  getOrders: async (params = {}) => {
+    const { data } = await axiosClient.get('/admin/orders/', { params });
+    return adaptPaginated(data);
+  },
+
+  getOrder: async (id) => {
+    const { data } = await axiosClient.get(`/admin/orders/${id}/`);
+    return data;
+  },
+
+  // Exports stream a file back, so the response is read as a blob and handed to the browser.
+  exportCsv: async (kind, params = {}) => {
+    const { data } = await axiosClient.get(`/admin/${kind}/export/`, {
+      params,
+      responseType: 'blob',
+    });
+    return data;
+  },
+
   getAuditLogs: async (params = {}) => {
     const { data } = await axiosClient.get('/admin/audit-logs/', { params });
     return adaptPaginated(data);

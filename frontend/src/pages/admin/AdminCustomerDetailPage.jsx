@@ -6,6 +6,7 @@ import {
   useUpdateCustomer,
 } from '../../hooks/queries/admin/useAdminCustomers';
 import { ProfileEditDialog } from '../../components/admin/ProfileEditDialog';
+import { ChangeLogPanel } from '../../components/admin/ChangeLogPanel';
 import { EmptyState } from '@/components/common/feedback/EmptyState';
 import { PageHeader } from '@/components/common/layout/PageHeader';
 import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
@@ -126,6 +127,8 @@ export default function AdminCustomerDetailPage() {
           <p>Joined: {formatDateTime(c.date_joined)}</p>
         </CardContent>
       </Card>
+
+      <ChangeLogPanel model="customer_profile" id={customerId} />
 
       <Card>
         <CardHeader>

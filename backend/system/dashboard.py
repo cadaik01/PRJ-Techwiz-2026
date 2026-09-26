@@ -8,7 +8,10 @@ from accounts.models import CustomerProfile, FarmerProfile, FarmerStatus
 from accounts.selectors import list_pending_farmers
 from marketlink_core.policies.roles import RoleCode
 from markets.models import Market
+from accounts.selectors import list_customers_for_admin
+from catalog.models import Product
 from orders.models import Order, OrderStatus
+from system.flags import open_flags
 
 DASHBOARD_DAYS = 30
 PENDING_FARMER_LIMIT = 5
@@ -45,7 +48,23 @@ def dashboard_snapshot() -> dict:
             "markets_active": Market.objects.filter(is_active=True).count(),
             "orders": Order.objects.count(),
         },
+        # Counts alone say how the platform is doing; these say what is waiting for someone.
+        "needs_attention": _needs_attention(),
         "orders_by_day": _orders_per_day(days=DASHBOARD_DAYS),
         "orders_by_status": orders_by_status(),
         "pending_farmers": list_pending_farmers(limit=PENDING_FARMER_LIMIT),
+    }
+
+
+def _needs_attention() -> dict:
+    """The work queue. Every number here is something an admin can act on today."""
+    return {
+        "stalls_awaiting_approval": FarmerProfile.objects.filter(
+            status=FarmerStatus.PENDING
+        ).count(),
+        "flags_open": open_flags().count(),
+        "customers_at_risk": list_customers_for_admin(at_risk=True).count(),
+        "hidden_products": Product.objects.filter(is_hidden_by_admin=True).count(),
+        # Markets closed while stalls still list them, which strands those stalls.
+        "markets_closed": Market.objects.filter(is_active=False).count(),
     }
