@@ -69,7 +69,7 @@ export default function AdminFarmersPage() {
     try {
       const impact = await fetchFarmerImpact(id);
       setImpactText(
-        `Impact: ${impact.open_order_count} open orders, ${impact.affected_customer_count} customers.`,
+        `${impact.open_orders.total} open orders will be declined and ${impact.affected_customers} customers notified. Stock of the ${impact.open_orders.ACCEPTED + impact.open_orders.READY_FOR_PICKUP} accepted orders is returned.`,
       );
       setSuspendId(id);
       setReason('');

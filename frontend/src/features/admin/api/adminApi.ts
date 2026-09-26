@@ -4,6 +4,7 @@ import type {
   AdminAnnouncement,
   AdminCategory,
   AdminCustomer,
+  AdminCustomerDetail,
   AdminDashboard,
   AdminFarmerDetail,
   AdminFarmerSummary,
@@ -15,11 +16,20 @@ import type {
   FarmerImpact,
   FarmerStatus,
   ModerationProduct,
+  MarketClosure,
+  MarketClosurePayload,
   ModerationReview,
   PageSize,
+  ReviewType,
 } from '@/types';
 
 /** /api/admin/* is the intentional DRF admin branch (see BE urls comment). */
+// AD-23 and AD-24 are separate endpoints because farmer_reviews.id and
+// product_reviews.id are different id spaces - the same number means two reviews.
+function reviewSegment(type: ReviewType): string {
+  return type === 'FARMER' ? 'farmer-reviews' : 'product-reviews';
+}
+
 export const adminApi = {
   getDashboard: async () => {
     const { data } = await axiosClient.get<AdminDashboard>('/admin/dashboard/');
@@ -44,7 +54,7 @@ export const adminApi = {
   },
 
   getFarmerImpact: async (id: number) => {
-    const { data } = await axiosClient.get<FarmerImpact>(`/admin/farmers/${id}/impact/`);
+    const { data } = await axiosClient.get<FarmerImpact>(`/admin/farmers/${id}/suspension-impact/`);
     return data;
   },
 
@@ -90,9 +100,14 @@ export const adminApi = {
     return adaptPaginated<AdminCustomer>(data);
   },
 
+  getCustomer: async (id: number) => {
+    const { data } = await axiosClient.get<AdminCustomerDetail>(`/admin/customers/${id}/`);
+    return data;
+  },
+
   getCustomerImpact: async (id: number) => {
     const { data } = await axiosClient.get<CustomerImpact>(
-      `/admin/customers/${id}/impact/`,
+      `/admin/customers/${id}/deactivation-impact/`,
     );
     return data;
   },
@@ -148,6 +163,27 @@ export const adminApi = {
     return data;
   },
 
+  // AD-31: a plain array, not a paginated page.
+  getMarketClosures: async (marketId: number, includePast = false) => {
+    const { data } = await axiosClient.get<MarketClosure[]>(
+      `/admin/markets/${marketId}/closures/`,
+      { params: includePast ? { include_past: true } : undefined },
+    );
+    return data;
+  },
+
+  createMarketClosure: async (marketId: number, payload: MarketClosurePayload) => {
+    const { data } = await axiosClient.post<MarketClosure>(
+      `/admin/markets/${marketId}/closures/`,
+      payload,
+    );
+    return data;
+  },
+
+  deleteMarketClosure: async (closureId: number) => {
+    await axiosClient.delete(`/admin/market-closures/${closureId}/`);
+  },
+
   getCategories: async () => {
     const { data } = await axiosClient.get<AdminCategory[]>('/admin/categories/');
     return data;
@@ -178,12 +214,18 @@ export const adminApi = {
     return data;
   },
 
+  // There is no bulk reorder endpoint: A-07 edits display_order through AD-19, one
+  // category at a time. The list is short, so the writes go out together.
   reorderCategories: async (ordered_ids: number[]) => {
-    const { data } = await axiosClient.patch<AdminCategory[]>(
-      '/admin/categories/reorder/',
-      { ordered_ids },
+    return Promise.all(
+      ordered_ids.map(async (id, index) => {
+        const { data } = await axiosClient.patch<AdminCategory>(
+          `/admin/categories/${id}/`,
+          { display_order: index + 1 },
+        );
+        return data;
+      }),
     );
-    return data;
   },
 
   deleteCategory: async (id: number) => {
@@ -191,13 +233,13 @@ export const adminApi = {
   },
 
   getModerationProducts: async () => {
-    const { data } = await axiosClient.get('/admin/moderation/products/');
+    const { data } = await axiosClient.get('/admin/products/');
     return adaptPaginated<ModerationProduct>(data);
   },
 
   hideProduct: async (id: number, reason: string) => {
     const { data } = await axiosClient.post<ModerationProduct>(
-      `/admin/moderation/products/${id}/hide/`,
+      `/admin/products/${id}/hide/`,
       { reason },
     );
     return data;
@@ -205,33 +247,33 @@ export const adminApi = {
 
   restoreProduct: async (id: number) => {
     const { data } = await axiosClient.post<ModerationProduct>(
-      `/admin/moderation/products/${id}/restore/`,
+      `/admin/products/${id}/restore/`,
     );
     return data;
   },
 
   getModerationReviews: async () => {
-    const { data } = await axiosClient.get('/admin/moderation/reviews/');
+    const { data } = await axiosClient.get('/admin/reviews/');
     return adaptPaginated<ModerationReview>(data);
   },
 
-  hideReview: async (id: number, reason: string) => {
+  hideReview: async (id: number, type: ReviewType, reason: string) => {
     const { data } = await axiosClient.post<ModerationReview>(
-      `/admin/moderation/reviews/${id}/hide/`,
+      `/admin/${reviewSegment(type)}/${id}/hide/`,
       { reason },
     );
     return data;
   },
 
-  restoreReview: async (id: number) => {
+  restoreReview: async (id: number, type: ReviewType) => {
     const { data } = await axiosClient.post<ModerationReview>(
-      `/admin/moderation/reviews/${id}/restore/`,
+      `/admin/${reviewSegment(type)}/${id}/restore/`,
     );
     return data;
   },
 
   getReports: async (params: { from: string; to: string; market_id?: number }) => {
-    const { data } = await axiosClient.get<AdminReport>('/admin/reports/', {
+    const { data } = await axiosClient.get<AdminReport>('/admin/reports/summary/', {
       params,
     });
     return data;

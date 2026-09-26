@@ -46,11 +46,11 @@ export default function AdminDashboardPage() {
 
   const data = query.data;
   const cards = [
-    { label: 'Stalls', value: data.farmer_count },
-    { label: 'Pending', value: data.pending_farmer_count },
-    { label: 'Shoppers', value: data.customer_count },
-    { label: 'Active markets', value: data.active_market_count },
-    { label: 'Orders today', value: data.order_count_today },
+    { label: 'Stalls', value: data.totals.farmers },
+    { label: 'Pending', value: data.totals.farmers_pending },
+    { label: 'Shoppers', value: data.totals.customers },
+    { label: 'Active markets', value: data.totals.markets_active },
+    { label: 'Orders', value: data.totals.orders },
   ];
 
   return (
@@ -82,7 +82,7 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="page-primitive__chart-h">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.orders_last_30_days}>
+              <LineChart data={data.orders_by_day}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                 <YAxis allowDecimals={false} />

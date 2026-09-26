@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { ApiError } from '@/lib/ApiError';
 import { adminApi } from '@/features/admin/api/adminApi';
 import { QUERY_KEYS } from '@/config/constants';
-import type { AdminMarketPayload, PageSize } from '@/types';
+import type { AdminMarketPayload, MarketClosurePayload, PageSize } from '@/types';
 
 type MarketsParams = {
   page?: number;
@@ -63,6 +63,46 @@ export function useSaveAdminMarket(marketId?: number) {
     onSuccess: () => {
       toast.success(isEdit ? 'Market updated' : 'Market created');
       void invalidateMarkets(queryClient);
+    },
+    onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
+  });
+}
+
+
+// AD-31 to AD-33. Closures hang off one market, so they get their own query key.
+export function useMarketClosures(marketId: number, enabled: boolean) {
+  return useQuery({
+    queryKey: QUERY_KEYS.ADMIN_MARKET_CLOSURES(marketId),
+    queryFn: () => adminApi.getMarketClosures(marketId),
+    enabled,
+  });
+}
+
+export function useCreateMarketClosure(marketId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: MarketClosurePayload) =>
+      adminApi.createMarketClosure(marketId, payload),
+    onSuccess: () => {
+      toast.success('Closure period added');
+      void queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.ADMIN_MARKET_CLOSURES(marketId),
+      });
+    },
+    // A 422 RESOURCE_IN_USE lists the open orders that block the period; the message says so.
+    onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
+  });
+}
+
+export function useDeleteMarketClosure(marketId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: adminApi.deleteMarketClosure,
+    onSuccess: () => {
+      toast.success('Closure period removed');
+      void queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.ADMIN_MARKET_CLOSURES(marketId),
+      });
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),
   });

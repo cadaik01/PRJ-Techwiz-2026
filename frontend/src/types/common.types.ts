@@ -537,28 +537,33 @@ export interface ChatReply {
 
 export type ChatResponse = ChatReply;
 
+// AD-01. orders_by_day always holds 30 entries and orders_by_status always holds every
+// status, zeros included, so the charts keep an unbroken axis.
 export interface AdminDashboard {
-  farmer_count: number;
-  pending_farmer_count: number;
-  customer_count: number;
-  active_market_count: number;
-  order_count_today: number;
-  orders_last_30_days: Array<{ date: string; count: number }>;
+  totals: {
+    farmers: number;
+    farmers_pending: number;
+    customers: number;
+    markets_active: number;
+    orders: number;
+  };
+  orders_by_day: Array<{ date: string; count: number }>;
   orders_by_status: Array<{ status: OrderStatus; count: number }>;
   pending_farmers: AdminFarmerSummary[];
 }
 
+// AD-02. product_count counts the live catalogue only: an archived product is a soft
+// delete (D-017), so it is not part of a stall's offering any more.
 export interface AdminFarmerSummary {
   id: number;
   stall_name: string;
+  contact_person: string;
+  phone: string;
   email: string;
-  phone: string | null;
   status: FarmerStatus;
-  status_reason: string | null;
-  created_at: string;
-  open_order_count: number;
+  date_joined: string;
   product_count: number;
-  rating_avg: number | null;
+  open_order_count: number;
 }
 
 export interface AdminFarmerDetail extends FarmerPublic {
@@ -577,29 +582,50 @@ export interface AdminFarmerDetail extends FarmerPublic {
     from_status: FarmerStatus | null;
     to_status: FarmerStatus;
     reason: string | null;
-    changed_by: string;
+    changed_by: string | null;
     changed_at: string;
   }>;
 }
 
-export interface FarmerImpact {
-  open_order_count: number;
-  affected_customer_count: number;
+// AD-04 and AD-11 share this breakdown. Only the ACCEPTED and READY_FOR_PICKUP orders
+// return stock when the admin acts - a PLACED order never took any (D-029).
+export interface OpenOrderBreakdown {
+  PLACED: number;
+  ACCEPTED: number;
+  READY_FOR_PICKUP: number;
+  total: number;
 }
 
+export interface FarmerImpact {
+  open_orders: OpenOrderBreakdown;
+  affected_customers: number;
+}
+
+// AD-09. at_risk is set when the customer has at least AT_RISK_THRESHOLD NO_SHOW orders
+// inside the window; EXPIRED never counts, because that is the farmer failing to confirm.
 export interface AdminCustomer {
   id: number;
-  email: string;
   full_name: string;
-  phone: string | null;
+  email: string;
+  phone: string;
+  date_joined: string;
   is_active: boolean;
+  deactivation_reason: string | null;
+  total_orders: number;
+  open_orders: number;
   no_show_count: number;
-  order_count: number;
-  created_at: string;
+  at_risk: boolean;
+}
+
+// AD-10 adds the address and the ten most recent orders.
+export interface AdminCustomerDetail extends AdminCustomer {
+  address: string;
+  recent_orders: OrderSummary[];
 }
 
 export interface CustomerImpact {
-  open_order_count: number;
+  open_orders: OpenOrderBreakdown;
+  affected_farmers: number;
 }
 
 /** @deprecated Prefer MarketAdmin */
@@ -617,6 +643,20 @@ export interface AdminMarketPayload {
   close_time: string;
 }
 
+// AD-31 to AD-33 (D-023). market_closures and farmer_closures share this shape.
+export interface MarketClosure {
+  id: number;
+  start_date: string;
+  end_date: string;
+  reason: string | null;
+}
+
+export interface MarketClosurePayload {
+  start_date: string;
+  end_date: string;
+  reason?: string;
+}
+
 export type AdminCategory = CategoryAdmin;
 
 export interface ModerationProduct {
@@ -629,30 +669,39 @@ export interface ModerationProduct {
   created_at: string;
 }
 
+// AD-22. The backend names the reviewed product instead of a prebuilt label, because a
+// farmer review has no product at all - the page builds the label it wants.
 export interface ModerationReview {
   id: number;
+  type: ReviewType;
   rating: number;
   comment: string | null;
   customer_display_name: string;
-  type: ReviewType;
-  target_label: string;
+  product: { id: number; name: string } | null;
+  order_id: number;
+  reply: string | null;
+  replied_at: string | null;
   is_hidden_by_admin: boolean;
   hidden_reason: string | null;
   created_at: string;
 }
 
+// AD-25. Revenue counts COMPLETED orders only, filtered on pickup_date - the day the sale
+// actually happens - and arrives as a decimal string (D-020).
 export interface AdminReport {
   orders_by_status: Array<{ status: OrderStatus; count: number }>;
   revenue_by_market: Array<{
     market_id: number;
     market_name: string;
+    completed_orders: number;
     revenue: string;
   }>;
   top_farmers: Array<{
     farmer_id: number;
     stall_name: string;
-    order_count: number;
+    completed_orders: number;
     revenue: string;
+    rating_avg: number | null;
   }>;
 }
 

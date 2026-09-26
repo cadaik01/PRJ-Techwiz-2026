@@ -40,7 +40,10 @@ export const QUERY_KEYS = {
   ADMIN_CUSTOMERS: (params?: unknown) => ['admin-customers', params] as const,
   ADMIN_CUSTOMER_IMPACT: (id: string | number) =>
     ['admin-customer-impact', String(id)] as const,
+  ADMIN_CUSTOMER: (id: number) => ['admin-customer', id] as const,
   ADMIN_MARKETS: (params?: unknown) => ['admin-markets', params] as const,
+  ADMIN_MARKET_CLOSURES: (marketId: number) =>
+    ['admin-market-closures', marketId] as const,
   ADMIN_MARKET: (id: string | number) => ['admin-market', String(id)] as const,
   ADMIN_CATEGORIES: ['admin-categories'] as const,
   ADMIN_MODERATION_PRODUCTS: ['admin-mod-products'] as const,

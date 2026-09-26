@@ -9,3 +9,34 @@
 .admin-customers-page__dialog-field {
   margin-top: var(--space-2);
 }
+
+.admin-customers-page__risk {
+  margin-left: 0.4rem;
+}
+
+.admin-customers-page__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.75rem;
+}
+
+.admin-customers-page__orders {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-customers-page__order {
+  display: grid;
+  grid-template-columns: 4rem 1fr auto auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-variant-numeric: tabular-nums;
+}

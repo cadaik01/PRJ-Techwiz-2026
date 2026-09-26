@@ -8,6 +8,7 @@ import {
   useRestoreModerationProduct,
   useRestoreModerationReview,
 } from '@/features/admin/hooks/useAdminModeration';
+import type { ModerationTarget } from '@/features/admin/hooks/useAdminModeration';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -19,13 +20,22 @@ import { Button } from '@/components/ui/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Textarea } from '@/components/ui/Textarea';
 
+import type { ModerationReview } from '@/types';
+
 import './AdminModerationPage.css';
 
+// AD-21, AD-23 and AD-24 all require 5 to 500 characters; rejecting shorter text here
+// saves a round trip that would come back as a 400.
+const REASON_MIN_LENGTH = 5;
+
+function reviewTarget(review: ModerationReview): string {
+  return review.product
+    ? review.product.name
+    : `Stall review · Order #${review.order_id}`;
+}
+
 export default function AdminModerationPage() {
-  const [hideTarget, setHideTarget] = useState<{
-    type: 'product' | 'review';
-    id: number;
-  } | null>(null);
+  const [hideTarget, setHideTarget] = useState<ModerationTarget | null>(null);
   const [reason, setReason] = useState('');
 
   const productsQuery = useModerationProducts();
@@ -103,7 +113,7 @@ export default function AdminModerationPage() {
                       {r.customer_display_name}
                     </p>
                     <RatingStars value={r.rating} />
-                    <p className="page-primitive__muted-xs">{r.target_label}</p>
+                    <p className="page-primitive__muted-xs">{reviewTarget(r)}</p>
                     <p className="admin-moderation-page__comment">{r.comment}</p>
                     {r.is_hidden_by_admin ? (
                       <Badge variant="danger" className="admin-moderation-page__badge">
@@ -112,7 +122,12 @@ export default function AdminModerationPage() {
                     ) : null}
                   </div>
                   {r.is_hidden_by_admin ? (
-                    <Button size="sm" onClick={() => restoreReview.mutate(r.id)}>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        restoreReview.mutate({ id: r.id, reviewType: r.type })
+                      }
+                    >
                       Restore
                     </Button>
                   ) : (
@@ -120,7 +135,7 @@ export default function AdminModerationPage() {
                       size="sm"
                       variant="destructive"
                       onClick={() => {
-                        setHideTarget({ type: 'review', id: r.id });
+                        setHideTarget({ type: 'review', id: r.id, reviewType: r.type });
                         setReason('');
                       }}
                     >
@@ -144,8 +159,8 @@ export default function AdminModerationPage() {
         destructive
         loading={hide.isPending}
         onConfirm={() => {
-          if (!hideTarget || reason.trim().length < 3) {
-            toast.error('Reason must be at least 3 characters');
+          if (!hideTarget || reason.trim().length < REASON_MIN_LENGTH) {
+            toast.error(`Reason must be at least ${REASON_MIN_LENGTH} characters`);
             return;
           }
           hide.mutate(

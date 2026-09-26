@@ -198,7 +198,7 @@ export default function AdminReportsPage() {
                     <td className="page-primitive__table-td page-primitive__font-medium">
                       {f.stall_name}
                     </td>
-                    <td className="page-primitive__table-td">{f.order_count}</td>
+                    <td className="page-primitive__table-td">{f.completed_orders}</td>
                     <td className="page-primitive__table-td">{formatVnd(f.revenue)}</td>
                   </tr>
                 ))}

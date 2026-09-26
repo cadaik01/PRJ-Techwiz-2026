@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
+import { MarketClosuresPanel } from '@/features/admin/components/MarketClosuresPanel';
 import { ApiError } from '@/lib/ApiError';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 
@@ -234,6 +235,8 @@ export default function AdminMarketFormPage() {
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" {...form.register('description')} />
           </div>
+
+          {isEdit ? <MarketClosuresPanel marketId={marketId} /> : null}
         </div>
 
         <div className="admin-market-form-page__map">

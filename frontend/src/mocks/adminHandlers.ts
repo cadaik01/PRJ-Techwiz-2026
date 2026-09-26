@@ -118,7 +118,7 @@ export const adminHandlers = [
     return HttpResponse.json(envelope(toFarmerDetail(farmer)));
   }),
 
-  http.get('/api/admin/farmers/:id/impact/', ({ params, request }) => {
+  http.get('/api/admin/farmers/:id/suspension-impact/', ({ params, request }) => {
     if (!authAdmin(request)) {
       return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
         status: 401,
@@ -301,7 +301,7 @@ export const adminHandlers = [
     return HttpResponse.json(envelope(paginate(list, page, page_size)));
   }),
 
-  http.get('/api/admin/customers/:id/impact/', ({ params, request }) => {
+  http.get('/api/admin/customers/:id/deactivation-impact/', ({ params, request }) => {
     if (!authAdmin(request)) {
       return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
         status: 401,
@@ -553,25 +553,6 @@ export const adminHandlers = [
     return HttpResponse.json(envelope(cat, 'Category created'), { status: 201 });
   }),
 
-  http.patch('/api/admin/categories/reorder/', async ({ request }) => {
-    if (!authAdmin(request)) {
-      return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
-        status: 401,
-      });
-    }
-    const body = (await request.json()) as { ordered_ids: number[] };
-    const map = new Map(adminCategories.map((c) => [c.id, c]));
-    const next = body.ordered_ids
-      .map((id, index) => {
-        const cat = map.get(id);
-        if (!cat) return null;
-        return { ...cat, display_order: index + 1 };
-      })
-      .filter((c): c is (typeof adminCategories)[number] => Boolean(c));
-    setAdminCategories(next);
-    return HttpResponse.json(envelope(next, 'Categories reordered'));
-  }),
-
   http.patch('/api/admin/categories/:id/', async ({ params, request }) => {
     if (!authAdmin(request)) {
       return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
@@ -623,7 +604,7 @@ export const adminHandlers = [
     return HttpResponse.json(envelope(null, 'Category deleted'));
   }),
 
-  http.get('/api/admin/moderation/products/', ({ request }) => {
+  http.get('/api/admin/products/', ({ request }) => {
     if (!authAdmin(request)) {
       return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
         status: 401,
@@ -632,7 +613,7 @@ export const adminHandlers = [
     return HttpResponse.json(envelope({ items: moderationProducts }));
   }),
 
-  http.post('/api/admin/moderation/products/:id/hide/', async ({ params, request }) => {
+  http.post('/api/admin/products/:id/hide/', async ({ params, request }) => {
     if (!authAdmin(request)) {
       return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
         status: 401,
@@ -662,7 +643,7 @@ export const adminHandlers = [
     return HttpResponse.json(envelope(next, 'Product hidden'));
   }),
 
-  http.post('/api/admin/moderation/products/:id/restore/', ({ params, request }) => {
+  http.post('/api/admin/products/:id/restore/', ({ params, request }) => {
     if (!authAdmin(request)) {
       return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
         status: 401,
@@ -685,7 +666,7 @@ export const adminHandlers = [
     return HttpResponse.json(envelope(next, 'Restored'));
   }),
 
-  http.get('/api/admin/moderation/reviews/', ({ request }) => {
+  http.get('/api/admin/reviews/', ({ request }) => {
     if (!authAdmin(request)) {
       return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
         status: 401,
@@ -694,7 +675,7 @@ export const adminHandlers = [
     return HttpResponse.json(envelope({ items: moderationReviews }));
   }),
 
-  http.post('/api/admin/moderation/reviews/:id/hide/', async ({ params, request }) => {
+  http.post('/api/admin/farmer-reviews/:id/hide/', async ({ params, request }) => {
     if (!authAdmin(request)) {
       return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
         status: 401,
@@ -724,7 +705,7 @@ export const adminHandlers = [
     return HttpResponse.json(envelope(next, 'Review hidden'));
   }),
 
-  http.post('/api/admin/moderation/reviews/:id/restore/', ({ params, request }) => {
+  http.post('/api/admin/farmer-reviews/:id/restore/', ({ params, request }) => {
     if (!authAdmin(request)) {
       return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
         status: 401,
@@ -747,7 +728,60 @@ export const adminHandlers = [
     return HttpResponse.json(envelope(next, 'Restored'));
   }),
 
-  http.get('/api/admin/reports/', ({ request }) => {
+  http.post('/api/admin/product-reviews/:id/hide/', async ({ params, request }) => {
+    if (!authAdmin(request)) {
+      return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
+        status: 401,
+      });
+    }
+    const idx = moderationReviews.findIndex((r) => r.id === Number(params.id));
+    if (idx < 0) {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
+        status: 404,
+      });
+    }
+    const body = (await request.json()) as { reason?: string };
+    const reason = body.reason?.trim() ?? '';
+    if (reason.length < 3) {
+      return HttpResponse.json(errorEnvelope('Enter a hide reason', 'VALIDATION_ERROR'), {
+        status: 400,
+      });
+    }
+    const next = {
+      ...moderationReviews[idx],
+      is_hidden: true,
+      hide_reason: reason,
+    };
+    const copy = [...moderationReviews];
+    copy[idx] = next;
+    setModerationReviews(copy);
+    return HttpResponse.json(envelope(next, 'Review hidden'));
+  }),
+
+  http.post('/api/admin/product-reviews/:id/restore/', ({ params, request }) => {
+    if (!authAdmin(request)) {
+      return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
+        status: 401,
+      });
+    }
+    const idx = moderationReviews.findIndex((r) => r.id === Number(params.id));
+    if (idx < 0) {
+      return HttpResponse.json(errorEnvelope('Not found', 'NOT_FOUND'), {
+        status: 404,
+      });
+    }
+    const next = {
+      ...moderationReviews[idx],
+      is_hidden: false,
+      hide_reason: null,
+    };
+    const copy = [...moderationReviews];
+    copy[idx] = next;
+    setModerationReviews(copy);
+    return HttpResponse.json(envelope(next, 'Restored'));
+  }),
+
+  http.get('/api/admin/reports/summary/', ({ request }) => {
     if (!authAdmin(request)) {
       return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
         status: 401,

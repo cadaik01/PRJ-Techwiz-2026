@@ -56,3 +56,13 @@ export function useActivateCustomer() {
 export function fetchCustomerImpact(id: number) {
   return adminApi.getCustomerImpact(id);
 }
+
+
+// AD-10. Only fetched while the drawer is open.
+export function useAdminCustomer(id: number | null) {
+  return useQuery({
+    queryKey: QUERY_KEYS.ADMIN_CUSTOMER(id ?? 0),
+    queryFn: () => adminApi.getCustomer(id as number),
+    enabled: id !== null,
+  });
+}
