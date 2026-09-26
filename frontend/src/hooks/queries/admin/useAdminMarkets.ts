@@ -38,12 +38,29 @@ export function useAdminMarket(id: number, enabled = true) {
 export function useToggleAdminMarket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, active }: { id: number; active: boolean }) => {
+    mutationFn: async ({
+      id,
+      active,
+      reason,
+    }: {
+      id: number;
+      active: boolean;
+      reason?: string;
+    }) => {
       if (active) return adminApi.activateMarket(id);
-      return adminApi.deactivateMarket(id);
+      return adminApi.deactivateMarket(id, reason ?? '');
     },
-    onSuccess: (_d, vars) => {
-      toast.success(vars.active ? 'Market activated' : 'Market deactivated');
+    onSuccess: (data, vars) => {
+      if (vars.active) {
+        toast.success('Market reopened');
+      } else {
+        const cancelled = (data as { cancelled_orders?: number }).cancelled_orders ?? 0;
+        toast.success(
+          cancelled
+            ? `Market closed. ${cancelled} open order${cancelled === 1 ? '' : 's'} cancelled.`
+            : 'Market closed',
+        );
+      }
       void invalidateMarkets(queryClient);
     },
     onError: (e) => toast.error(ApiError.fromUnknown(e).friendlyMessage),

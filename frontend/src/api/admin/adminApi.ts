@@ -190,9 +190,12 @@ export const adminApi = {
     return data;
   },
 
-  deactivateMarket: async (id: number) => {
-    const { data } = await axiosClient.post<AdminMarket>(
+  // AD-17. Closing carries out the orders still open at the market, so the reason the admin
+  // gives is what both the shoppers and the stalls are told.
+  deactivateMarket: async (id: number, reason: string) => {
+    const { data } = await axiosClient.post<AdminMarket & { cancelled_orders: number }>(
       `/admin/markets/${id}/deactivate/`,
+      { reason },
     );
     return data;
   },

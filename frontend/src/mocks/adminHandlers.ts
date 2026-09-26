@@ -497,11 +497,21 @@ export const adminHandlers = [
     return HttpResponse.json(envelope(next, 'Market activated'));
   }),
 
-  http.post('/api/admin/markets/:id/deactivate/', ({ params, request }) => {
+  http.post('/api/admin/markets/:id/deactivate/', async ({ params, request }) => {
     if (!authAdmin(request)) {
       return HttpResponse.json(errorEnvelope('Unauthorized', 'TOKEN_INVALID'), {
         status: 401,
       });
+    }
+    // AD-17 now takes a reason, and refuses without one.
+    const body = (await request.json().catch(() => ({}))) as { reason?: string };
+    if (!body.reason || body.reason.trim().length < 5) {
+      return HttpResponse.json(
+        errorEnvelope('Invalid request', 'VALIDATION_ERROR', {
+          reason: ['Ensure this field has at least 5 characters.'],
+        }),
+        { status: 400 },
+      );
     }
     const idx = adminMarkets.findIndex((m) => m.id === Number(params.id));
     if (idx < 0) {
@@ -522,9 +532,11 @@ export const adminHandlers = [
       user_agent: 'msw',
       status_code: 200,
       request_id: null,
-      details: { name: next.name },
+      details: { name: next.name, reason: body.reason, cancelled_orders: 0 },
     });
-    return HttpResponse.json(envelope(next, 'Market deactivated'));
+    return HttpResponse.json(
+      envelope({ ...next, cancelled_orders: 0 }, 'Market closed'),
+    );
   }),
 
   http.get('/api/admin/categories/', ({ request }) => {

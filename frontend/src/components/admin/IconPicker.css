@@ -5,17 +5,22 @@
 }
 
 .icon-picker__grid {
+  /* auto-fit, not auto-fill, and no width cap: the options spread across the form instead of
+     huddling in the left corner of it. Each stays square rather than stretching wide. */
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(2.5rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(2.75rem, 1fr));
   gap: var(--space-2);
-  max-width: 22rem;
 }
 
 .icon-picker__option {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 2.5rem;
+  /* Square: a 1fr column on a wide screen would otherwise stretch these into long pills. */
+  aspect-ratio: 1;
+  height: 2.75rem;
+  width: 2.75rem;
+  margin-inline: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background-color: var(--color-card);

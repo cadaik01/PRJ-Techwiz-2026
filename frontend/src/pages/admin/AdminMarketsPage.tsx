@@ -11,8 +11,14 @@ import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { Badge } from '@/components/common/badges/Badge';
 import { Button } from '@/components/common/forms/Button';
 import { SortSelect } from '@/components/common/table/SortSelect';
+import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
+import { Textarea } from '@/components/common/forms/Textarea';
+import type { AdminMarket } from '@/types';
 
 import './AdminMarketsPage.css';
+
+// AD-17 shares the 5-500 character reason with AD-06 and AD-07.
+const REASON_MIN_LENGTH = 5;
 
 const SORT_OPTIONS = [
   { value: 'name', label: 'Name A–Z' },
@@ -24,6 +30,8 @@ const SORT_OPTIONS = [
 
 export default function AdminMarketsPage() {
   const [ordering, setOrdering] = useState<string | undefined>(undefined);
+  const [closing, setClosing] = useState<AdminMarket | null>(null);
+  const [reason, setReason] = useState('');
   const query = useAdminMarkets({ ordering });
   const toggle = useToggleAdminMarket();
 
@@ -82,15 +90,56 @@ export default function AdminMarketsPage() {
                   size="sm"
                   variant={m.is_active ? 'destructive' : 'default'}
                   loading={toggle.isPending}
-                  onClick={() => toggle.mutate({ id: m.id, active: !m.is_active })}
+                  onClick={() => {
+                    if (!m.is_active) {
+                      toggle.mutate({ id: m.id, active: true });
+                      return;
+                    }
+                    setClosing(m);
+                    setReason('');
+                  }}
                 >
-                  {m.is_active ? 'Deactivate' : 'Activate'}
+                  {m.is_active ? 'Close' : 'Reopen'}
                 </Button>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(closing)}
+        onOpenChange={(open) => {
+          if (!open) setClosing(null);
+        }}
+        title={`Close ${closing?.name ?? 'this market'}?`}
+        description={
+          'Every order still open at this market will be cancelled and the stock returned. ' +
+          'Stalls keep their accounts and can carry on selling at their other markets.'
+        }
+        confirmLabel="Close market"
+        destructive
+        loading={toggle.isPending}
+        onConfirm={() => {
+          if (!closing) return;
+          toggle.mutate(
+            { id: closing.id, active: false, reason },
+            { onSuccess: () => setClosing(null) },
+          );
+        }}
+      >
+        <Textarea
+          className="admin-markets-page__reason"
+          placeholder="Why is it closing? Shoppers and stalls are told this."
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+        />
+        {reason.trim().length > 0 && reason.trim().length < REASON_MIN_LENGTH ? (
+          <p className="page-primitive__error">
+            Please give at least {REASON_MIN_LENGTH} characters.
+          </p>
+        ) : null}
+      </ConfirmDialog>
     </div>
   );
 }
