@@ -29,6 +29,8 @@ function isoDays(days: number) {
 }
 
 export type AdminFarmerRecord = AdminFarmerSummary & {
+  status_reason: string | null;
+  rating_avg: number | null;
   description: string | null;
   image: string | null;
   markets: AdminFarmerDetail['markets'];
@@ -66,7 +68,8 @@ function baseFromSeed(
     phone: f.phone,
     status,
     status_reason: null,
-    created_at: isoDays(-40),
+    contact_person: f.contact_person ?? f.stall_name,
+    date_joined: isoDays(-40),
     open_order_count: open,
     product_count,
     rating_avg: f.rating_avg,
@@ -78,7 +81,6 @@ function baseFromSeed(
     upcoming_closures: f.upcoming_closures,
     distance_km: f.distance_km,
     is_favorite: f.is_favorite,
-    contact_person: f.contact_person,
     address: f.address,
     latitude: f.latitude,
     longitude: f.longitude,
@@ -109,7 +111,7 @@ export let adminFarmers: AdminFarmerRecord[] = [
     phone: '0909111222',
     status: 'PENDING',
     status_reason: null,
-    created_at: isoDays(-2),
+    date_joined: isoDays(-2),
     open_order_count: 0,
     product_count: 0,
     rating_avg: null,
@@ -144,7 +146,7 @@ export let adminFarmers: AdminFarmerRecord[] = [
     phone: '0912333444',
     status: 'PENDING',
     status_reason: null,
-    created_at: isoDays(-1),
+    date_joined: isoDays(-1),
     open_order_count: 0,
     product_count: 0,
     rating_avg: null,
@@ -208,9 +210,12 @@ export let adminCustomers: AdminCustomer[] = [
     full_name: 'Minh An',
     phone: '0901234567',
     is_active: true,
+    deactivation_reason: null,
+    total_orders: 5,
+    open_orders: 0,
     no_show_count: 0,
-    order_count: 5,
-    created_at: isoDays(-60),
+    at_risk: false,
+    date_joined: isoDays(-60),
   },
   {
     id: 20,
@@ -218,9 +223,12 @@ export let adminCustomers: AdminCustomer[] = [
     full_name: 'Tran Hoa',
     phone: '0909888777',
     is_active: true,
+    deactivation_reason: null,
+    total_orders: 8,
+    open_orders: 0,
     no_show_count: 2,
-    order_count: 8,
-    created_at: isoDays(-45),
+    at_risk: false,
+    date_joined: isoDays(-45),
   },
   {
     id: 21,
@@ -228,9 +236,12 @@ export let adminCustomers: AdminCustomer[] = [
     full_name: 'Le Binh',
     phone: '0911222333',
     is_active: false,
+    deactivation_reason: null,
+    total_orders: 3,
+    open_orders: 0,
     no_show_count: 5,
-    order_count: 3,
-    created_at: isoDays(-30),
+    at_risk: true,
+    date_joined: isoDays(-30),
   },
 ];
 
@@ -288,10 +299,10 @@ export let moderationReviews: ModerationReview[] = seedReviews.map((r) => ({
   comment: r.comment,
   customer_display_name: r.customer_display_name,
   type: r.type,
-  target_label:
-    r.type === 'FARMER'
-      ? (seedFarmers.find((f) => f.id === 2)?.stall_name ?? 'Farmer')
-      : (r.product?.name ?? 'Product'),
+  product: r.type === 'FARMER' ? null : (r.product ?? null),
+  order_id: r.id,
+  reply: null,
+  replied_at: null,
   is_hidden_by_admin: false,
   hidden_reason: null,
   created_at: r.created_at,
@@ -370,14 +381,13 @@ export function toFarmerSummary(f: AdminFarmerRecord): AdminFarmerSummary {
   return {
     id: f.id,
     stall_name: f.stall_name,
-    email: f.email,
+    contact_person: f.contact_person,
     phone: f.phone,
+    email: f.email,
     status: f.status,
-    status_reason: f.status_reason,
-    created_at: f.created_at,
-    open_order_count: f.open_order_count,
+    date_joined: f.date_joined,
     product_count: f.product_count,
-    rating_avg: f.rating_avg,
+    open_order_count: f.open_order_count,
   };
 }
 

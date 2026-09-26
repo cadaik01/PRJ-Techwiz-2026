@@ -315,7 +315,13 @@ export const adminHandlers = [
     }
     return HttpResponse.json(
       envelope({
-        open_order_count: customer.is_active ? Math.min(2, customer.order_count) : 0,
+        open_orders: {
+          PLACED: customer.is_active ? 1 : 0,
+          ACCEPTED: customer.is_active ? 1 : 0,
+          READY_FOR_PICKUP: 0,
+          total: customer.is_active ? 2 : 0,
+        },
+        affected_farmers: customer.is_active ? 1 : 0,
       }),
     );
   }),
@@ -337,7 +343,7 @@ export const adminHandlers = [
     const copy = [...adminCustomers];
     copy[idx] = next;
     setAdminCustomers(copy);
-    const affected_orders = Math.min(2, next.order_count);
+    const affected_orders = Math.min(2, next.total_orders);
     pushAudit({
       action: 'CUSTOMER_DEACTIVATED',
       user: { id: 3, email: 'admin@demo.vn' },
@@ -802,33 +808,37 @@ export const adminHandlers = [
     }
     const marketMap = new Map<
       number,
-      { market_id: number; market_name: string; revenue: number }
+      { market_id: number; market_name: string; completed_orders: number; revenue: number }
     >();
     for (const o of orders.filter((x) => x.status === 'COMPLETED')) {
       const prev = marketMap.get(o.market.id);
-      if (prev) prev.revenue += moneyToNumber(o.total_amount);
-      else
+      if (prev) {
+        prev.completed_orders += 1;
+        prev.revenue += moneyToNumber(o.total_amount);
+      } else {
         marketMap.set(o.market.id, {
           market_id: o.market.id,
           market_name: o.market.name,
+          completed_orders: 1,
           revenue: moneyToNumber(o.total_amount),
         });
+      }
     }
     const farmerMap = new Map<
       number,
-      { farmer_id: number; stall_name: string; order_count: number; revenue: number }
+      { farmer_id: number; stall_name: string; completed_orders: number; revenue: number }
     >();
     for (const o of orders) {
       const prev = farmerMap.get(o.farmer.id);
       const rev = o.status === 'COMPLETED' ? moneyToNumber(o.total_amount) : 0;
       if (prev) {
-        prev.order_count += 1;
+        prev.completed_orders += 1;
         prev.revenue += rev;
       } else {
         farmerMap.set(o.farmer.id, {
           farmer_id: o.farmer.id,
           stall_name: o.farmer.stall_name,
-          order_count: 1,
+          completed_orders: 1,
           revenue: rev,
         });
       }
@@ -842,6 +852,7 @@ export const adminHandlers = [
         revenue_by_market: [...marketMap.values()].map((m) => ({
           market_id: m.market_id,
           market_name: m.market_name,
+          completed_orders: m.completed_orders,
           revenue: String(m.revenue),
         })),
         top_farmers: [...farmerMap.values()]
@@ -850,8 +861,9 @@ export const adminHandlers = [
           .map((f) => ({
             farmer_id: f.farmer_id,
             stall_name: f.stall_name,
-            order_count: f.order_count,
+            completed_orders: f.completed_orders,
             revenue: String(f.revenue),
+            rating_avg: null,
           })),
       }),
     );
