@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from accounts.models import FarmerProfile
 from markets.models import FarmerClosure, MarketClosure
 from orders.exceptions import CutoffPassedError, SlotNotAvailableError
 from orders.services.pickup_service import list_pickup_options, resolve_pickup
@@ -148,8 +149,9 @@ class TestListPickupOptions:
         assert list_pickup_options(farmer=shop.farmer, now=shop.now) == []
 
     def test_farmer_without_operating_days_offers_nothing(self, shop):
-        shop.farmer.operating_days = []
-        shop.farmer.save()
+        # save() now rejects an empty list (D-031); only legacy rows can still hold one.
+        FarmerProfile.objects.filter(pk=shop.farmer.pk).update(operating_days=[])
+        shop.farmer.refresh_from_db()
 
         assert list_pickup_options(farmer=shop.farmer, now=shop.now) == []
 

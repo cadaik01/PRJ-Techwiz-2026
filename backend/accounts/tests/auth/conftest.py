@@ -34,6 +34,7 @@ def farmer(db):
         contact_person="Bob Tran",
         phone="0987654321",
         address="5 Farm Road, Da Lat",
+        operating_days=[1, 2, 3, 4, 5, 6, 7],
     )
     return user
 

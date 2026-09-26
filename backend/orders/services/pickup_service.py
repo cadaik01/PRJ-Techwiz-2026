@@ -83,15 +83,13 @@ def _is_open_on(slot: PickupSlot, day: date, market_ranges, farmer_ranges, farme
 
 
 def check_customer_pickup_date(*, farmer, pickup_date: date, now=None) -> None:
-    """The date checks validate_pickup_date() does not cover yet, for CU-04 and CU-07 (PU-08 lists by the same rules).
+    """The one date check validate_pickup_date() does not share yet, for CU-04 and CU-07.
 
-    Kept here until validate_pickup_date() checks operating_days (D-031) and the booking horizon agrees
-    with PU-08 (today .. today + BOOKING_HORIZON_DAYS - 1); both are pending with the Farmer branch.
+    PU-08 offers today .. today + BOOKING_HORIZON_DAYS - 1, while validate_pickup_date() still accepts one
+    day more; kept here until the Farmer branch settles the horizon. Operating days (D-031) are checked there.
     """
     today = timezone.localdate(now or timezone.now())
     if not today <= pickup_date < today + timedelta(days=BOOKING_HORIZON_DAYS):
-        raise SlotNotAvailableError()
-    if not _farmer_operates_on(farmer, pickup_date):
         raise SlotNotAvailableError()
 
 

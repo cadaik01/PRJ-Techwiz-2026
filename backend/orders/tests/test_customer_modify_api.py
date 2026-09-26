@@ -117,15 +117,27 @@ class TestChangeRequestForAcceptedOrder:
         pending = data["pending_change"]
         assert pending["items"] == [
             {"product_id": shop.tomato.pk, "product_name": shop.tomato.name, "unit": "KG", "quantity": 3,
-             "current_quantity": 2, "stock_available": 10},
+             "current_quantity": 2, "stock_available": 10, "unit_price": "2.50"},
             {"product_id": shop.herbs.pk, "product_name": shop.herbs.name, "unit": "KG", "quantity": 1,
-             "current_quantity": 0, "stock_available": 5},
+             "current_quantity": 0, "stock_available": 5, "unit_price": "3.00"},
         ]
         assert pending["estimated_total"] == "10.50"
         assert (pending["pickup_slot_id"], pending["pickup_date"], pending["pickup_start_at"]) == (None, None, None)
         assert pending["requested_at"]
         assert pending["expires_at"] == data["pickup_start_at"]
         assert data["status_history"][-1]["change_reason"].startswith("Change request submitted:")
+
+    def test_estimate_keeps_the_prices_the_customer_saw(self, shop):
+        # v1.8: kept items keep their order price, new items the price at request time.
+        order = _order(shop, quantity=2, status="ACCEPTED")
+        _patch(shop.api, order, _items((shop.tomato, 3), (shop.herbs, 1)))
+        shop.tomato.price = shop.herbs.price = Decimal("9.99")
+        shop.tomato.save()
+        shop.herbs.save()
+
+        pending = shop.api.get(_url(order)).json()["data"]["pending_change"]
+
+        assert pending["estimated_total"] == "10.50"
 
     def test_a_new_request_replaces_the_previous_one(self, shop):
         order = _order(shop, quantity=2, status="ACCEPTED")
@@ -146,7 +158,7 @@ class TestChangeRequestForAcceptedOrder:
 
         assert (pending["pickup_slot_id"], pending["pickup_date"]) == (slot.pk, new_date.isoformat())
         assert pending["pickup_start_at"] and pending["pickup_end_at"] and pending["cutoff_at"]
-        assert [item["quantity"] for item in pending["items"]] == [2]
+        assert pending["items"] is None  # v1.8: items unchanged
 
 
 @pytest.mark.django_db

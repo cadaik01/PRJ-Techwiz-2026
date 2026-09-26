@@ -13,7 +13,7 @@ from tests_support.factories import make_customer, make_farmer, make_order, make
 
 LIST_URL = "/api/customer/orders/"
 SUMMARY_KEYS = {
-    "id", "status", "is_overdue", "has_pending_change", "version", "customer", "farmer", "market", "stall_label",
+    "id", "status", "is_overdue", "is_expiring_soon", "has_pending_change", "version", "customer", "farmer", "market", "stall_label",
     "pickup_date", "pickup_start_at", "pickup_end_at", "cutoff_at", "item_count", "total_amount", "created_at",
 }
 DETAIL_KEYS = SUMMARY_KEYS | {
@@ -133,6 +133,17 @@ class TestListOrders:
     def test_farmer_is_forbidden(self, shop):
         assert _client(shop.farmer.user).get(LIST_URL).status_code == 403
 
+    @pytest.mark.parametrize("status, starts_in, expected", [
+        ("PLACED", timedelta(hours=1), True),
+        ("PLACED", timedelta(hours=3), False),
+        ("ACCEPTED", timedelta(hours=1), False),
+    ])
+    def test_is_expiring_soon_flags_placed_orders_two_hours_before_pickup(self, shop, status, starts_in, expected):
+        # v1.8 OrderSummary.is_expiring_soon: PLACED and at most 2 hours before pickup_start_at.
+        _order(shop, status=status, pickup_start_at=timezone.now() + starts_in)
+
+        assert _results(shop.api.get(LIST_URL))[0]["is_expiring_soon"] is expected
+
 
 @pytest.mark.django_db
 class TestOrderDetail:
@@ -182,11 +193,10 @@ class TestOrderDetail:
 
         data = shop.api.get(_detail_url(order)).json()["data"]
 
-        # Only the note changed, so the requested items are the current ones.
+        # v1.8: items = null means "items unchanged"; the estimate is then the current total.
         assert data["has_pending_change"] is True
-        assert data["pending_change"]["note"] == "Ring me"
-        assert [(item["product_id"], item["quantity"], item["current_quantity"])
-                for item in data["pending_change"]["items"]] == [(shop.product.pk, 2, 2)]
+        assert (data["pending_change"]["note"], data["pending_change"]["items"]) == ("Ring me", None)
+        assert data["pending_change"]["estimated_total"] == data["total_amount"]
 
     @pytest.mark.parametrize("status, before_cutoff, actions", [
         ("PLACED", True, ["MODIFY", "CANCEL"]),
