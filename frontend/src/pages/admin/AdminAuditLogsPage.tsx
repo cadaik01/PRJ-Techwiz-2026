@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { useAdminAuditLogs } from '@/features/admin/hooks/useAdminAuditLogs';
+import { useAdminAuditLogs } from '@/hooks/queries/admin/useAdminAuditLogs';
 import {
   AUDIT_ACTION_OPTIONS,
   auditActionLabel,
@@ -8,15 +8,15 @@ import {
   auditOutcome,
   auditReason,
   auditSubject,
-} from '@/features/admin/auditLabels';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Badge, type BadgeVariant } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/Sheet';
+} from '@/utils/auditLabels';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Badge, type BadgeVariant } from '@/components/common/badges/Badge';
+import { Button } from '@/components/common/forms/Button';
+import { Input } from '@/components/common/forms/Input';
+import { Label } from '@/components/common/forms/Label';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/common/drawer/Sheet';
 import { formatDateTime } from '@/utils/formatters';
 import type { AuditLogItem } from '@/types';
 
@@ -113,9 +113,6 @@ export default function AdminAuditLogsPage() {
         }}
       >
         <div className="admin-audit-logs-page__field">
-          <Label className="page-primitive__label-xs" htmlFor="audit-event">
-            Event
-          </Label>
           <select
             id="audit-event"
             className="page-primitive__select"
@@ -129,6 +126,10 @@ export default function AdminAuditLogsPage() {
               </option>
             ))}
           </select>
+          {/* After the select so it can sit on its border, the way Input floats its label. */}
+          <Label className="admin-audit-logs-page__field-label" htmlFor="audit-event">
+            Event
+          </Label>
         </div>
         <Input
           type="date"

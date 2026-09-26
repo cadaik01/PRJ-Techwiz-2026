@@ -14,16 +14,16 @@ import {
   Settings,
 } from 'lucide-react';
 
-import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { Button } from '@/components/ui/Button';
+import { ThemeToggle } from '@/components/common/layout/ThemeToggle';
+import { Button } from '@/components/common/forms/Button';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/Sheet';
-import { UserMenu } from '@/features/auth/components/UserMenu';
+} from '@/components/common/drawer/Sheet';
+import { UserMenu } from '@/components/common/forms/UserMenu';
 import { useUiStore } from '@/stores/ui.store';
 import { cn } from '@/lib/cn';
 

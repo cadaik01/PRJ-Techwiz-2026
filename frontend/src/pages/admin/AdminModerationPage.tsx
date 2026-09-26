@@ -7,18 +7,18 @@ import {
   useModerationReviews,
   useRestoreModerationProduct,
   useRestoreModerationReview,
-} from '@/features/admin/hooks/useAdminModeration';
-import type { ModerationTarget } from '@/features/admin/hooks/useAdminModeration';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { LazyImage } from '@/components/common/LazyImage';
-import { RatingStars } from '@/components/common/RatingStars';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
-import { Textarea } from '@/components/ui/Textarea';
+} from '@/hooks/queries/admin/useAdminModeration';
+import type { ModerationTarget } from '@/hooks/queries/admin/useAdminModeration';
+import { ConfirmDialog } from '@/components/common/modal/ConfirmDialog';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { LazyImage } from '@/components/common/cards/LazyImage';
+import { RatingStars } from '@/components/common/badges/RatingStars';
+import { Badge } from '@/components/common/badges/Badge';
+import { Button } from '@/components/common/forms/Button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/common/layout/Tabs';
+import { Textarea } from '@/components/common/forms/Textarea';
 
 import type { ModerationReview } from '@/types';
 

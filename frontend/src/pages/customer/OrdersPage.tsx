@@ -6,20 +6,20 @@ import {
   invalidateOrdersList,
   useCustomerOrders,
   useReorderPreview,
-} from '@/features/customer/hooks/useCustomerOrders';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { OrderCard } from '@/features/customer/components/OrderCard';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Button } from '@/components/ui/Button';
+} from '@/hooks/queries/customer/useCustomerOrders';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { OrderCard } from '@/components/customer/OrderCard';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Button } from '@/components/common/forms/Button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/Dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+} from '@/components/common/modal/Dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/common/layout/Tabs';
 import { useCartStore } from '@/stores/cart.store';
 import type { OrderStatus, ReorderPreview } from '@/types';
 

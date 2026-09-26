@@ -12,19 +12,19 @@ import 'leaflet/dist/leaflet.css';
 import {
   useAdminMarket,
   useSaveAdminMarket,
-} from '@/features/admin/hooks/useAdminMarkets';
+} from '@/hooks/queries/admin/useAdminMarkets';
 import {
   marketSchema,
   type MarketFormValues,
-} from '@/features/admin/schemas/market.schema';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
-import { Textarea } from '@/components/ui/Textarea';
-import { MarketClosuresPanel } from '@/features/admin/components/MarketClosuresPanel';
+} from '@/schemas/admin/market.schema';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Button } from '@/components/common/forms/Button';
+import { Input } from '@/components/common/forms/Input';
+import { Label } from '@/components/common/forms/Label';
+import { Textarea } from '@/components/common/forms/Textarea';
+import { MarketClosuresPanel } from '@/components/admin/MarketClosuresPanel';
 import { ApiError } from '@/lib/ApiError';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 

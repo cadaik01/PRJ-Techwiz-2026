@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import {
   useAdminMarkets,
   useToggleAdminMarket,
-} from '@/features/admin/hooks/useAdminMarkets';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
+} from '@/hooks/queries/admin/useAdminMarkets';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Badge } from '@/components/common/badges/Badge';
+import { Button } from '@/components/common/forms/Button';
 
 import './AdminMarketsPage.css';
 

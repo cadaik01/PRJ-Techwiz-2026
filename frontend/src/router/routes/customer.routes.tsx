@@ -18,7 +18,7 @@ const OrderReviewPage = lazy(() => import('@/pages/customer/OrderReviewPage'));
 const FavoritesPage = lazy(() => import('@/pages/customer/FavoritesPage'));
 const ProfilePage = lazy(() => import('@/pages/customer/ProfilePage'));
 const NotificationsPage = lazy(() => import('@/pages/customer/NotificationsPage'));
-const ChangePasswordPage = lazy(() => import('@/pages/shared/ChangePasswordPage'));
+const ChangePasswordPage = lazy(() => import('@/pages/auth/ChangePasswordPage'));
 
 /** Nested under PublicLayout (see public.routes). */
 export const customerRoutes: RouteObject[] = [

@@ -9,6 +9,9 @@ const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage')
 const AdminFarmersPage = lazy(() => import('@/pages/admin/AdminFarmersPage'));
 const AdminFarmerDetailPage = lazy(() => import('@/pages/admin/AdminFarmerDetailPage'));
 const AdminCustomersPage = lazy(() => import('@/pages/admin/AdminCustomersPage'));
+const AdminCustomerDetailPage = lazy(
+  () => import('@/pages/admin/AdminCustomerDetailPage'),
+);
 const AdminMarketsPage = lazy(() => import('@/pages/admin/AdminMarketsPage'));
 const AdminMarketFormPage = lazy(() => import('@/pages/admin/AdminMarketFormPage'));
 const AdminCategoriesPage = lazy(() => import('@/pages/admin/AdminCategoriesPage'));
@@ -16,7 +19,7 @@ const AdminModerationPage = lazy(() => import('@/pages/admin/AdminModerationPage
 const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'));
 const AdminAnnouncementsPage = lazy(() => import('@/pages/admin/AdminAnnouncementsPage'));
 const AdminAuditLogsPage = lazy(() => import('@/pages/admin/AdminAuditLogsPage'));
-const ChangePasswordPage = lazy(() => import('@/pages/shared/ChangePasswordPage'));
+const ChangePasswordPage = lazy(() => import('@/pages/auth/ChangePasswordPage'));
 
 /** Nested under a shared RequireAuth parent in AppRouter. */
 export const adminRoutes: RouteObject[] = [
@@ -47,6 +50,14 @@ export const adminRoutes: RouteObject[] = [
             element: (
               <Suspend>
                 <AdminFarmerDetailPage />
+              </Suspend>
+            ),
+          },
+          {
+            path: '/admin/customers/:id',
+            element: (
+              <Suspend>
+                <AdminCustomerDetailPage />
               </Suspend>
             ),
           },

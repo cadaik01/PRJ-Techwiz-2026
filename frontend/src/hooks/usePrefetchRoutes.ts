@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 
-import { catalogApi } from '@/features/catalog/api/catalogApi';
+import { catalogApi } from '@/api/guest/catalogApi';
 import { QUERY_KEYS } from '@/config/constants';
 import type { PaginatedData, ProductCard } from '@/types';
 

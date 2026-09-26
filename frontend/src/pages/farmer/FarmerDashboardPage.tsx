@@ -13,15 +13,15 @@ import {
 } from 'recharts';
 import { AlertTriangle, Package, TrendingUp, Wallet } from 'lucide-react';
 
-import { useFarmerDashboard } from '@/features/farmer/hooks/useFarmerDashboard';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { StatusBadge } from '@/components/common/StatusBadge';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useFarmerDashboard } from '@/hooks/queries/farmer/useFarmerDashboard';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { StatusBadge } from '@/components/common/badges/StatusBadge';
+import { Button } from '@/components/common/forms/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/cards/Card';
+import { Input } from '@/components/common/forms/Input';
+import { useAuth } from '@/hooks/authentication/useAuth';
 import { formatDate, formatVnd } from '@/utils/formatters';
 
 import './FarmerDashboardPage.css';

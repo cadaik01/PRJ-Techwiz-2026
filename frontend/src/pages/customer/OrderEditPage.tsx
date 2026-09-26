@@ -6,20 +6,20 @@ import { ApiError } from '@/lib/ApiError';
 import {
   useCustomerOrder,
   useUpdateOrder,
-} from '@/features/customer/hooks/useCustomerOrders';
-import { useFarmerPickupOptions } from '@/features/catalog/hooks/useCatalog';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { QuantityStepper } from '@/components/common/QuantityStepper';
-import { PriceTag } from '@/components/common/PriceTag';
+} from '@/hooks/queries/customer/useCustomerOrders';
+import { useFarmerPickupOptions } from '@/hooks/queries/guest/useCatalog';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { QuantityStepper } from '@/components/common/forms/QuantityStepper';
+import { PriceTag } from '@/components/common/badges/PriceTag';
 import {
   TimeSlotPicker,
   type SelectedSlot,
-} from '@/features/customer/components/TimeSlotPicker';
-import { Button } from '@/components/ui/Button';
-import { Textarea } from '@/components/ui/Textarea';
-import { usePublicConfigData } from '@/features/catalog/hooks/usePublicConfig';
+} from '@/components/customer/TimeSlotPicker';
+import { Button } from '@/components/common/forms/Button';
+import { Textarea } from '@/components/common/forms/Textarea';
+import { usePublicConfigData } from '@/hooks/queries/guest/usePublicConfig';
 import type { OrderDetail, PickupOption } from '@/types';
 
 import './OrderEditPage.css';

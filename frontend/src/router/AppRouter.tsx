@@ -8,7 +8,7 @@ import { authRoutes } from '@/router/routes/auth.routes';
 import { farmerRoutes } from '@/router/routes/farmer.routes';
 import { adminRoutes } from '@/router/routes/admin.routes';
 
-const ChangePasswordPage = lazy(() => import('@/pages/shared/ChangePasswordPage'));
+const ChangePasswordPage = lazy(() => import('@/pages/auth/ChangePasswordPage'));
 const ForbiddenPage = lazy(() => import('@/pages/errors/ForbiddenPage'));
 const NotFoundPage = lazy(() => import('@/pages/errors/NotFoundPage'));
 

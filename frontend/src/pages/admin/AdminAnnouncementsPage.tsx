@@ -6,23 +6,24 @@ import {
   useCreateAnnouncement,
   useDeleteAnnouncement,
   useToggleAnnouncement,
-} from '@/features/admin/hooks/useAdminAnnouncements';
+} from '@/hooks/queries/admin/useAdminAnnouncements';
 import {
   announcementSchema,
   type AnnouncementFormValues,
-} from '@/features/admin/schemas/announcement.schema';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
-import { Switch } from '@/components/ui/Switch';
-import { Textarea } from '@/components/ui/Textarea';
+} from '@/schemas/admin/announcement.schema';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Badge } from '@/components/common/badges/Badge';
+import { Button } from '@/components/common/forms/Button';
+import { Input } from '@/components/common/forms/Input';
+import { Label } from '@/components/common/forms/Label';
+import { Switch } from '@/components/common/forms/Switch';
+import { Textarea } from '@/components/common/forms/Textarea';
 import { ApiError } from '@/lib/ApiError';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 import { formatDateTime } from '@/utils/formatters';
+import { audienceLabel } from '@/utils/labels';
 
 import './AdminAnnouncementsPage.css';
 
@@ -99,9 +100,9 @@ export default function AdminAnnouncementsPage() {
         </div>
         <div className="admin-announcements-page__create-row">
           <select className="page-primitive__select" {...form.register('audience')}>
-            <option value="ALL">All</option>
-            <option value="CUSTOMER">Customers</option>
-            <option value="FARMER">Farmers</option>
+            <option value="ALL">{audienceLabel('ALL')}</option>
+            <option value="CUSTOMER">{audienceLabel('CUSTOMER')}</option>
+            <option value="FARMER">{audienceLabel('FARMER')}</option>
           </select>
           <Input
             type="datetime-local"
@@ -145,7 +146,7 @@ export default function AdminAnnouncementsPage() {
                     {announcement.content}
                   </p>
                   <div className="admin-announcements-page__meta">
-                    <Badge>{announcement.audience}</Badge>
+                    <Badge>{audienceLabel(announcement.audience)}</Badge>
                     <span>{formatDateTime(announcement.starts_at)}</span>
                     <Badge variant={announcement.is_active ? 'success' : 'secondary'}>
                       {announcement.is_active ? 'Active' : 'Off'}

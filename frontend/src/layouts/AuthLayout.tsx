@@ -1,7 +1,7 @@
 import { Link, Outlet } from 'react-router-dom';
 import { ArrowLeft, ShoppingBasket } from 'lucide-react';
 
-import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { ThemeToggle } from '@/components/common/layout/ThemeToggle';
 
 import './AuthLayout.css';
 

@@ -5,25 +5,25 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 
 import { ApiError } from '@/lib/ApiError';
-import { useCategories } from '@/features/catalog/hooks/useCatalog';
+import { useCategories } from '@/hooks/queries/guest/useCatalog';
 import {
   useFarmerMyProduct,
   useSaveFarmerProduct,
-} from '@/features/farmer/hooks/useFarmerProducts';
+} from '@/hooks/queries/farmer/useFarmerProducts';
 import {
   productSchema,
   type ProductFormValues,
-} from '@/features/farmer/schemas/product.schema';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { LazyImage } from '@/components/common/LazyImage';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
-import { Switch } from '@/components/ui/Switch';
-import { Textarea } from '@/components/ui/Textarea';
-import { usePublicConfigData } from '@/features/catalog/hooks/usePublicConfig';
+} from '@/schemas/farmer/product.schema';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { LazyImage } from '@/components/common/cards/LazyImage';
+import { Button } from '@/components/common/forms/Button';
+import { Input } from '@/components/common/forms/Input';
+import { Label } from '@/components/common/forms/Label';
+import { Switch } from '@/components/common/forms/Switch';
+import { Textarea } from '@/components/common/forms/Textarea';
+import { usePublicConfigData } from '@/hooks/queries/guest/usePublicConfig';
 import { mapServerErrorsToForm } from '@/utils/mapServerErrors';
 import type { Unit } from '@/types';
 

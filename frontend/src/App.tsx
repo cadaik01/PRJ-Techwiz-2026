@@ -1,14 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { Toaster } from 'sonner';
 
-import { authApi } from '@/features/auth/api/authApi';
-import { catalogApi } from '@/features/catalog/api/catalogApi';
-import { AiChatWidget } from '@/features/ai/components/AiChatWidget';
-import { ErrorBoundary } from '@/components/feedback/ErrorBoundary';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { TooltipProvider } from '@/components/ui/Tooltip';
+import { authApi } from '@/api/common/authApi';
+import { catalogApi } from '@/api/guest/catalogApi';
+import { AiChatWidget } from '@/components/common/chat/AiChatWidget';
+import { ErrorBoundary } from '@/components/common/feedback/ErrorBoundary';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { TooltipProvider } from '@/components/common/layout/Tooltip';
 import { QUERY_KEYS, STORAGE_KEYS } from '@/config/constants';
 import { env } from '@/config/env';
 import { queryClient } from '@/lib/queryClient';
@@ -121,7 +122,14 @@ export default function App() {
             <RouterProvider router={router} />
           </ErrorBoundary>
           <AiChatWidget />
-          <Toaster richColors position="bottom-left" closeButton />
+          {/* reset.css gives #root `isolation: isolate`, so everything rendered inside it is
+              trapped below the Sheet / Dialog overlays that Radix portals to <body> - the
+              toast ended up behind a blurred, dimmed backdrop. Portalling it to <body> too
+              puts it back in the same stacking context, where its own z-index wins. */}
+          {createPortal(
+            <Toaster richColors position="bottom-left" closeButton />,
+            document.body,
+          )}
         </BootProvider>
       </TooltipProvider>
     </QueryClientProvider>

@@ -1,8 +1,8 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
 import { DASHBOARD_PATH } from '@/config/constants';
-import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useAuth } from '@/hooks/authentication/useAuth';
 import type { Role } from '@/types';
 
 function homePathForRole(role: Role): string {

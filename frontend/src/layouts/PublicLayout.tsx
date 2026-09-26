@@ -1,11 +1,11 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { ShoppingBasket } from 'lucide-react';
 
-import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { Button } from '@/components/ui/Button';
-import { UserMenu } from '@/features/auth/components/UserMenu';
-import { MiniCartDrawer } from '@/features/cart/components/MiniCartDrawer';
-import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { ThemeToggle } from '@/components/common/layout/ThemeToggle';
+import { Button } from '@/components/common/forms/Button';
+import { UserMenu } from '@/components/common/forms/UserMenu';
+import { MiniCartDrawer } from '@/components/customer/MiniCartDrawer';
+import { NotificationBell } from '@/components/common/layout/NotificationBell';
 import { usePrefetchRoutes } from '@/hooks/usePrefetchRoutes';
 import { useAuthStore } from '@/stores/auth.store';
 import { cn } from '@/lib/cn';

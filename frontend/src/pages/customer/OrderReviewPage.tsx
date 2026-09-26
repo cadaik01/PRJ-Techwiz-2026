@@ -5,12 +5,12 @@ import { Star } from 'lucide-react';
 import {
   useCustomerOrder,
   useSubmitOrderReview,
-} from '@/features/customer/hooks/useCustomerOrders';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Button } from '@/components/ui/Button';
-import { Textarea } from '@/components/ui/Textarea';
+} from '@/hooks/queries/customer/useCustomerOrders';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Button } from '@/components/common/forms/Button';
+import { Textarea } from '@/components/common/forms/Textarea';
 import './OrderReviewPage.css';
 
 function StarPicker({

@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/lib/ApiError';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { Button } from '@/components/ui/Button';
-import { useNotifications } from '@/features/notifications/hooks/useNotifications';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { Button } from '@/components/common/forms/Button';
+import { useNotifications } from '@/hooks/queries/common/useNotifications';
 import { formatRelative } from '@/utils/formatters';
 
 import './FarmerNotificationsPage.css';

@@ -6,16 +6,16 @@ import {
   useFarmerMyProducts,
   useMarkSoldOut,
   useUpdateFarmerStock,
-} from '@/features/farmer/hooks/useFarmerProducts';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { QuantityStepper } from '@/components/common/QuantityStepper';
-import { LazyImage } from '@/components/common/LazyImage';
-import { PriceTag } from '@/components/common/PriceTag';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+} from '@/hooks/queries/farmer/useFarmerProducts';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { QuantityStepper } from '@/components/common/forms/QuantityStepper';
+import { LazyImage } from '@/components/common/cards/LazyImage';
+import { PriceTag } from '@/components/common/badges/PriceTag';
+import { Badge } from '@/components/common/badges/Badge';
+import { Button } from '@/components/common/forms/Button';
+import { Input } from '@/components/common/forms/Input';
 import type { ProductAvailability } from '@/types';
 
 import './FarmerProductsPage.css';

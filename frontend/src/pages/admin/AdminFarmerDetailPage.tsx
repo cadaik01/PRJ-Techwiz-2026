@@ -1,14 +1,15 @@
 import { Link, useParams } from 'react-router-dom';
 
-import { useAdminFarmer } from '@/features/admin/hooks/useAdminFarmers';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { PageHeader } from '@/components/common/PageHeader';
-import { PageSkeleton } from '@/components/feedback/PageSkeleton';
-import { PriceTag } from '@/components/common/PriceTag';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { useAdminFarmer } from '@/hooks/queries/admin/useAdminFarmers';
+import { EmptyState } from '@/components/common/feedback/EmptyState';
+import { PageHeader } from '@/components/common/layout/PageHeader';
+import { PageSkeleton } from '@/components/common/feedback/PageSkeleton';
+import { PriceTag } from '@/components/common/badges/PriceTag';
+import { Badge } from '@/components/common/badges/Badge';
+import { Button } from '@/components/common/forms/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/cards/Card';
 import { formatDateTime } from '@/utils/formatters';
+import { farmerStatusLabel } from '@/utils/labels';
 
 import './AdminFarmerDetailPage.css';
 
@@ -43,7 +44,7 @@ export default function AdminFarmerDetailPage() {
       />
 
       <div className="page-primitive__actions-row">
-        <Badge>{f.status}</Badge>
+        <Badge>{farmerStatusLabel(f.status)}</Badge>
         {f.status_reason ? (
           <span className="page-primitive__danger-sm">{f.status_reason}</span>
         ) : null}
@@ -125,7 +126,10 @@ export default function AdminFarmerDetailPage() {
               className="page-primitive__history-item"
             >
               <p className="page-primitive__font-medium">
-                {h.from_status ?? '—'} → {h.to_status}
+                {/* No from_status means the very first row: the stall registering, not a move. */}
+                {h.from_status
+                  ? `${farmerStatusLabel(h.from_status)} → ${farmerStatusLabel(h.to_status)}`
+                  : `Registered · ${farmerStatusLabel(h.to_status)}`}
               </p>
               <p className="page-primitive__muted-sm">
                 {formatDateTime(h.changed_at)} · {h.changed_by}
