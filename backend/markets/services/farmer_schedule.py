@@ -18,6 +18,7 @@ from marketlink_core.exceptions import (
     ResourceNotFoundError,
     UnprocessableEntityError,
 )
+from marketlink_core.history import delete_with_history
 from markets.models import FarmerClosure, FarmerMarket, Market, MarketOperatingDay, PickupSlot
 from orders.models import OPEN_STATUSES, Order
 from orders.services.expiry import expire_overdue_orders
@@ -104,7 +105,13 @@ def leave_market(*, farmer_id: int, farmer_market_id: int) -> None:
                     errors={"order_ids": blocking},
                 )
             # Past orders keep their data: orders.pickup_slot is SET_NULL, market/stall are snapshots.
-            farmer_market.delete()
+            # Slots are deleted one by one first so the audit trail records each of them (v1.8).
+            reason = f"Farmer left market #{farmer_market.market_id}"
+            for slot in PickupSlot.objects.select_for_update(of=("self",)).filter(
+                farmer_market=farmer_market
+            ).order_by("id"):
+                delete_with_history(slot, reason=reason)
+            delete_with_history(farmer_market, reason=reason)
 
     run_with_retry_if_top_level(_execute)
 

@@ -27,6 +27,7 @@ from marketlink_core.exceptions import (
     ResourceNotFoundError,
     UnprocessableEntityError,
 )
+from marketlink_core.history import save_with_history
 from marketlink_core.pagination import StandardPagination
 from marketlink_core.permissions import IsFarmer
 from marketlink_core.responses import api_response
@@ -229,7 +230,7 @@ class FarmerProductDetailView(FarmerBaseProductView):
         self._check_can_write(profile, require_approved=False)
         product = self._get_farmer_product(profile, pk)
         product.is_archived = True
-        product.save(update_fields=["is_archived", "updated_at"])
+        save_with_history(product, update_fields=["is_archived", "updated_at"], reason="Archived by farmer")
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -244,7 +245,9 @@ class FarmerProductMarkSoldOutView(FarmerBaseProductView):
                 product = self._get_farmer_product(profile, pk, lock=True)
                 if product.stock_quantity != 0:
                     product.stock_quantity = 0
-                    product.save(update_fields=["stock_quantity", "updated_at"])
+                    save_with_history(
+                        product, update_fields=["stock_quantity", "updated_at"], reason="Marked sold out by farmer"
+                    )
             return product
 
         product = run_with_retry_if_top_level(_execute)

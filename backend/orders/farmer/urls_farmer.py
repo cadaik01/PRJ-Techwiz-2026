@@ -1,6 +1,7 @@
 from django.urls import path
 
 from orders.farmer.views_farmer import (
+    FarmerDashboardView,
     FarmerOrderAcceptView,
     FarmerOrderApproveChangeView,
     FarmerOrderCompleteView,
@@ -58,4 +59,9 @@ urlpatterns = [
         FarmerOrderRejectChangeView.as_view(),
         name="farmer-orders-reject-change",
     ),
+]
+
+# FA-01 is mounted at api/farmer/dashboard/ from marketlink_core/urls.py.
+dashboard_urlpatterns = [
+    path("", FarmerDashboardView.as_view(), name="farmer-dashboard"),
 ]

@@ -9,6 +9,7 @@ from django.utils import timezone
 from accounts.geocoding import geocode_address
 from accounts.models import FarmerProfile
 from marketlink_core.exceptions import BusinessValidationError, ErrorCode, UnprocessableEntityError
+from marketlink_core.history import save_with_history
 from markets.models import PickupSlot
 from orders.models import OPEN_STATUSES, Order
 from orders.services.expiry import expire_overdue_orders
@@ -122,8 +123,17 @@ def _deactivate_off_days(*, farmer_id: int, off_days: list[int]) -> int:
             code=ErrorCode.RESOURCE_IN_USE,
             errors={"order_ids": blocking},
         )
-    return PickupSlot.objects.filter(
-        farmer_market__farmer_id=farmer_id,
-        day_of_week__in=off_days,
-        is_active=True,
-    ).update(is_active=False, updated_at=timezone.now())
+    # One save per slot (not QuerySet.update) so each switched-off slot gets a history row (v1.8).
+    slots = list(
+        PickupSlot.objects.select_for_update(of=("self",))
+        .filter(farmer_market__farmer_id=farmer_id, day_of_week__in=off_days, is_active=True)
+        .order_by("id")
+    )
+    for slot in slots:
+        slot.is_active = False
+        save_with_history(
+            slot,
+            update_fields=["is_active", "updated_at"],
+            reason=f"Switched off: day {slot.day_of_week} is no longer an operating day",
+        )
+    return len(slots)

@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 
 from marketlink_core.views import HealthCheckView, WebSocketTicketView
 from markets.farmer import urls_farmer as farmer_market_urls
+from orders.farmer import urls_farmer as farmer_order_urls
 
 # Django Admin lives at /django-admin/ so it never collides with the /api/admin/ branch.
 urlpatterns = [
@@ -30,7 +31,9 @@ urlpatterns = [
     path("api/farmer/markets/", include(farmer_market_urls.market_urlpatterns)),
     path("api/farmer/pickup-slots/", include(farmer_market_urls.pickup_slot_urlpatterns)),
     path("api/farmer/closures/", include(farmer_market_urls.closure_urlpatterns)),
+    path("api/farmer/dashboard/", include(farmer_order_urls.dashboard_urlpatterns)),
     path("api/farmer/orders/", include("orders.farmer.urls_farmer")),
+    path("api/farmer/", include("reviews.farmer.urls_farmer")),
     path("api/notifications/", include("notifications.urls")),
     path("api/farmer/products/", include("catalog.farmer.urls_farmer")),
 ]

@@ -3,8 +3,9 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from simple_history.models import HistoricalRecords
 
-from marketlink_core.models import BaseModel, UUIDUploadTo
+from marketlink_core.models import BaseModel, HistoryRequestMeta, UUIDUploadTo
 
 
 class Unit(models.TextChoices):
@@ -56,6 +57,11 @@ class Product(BaseModel):
         null=True,
         blank=True,
         related_name="hidden_products",
+    )
+
+    history = HistoricalRecords(
+        table_name="product_histories",
+        bases=[HistoryRequestMeta],
     )
 
     class Meta:

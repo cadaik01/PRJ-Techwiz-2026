@@ -19,6 +19,7 @@ from marketlink_core.exceptions import (
     BusinessValidationError,
     ErrorCode,
 )
+from marketlink_core.history import save_with_history
 from markets.models import FarmerMarket, PickupSlot
 from notifications.models import NotificationType
 from notifications.services import notify
@@ -242,7 +243,11 @@ def apply_weekly_template(*, farmer: FarmerProfile) -> dict[str, int]:
                 old_stock = p.stock_quantity
                 new_stock = max(p.weekly_default_quantity - held_dict.get(p.id, 0), 0)
                 p.stock_quantity = new_stock
-                p.save(update_fields=["stock_quantity", "updated_at"])
+                save_with_history(
+                    p,
+                    update_fields=["stock_quantity", "updated_at"],
+                    reason=f"Weekly template applied (default {p.weekly_default_quantity}, held {held_dict.get(p.id, 0)})",
+                )
                 updated_count += 1
 
                 # D-025 trigger: stock moves from 0 to > 0

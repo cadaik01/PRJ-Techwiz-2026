@@ -15,6 +15,7 @@ from marketlink_core.exceptions import (
     ResourceNotFoundError,
     UnprocessableEntityError,
 )
+from marketlink_core.history import delete_with_history, save_with_history
 from markets.services.validation import validate_pickup_date
 from notifications.models import NotificationType
 from notifications.services import notify
@@ -80,6 +81,7 @@ def approve_change_request(
                 order_id=order_id, farmer_id=farmer_id, expected_version=expected_version, verb="approved"
             )
             change = parse_pending_change(order.pending_change)
+            history_reason = f"Order #{order.pk}: change request approved"
 
             schedule = None
             if change.pickup_date is not None:
@@ -121,10 +123,13 @@ def approve_change_request(
                     if delta:
                         deltas[product_id] = delta
                 if deltas:
-                    apply_stock_delta(products=locked_products, deltas=deltas)
+                    apply_stock_delta(products=locked_products, deltas=deltas, reason=history_reason)
 
                 # Prices come from the request: the price the customer saw (decision A, v1.8).
-                order.items.all().delete()
+                # One save / delete per row (never bulk_create or queryset delete) so the audit
+                # trail keeps the items as they were before the change (v1.8).
+                for old_item in old_items.values():
+                    delete_with_history(old_item, reason=history_reason)
                 new_order_items = [
                     OrderItem(
                         order=order,
@@ -137,7 +142,8 @@ def approve_change_request(
                     )
                     for item in change.items
                 ]
-                OrderItem.objects.bulk_create(new_order_items)
+                for new_item in new_order_items:
+                    save_with_history(new_item, reason=history_reason)
                 order.total_amount = sum(item.line_total for item in new_order_items)
                 update_fields.append("total_amount")
 
@@ -163,7 +169,7 @@ def approve_change_request(
 
             order.pending_change = None
             order.version += 1
-            order.save(update_fields=update_fields)
+            save_with_history(order, update_fields=update_fields, reason=history_reason)
 
             OrderStatusHistory.objects.create(
                 order=order,
@@ -209,7 +215,11 @@ def reject_change_request(
             )
             order.pending_change = None
             order.version += 1
-            order.save(update_fields=["pending_change", "version", "updated_at"])
+            save_with_history(
+                order,
+                update_fields=["pending_change", "version", "updated_at"],
+                reason=f"Order #{order.pk}: change request rejected",
+            )
 
             OrderStatusHistory.objects.create(
                 order=order,

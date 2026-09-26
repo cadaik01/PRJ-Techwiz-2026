@@ -1,9 +1,10 @@
 from django.conf import settings
 from django.db import models
 from django.db.models import F, Q
+from simple_history.models import HistoricalRecords
 
 from catalog.models import Unit
-from marketlink_core.models import BaseModel, CreatedAtModel
+from marketlink_core.models import BaseModel, CreatedAtModel, HistoryRequestMeta
 
 
 class OrderStatus(models.TextChoices):
@@ -87,6 +88,11 @@ class Order(BaseModel):
     total_amount = models.DecimalField(**MONEY_FIELD_KWARGS)
     version = models.PositiveIntegerField(default=1)
 
+    history = HistoricalRecords(
+        table_name="order_histories",
+        bases=[HistoryRequestMeta],
+    )
+
     class Meta:
         db_table = "orders"
         ordering = ["-created_at"]
@@ -134,6 +140,11 @@ class OrderItem(BaseModel):
     unit_price = models.DecimalField(**MONEY_FIELD_KWARGS)
     quantity = models.PositiveIntegerField()
     line_total = models.DecimalField(**MONEY_FIELD_KWARGS)
+
+    history = HistoricalRecords(
+        table_name="order_item_histories",
+        bases=[HistoryRequestMeta],
+    )
 
     class Meta:
         db_table = "order_items"

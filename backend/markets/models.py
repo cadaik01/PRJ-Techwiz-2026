@@ -3,8 +3,9 @@ from decimal import Decimal
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import F, Q
+from simple_history.models import HistoricalRecords
 
-from marketlink_core.models import BaseModel, UUIDUploadTo
+from marketlink_core.models import BaseModel, HistoryRequestMeta, UUIDUploadTo
 
 
 class DayOfWeek(models.IntegerChoices):
@@ -85,6 +86,11 @@ class FarmerMarket(BaseModel):
     market = models.ForeignKey(Market, on_delete=models.RESTRICT, related_name="farmer_markets")
     stall_label = models.CharField(max_length=100)
 
+    history = HistoricalRecords(
+        table_name="farmer_market_histories",
+        bases=[HistoryRequestMeta],
+    )
+
     class Meta:
         db_table = "farmer_markets"
         constraints = [
@@ -103,6 +109,11 @@ class PickupSlot(BaseModel):
     start_time = models.TimeField()
     end_time = models.TimeField()
     is_active = models.BooleanField(default=True)
+
+    history = HistoricalRecords(
+        table_name="pickup_slot_histories",
+        bases=[HistoryRequestMeta],
+    )
 
     class Meta:
         db_table = "pickup_slots"
@@ -158,6 +169,11 @@ class MarketClosure(ClosureFields):
 class FarmerClosure(ClosureFields):
     farmer = models.ForeignKey(
         "accounts.FarmerProfile", on_delete=models.CASCADE, related_name="closures"
+    )
+
+    history = HistoricalRecords(
+        table_name="farmer_closure_histories",
+        bases=[HistoryRequestMeta],
     )
 
     class Meta:
