@@ -77,13 +77,14 @@ export default function AdminModerationPage() {
           <TabsTrigger value="products">Products</TabsTrigger>
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
         </TabsList>
-        <TabsContent value="products" className="admin-moderation-page__list">
+        <TabsContent value="products">
           <SortSelect
             id="product-moderation-sort"
             options={PRODUCT_SORT}
             value={productOrdering}
             onChange={setProductOrdering}
           />
+          <div className="admin-moderation-page__list">
           {productsQuery.isLoading ? (
             <PageSkeleton />
           ) : !productsQuery.data?.results.length ? (
@@ -126,14 +127,16 @@ export default function AdminModerationPage() {
               </div>
             ))
           )}
+          </div>
         </TabsContent>
-        <TabsContent value="reviews" className="admin-moderation-page__list">
+        <TabsContent value="reviews">
           <SortSelect
             id="review-moderation-sort"
             options={REVIEW_SORT}
             value={reviewOrdering}
             onChange={setReviewOrdering}
           />
+          <div className="admin-moderation-page__list">
           {reviewsQuery.isLoading ? (
             <PageSkeleton />
           ) : !reviewsQuery.data?.results.length ? (
@@ -180,6 +183,7 @@ export default function AdminModerationPage() {
               </div>
             ))
           )}
+          </div>
         </TabsContent>
       </Tabs>
 

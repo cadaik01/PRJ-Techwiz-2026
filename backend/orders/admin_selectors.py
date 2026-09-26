@@ -22,9 +22,12 @@ def at_risk_threshold() -> int:
     return getattr(settings, "AT_RISK_THRESHOLD", DEFAULT_AT_RISK_THRESHOLD)
 
 
+def at_risk_window_days() -> int:
+    return getattr(settings, "AT_RISK_WINDOW_DAYS", DEFAULT_AT_RISK_WINDOW_DAYS)
+
+
 def at_risk_window_start():
-    days = getattr(settings, "AT_RISK_WINDOW_DAYS", DEFAULT_AT_RISK_WINDOW_DAYS)
-    return timezone.now() - timedelta(days=days)
+    return timezone.now() - timedelta(days=at_risk_window_days())
 
 
 def open_order_breakdown(queryset) -> dict:

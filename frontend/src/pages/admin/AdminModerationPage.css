@@ -1,19 +1,12 @@
 @import '../../styles/common/page-primitives.css';
 
+/* One column at every width, on purpose. These lists are sorted, and a reader scans a
+   two-column grid straight down the left side - so the second item by rating showed up third
+   on screen and the sort looked broken. */
 .admin-moderation-page__list {
   display: grid;
   gap: var(--space-3);
   margin-top: var(--space-4);
-}
-
-@media (min-width: 1024px) {
-  .admin-moderation-page__list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-moderation-page__list > .admin-moderation-page__row {
-    grid-column: 1 / -1;
-  }
 }
 
 .admin-moderation-page__row {

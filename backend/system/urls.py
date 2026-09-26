@@ -3,6 +3,7 @@ from django.urls import path
 from system.views import (
     AdminChangeLogView,
     AdminFlagListView,
+    AdminSettingsView,
     AdminFlagResolveView,
     AuditLogDetailView,
     AuditLogListView,
@@ -17,6 +18,7 @@ urlpatterns = [
     path("admin/dashboard/", DashboardView.as_view(), name="admin-dashboard"),
     path("admin/reports/summary/", ReportSummaryView.as_view(), name="admin-report-summary"),
     path("admin/reports/export/", ReportExportView.as_view(), name="admin-report-export"),
+    path("admin/settings/", AdminSettingsView.as_view(), name="admin-settings"),
     path("admin/flags/", AdminFlagListView.as_view(), name="admin-flag-list"),
     path("admin/flags/<int:id>/resolve/", AdminFlagResolveView.as_view(), name="admin-flag-resolve"),
     path("admin/audit-logs/", AuditLogListView.as_view(), name="admin-audit-log-list"),
