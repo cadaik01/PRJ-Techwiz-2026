@@ -1,1 +1,5 @@
-﻿/* Empty CSS placeholder */
+/**
+ * App stylesheet entry. Only tokens, reset, base and utilities live globally;
+ * every component and page keeps its own CSS file next to the JSX (see styles/common/global.css).
+ */
+@import './common/global.css';
