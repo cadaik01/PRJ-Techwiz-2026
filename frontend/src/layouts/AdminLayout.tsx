@@ -38,7 +38,7 @@ const navItems = [
   { to: '/admin/moderation', label: 'Moderation', icon: ShieldAlert, end: false },
   { to: '/admin/reports', label: 'Reports', icon: FileBarChart, end: false },
   { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, end: false },
-  { to: '/admin/audit-logs', label: 'Audit log', icon: ScrollText, end: false },
+  { to: '/admin/audit-logs', label: 'System log', icon: ScrollText, end: false },
   { to: '/admin/settings', label: 'Settings', icon: Settings, end: false },
 ];
 
